@@ -17,7 +17,8 @@
       "number": "1.16.5",
       "type": "release",
       "custom": "Forge 1.16.5"
-    }
+    },
+    "javaPath": ""
   },
   "theme": {
     "accent": "#0a84ff",

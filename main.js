@@ -52,6 +52,7 @@ const DEFAULT_CONFIG = {
     server: { host: "127.0.0.1", port: 25565 },
     memory: { min: "2048", max: "4096" },
     version: { number: "1.16.5", type: "release", custom: "Forge 1.16.5" },
+    javaPath: "",
     gameDirectory: path.join(APP_DIR, "minecraft", "game")
   },
   theme: {},
@@ -149,6 +150,10 @@ async function runSelfUpdate() {
   if (!app.isPackaged) {
     console.log("[selfupdate] пропуск: dev-режим (electron .) — обновление применяется только к собранному EXE");
     return { ok: true, skipped: true, message: "dev-режим" };
+  }
+  if (process.platform !== "win32") {
+    console.log("[selfupdate] пропуск: подмена запущенного EXE поддерживается только на Windows");
+    return { ok: true, skipped: true, message: "Поддерживается только Windows" };
   }
 
   const send = (payload) => { if (mainWindow) mainWindow.webContents.send("launcher:update", payload); };
@@ -299,6 +304,32 @@ function patchAuthlib(versionJsonPath) {
   }
 }
 
+// Поиск Java 17: 1) явный путь из config.json; 2) встроенная JRE рядом с EXE (APP_DIR/jre);
+// 3) иначе пусто — minecraft-launcher-core возьмёт java/javaw из PATH.
+function resolveJavaPath() {
+  const configured = String(CONFIG.launcher.javaPath || "").trim();
+  if (configured) {
+    if (fs.existsSync(configured)) return configured;
+    console.warn("[java] путь из config.json не найден:", configured);
+  }
+
+  const candidates = process.platform === "win32"
+    ? [
+        path.join(APP_DIR, "jre", "bin", "javaw.exe"),
+        path.join(APP_DIR, "jre", "bin", "java.exe"),
+        path.join(ROOT, "jre", "bin", "javaw.exe")
+      ]
+    : [
+        path.join(APP_DIR, "jre", "bin", "java"),
+        path.join(ROOT, "jre", "bin", "java")
+      ];
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return "";
+}
+
 ipcMain.handle("window:minimize", () => { if (mainWindow) mainWindow.minimize(); });
 ipcMain.handle("window:close", () => { if (mainWindow) mainWindow.close(); });
 
@@ -363,7 +394,7 @@ ipcMain.handle("game:launch", async (event, username) => {
       min: String(CONFIG.launcher.memory.min),
       max: String(CONFIG.launcher.memory.max)
     },
-    os: "windows",
+    os: process.platform === "win32" ? "windows" : (process.platform === "darwin" ? "osx" : "linux"),
     customArgs: [
       "-XX:+IgnoreUnrecognizedVMOptions",
       "--add-opens=java.base/java.util=ALL-UNNAMED",
@@ -379,6 +410,15 @@ ipcMain.handle("game:launch", async (event, username) => {
       "-Dfml.earlyprogresswindow=false"
     ]
   };
+
+  // Java: явный путь / встроенная JRE рядом с EXE; иначе — из PATH.
+  const javaPath = resolveJavaPath();
+  if (javaPath) {
+    opts.javaPath = javaPath;
+    console.log("[java] используется:", javaPath);
+  } else {
+    console.warn("[java] JRE не найдена рядом с EXE, будет использована java из PATH");
+  }
 
   // Автоподключение к серверу отключено: игра всегда открывает главное меню Minecraft,
   // игрок сам выбирает «Одиночная игра» / «Сетевая игра».
