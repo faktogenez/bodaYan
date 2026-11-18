@@ -1,0 +1,46 @@
+{
+  "name": "apple-launcher",
+  "version": "1.0.0",
+  "description": "SkyBlock Launcher",
+  "author": "AppleLauncher",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win portable",
+    "dist:installer": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "electron": "^33.2.1",
+    "minecraft-launcher-core": "^3.18.2"
+  },
+  "build": {
+    "appId": "com.applelauncher.skyblock",
+    "productName": "AppleLauncher",
+    "artifactName": "AppleLauncher-${version}.${ext}",
+    "compression": "maximum",
+    "files": [
+      "main.js",
+      "src/**/*",
+      "index.html",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      "config/config.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "AppleLauncher-${version}.exe"
+    }
+  }
+}

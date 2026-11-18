@@ -1,0 +1,54 @@
+{
+  "launcher": {
+    "title": "AppleLauncher",
+    "width": 920,
+    "height": 600,
+    "offline": true,
+    "defaultUsername": "bodayan",
+    "server": {
+      "host": "127.0.0.1",
+      "port": 25565
+    },
+    "memory": {
+      "min": "2048",
+      "max": "4096"
+    },
+    "version": {
+      "number": "1.16.5",
+      "type": "release",
+      "custom": "Forge 1.16.5"
+    }
+  },
+  "theme": {
+    "accent": "#0a84ff",
+    "accentHover": "#0077ed",
+    "textPrimary": "#f5f5f7",
+    "textSecondary": "#86868b",
+    "surface": "rgba(20, 20, 22, 0.72)",
+    "surfaceBorder": "rgba(255, 255, 255, 0.12)",
+    "inputBg": "rgba(255, 255, 255, 0.08)",
+    "inputBorder": "rgba(255, 255, 255, 0.16)",
+    "backdropBlur": "30px",
+    "backdropSaturate": "180%",
+    "radius": "18px"
+  },
+  "updater": {
+    "enabled": false,
+    "manifestUrl": ""
+  },
+  "servers": {
+    "enforce": true,
+    "list": [
+      {
+        "name": "Мой сервер",
+        "ip": "127.0.0.1:25565"
+      }
+    ]
+  },
+  "selfUpdate": {
+    "enabled": false,
+    "manifestUrl": "",
+    "currentVersion": "1.0.0",
+    "autoApply": true
+  }
+}

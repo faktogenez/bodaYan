@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' file: data:; script-src 'self';">
+  <title>AppleLauncher</title>
+  <link rel="stylesheet" href="assets/styles/app.css">
+</head>
+<body>
+  <div id="bgLayer" class="bg-layer"></div>
+  <div class="bg-overlay"></div>
+
+  <div class="app">
+    <header class="titlebar">
+      <div class="window-controls">
+        <button class="control-btn close-btn" id="closeBtn" title="Закрыть"></button>
+        <button class="control-btn minimize-btn" id="minimizeBtn" title="Свернуть"></button>
+      </div>
+      <span class="brand">AppleLauncher</span>
+      <div style="width: 54px;"></div>
+    </header>
+
+    <main class="content">
+      <div class="hero">
+        <h1>SkyBlock</h1>
+        <p>Minecraft 1.16.5 с Forge</p>
+      </div>
+
+      <section class="card">
+        <div class="input-group">
+          <label for="username">Никнейм</label>
+          <input type="text" id="username" placeholder="Введите ник" value="bodayan" maxlength="16" autocomplete="off">
+        </div>
+
+        <div class="meta-row">
+          <span id="metaVersion">Forge 1.16.5</span>
+          <span id="metaMemory">2G / 4G</span>
+          <span id="metaServer">127.0.0.1:25565</span>
+        </div>
+
+        <button class="play-btn" id="playBtn">Играть</button>
+
+        <div class="progress-wrap" id="progressWrap" hidden>
+          <div class="progress" id="progressTrack"><div class="progress-bar" id="progressBar"></div></div>
+          <div class="progress-label" id="progressLabel"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="status-bar" id="statusText">Готов к запуску</footer>
+  </div>
+
+  <script src="src/renderer.js"></script>
+</body>
+</html>

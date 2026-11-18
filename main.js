@@ -1,0 +1,446 @@
+const { app, BrowserWindow, ipcMain } = require("electron");
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
+const { pathToFileURL } = require("url");
+const { Client } = require("minecraft-launcher-core");
+const updater = require("./src/updater");
+const servers = require("./src/servers");
+const selfUpdate = require("./src/selfUpdate");
+
+const ROOT = __dirname;
+
+// Каталог данных (записываемый): рядом с исходным EXE в portable-сборке, иначе корень проекта.
+// В portable-сборке electron-builder распаковывает приложение в %TEMP%, поэтому реальную
+// папку запуска берём из PORTABLE_EXECUTABLE_DIR, а не из process.execPath.
+const APP_DIR = app.isPackaged
+  ? (process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath))
+  : ROOT;
+
+// Встроенный шаблон конфига (в dev — в проекте, в сборке — в resources).
+const BUNDLED_CONFIG = app.isPackaged
+  ? path.join(process.resourcesPath, "config", "config.json")
+  : path.join(ROOT, "config", "config.json");
+
+const CONFIG_DIR = path.join(APP_DIR, "config");
+const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
+
+// Первый запуск: внешний конфиг рядом с EXE создаётся из встроенного шаблона.
+function ensureConfig() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) return;
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    if (fs.existsSync(BUNDLED_CONFIG)) {
+      fs.copyFileSync(BUNDLED_CONFIG, CONFIG_PATH);
+      console.log("[config] создан внешний конфиг:", CONFIG_PATH);
+    }
+  } catch (err) {
+    console.error("[config] не удалось создать внешний конфиг:", err.message);
+  }
+}
+ensureConfig();
+
+const AUTHLIB_FIX_VERSION = "2.3.31";
+
+const DEFAULT_CONFIG = {
+  launcher: {
+    title: "AppleLauncher",
+    width: 920,
+    height: 600,
+    offline: true,
+    defaultUsername: "bodayan",
+    server: { host: "127.0.0.1", port: 25565 },
+    memory: { min: "2048", max: "4096" },
+    version: { number: "1.16.5", type: "release", custom: "Forge 1.16.5" },
+    gameDirectory: path.join(APP_DIR, "minecraft", "game")
+  },
+  theme: {},
+  backgrounds: {
+    path: path.join(ROOT, "assets", "backgrounds"),
+    additionalPaths: [path.join(APP_DIR, "assets", "backgrounds")]
+  },
+  updater: {
+    enabled: false,
+    manifestUrl: "",
+    manifestPath: path.join(APP_DIR, "updater", "manifest.json"),
+    targetPath: path.join(APP_DIR, "minecraft", "game")
+  },
+  servers: {
+    enforce: true,
+    list: [{ name: "Мой сервер", ip: "127.0.0.1:25565" }]
+  },
+  selfUpdate: {
+    enabled: false,
+    manifestUrl: "",
+    manifestPath: path.join(APP_DIR, "updater", "launcher-version.json"),
+    currentVersion: "1.0.0",
+    autoApply: true
+  }
+};
+
+function readConfig() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+    return {
+      launcher: { ...DEFAULT_CONFIG.launcher, ...(cfg.launcher || {}) },
+      theme: { ...DEFAULT_CONFIG.theme, ...(cfg.theme || {}) },
+      backgrounds: { ...DEFAULT_CONFIG.backgrounds, ...(cfg.backgrounds || {}) },
+      updater: { ...DEFAULT_CONFIG.updater, ...(cfg.updater || {}) },
+      servers: { ...DEFAULT_CONFIG.servers, ...(cfg.servers || {}) },
+      selfUpdate: { ...DEFAULT_CONFIG.selfUpdate, ...(cfg.selfUpdate || {}) }
+    };
+  } catch (err) {
+    console.error("[config] не удалось прочитать config.json, используются значения по умолчанию:", err.message);
+    return DEFAULT_CONFIG;
+  }
+}
+
+const CONFIG = readConfig();
+const GAME_DIR = CONFIG.launcher.gameDirectory;
+const VERSION_CUSTOM = CONFIG.launcher.version.custom;
+const VERSION_NUMBER = CONFIG.launcher.version.number;
+const VERSION_TYPE = CONFIG.launcher.version.type;
+const DEFAULT_USERNAME = CONFIG.launcher.defaultUsername;
+const SERVER_HOST = CONFIG.launcher.server.host;
+const SERVER_PORT = CONFIG.launcher.server.port;
+
+const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+
+// Маркеры в логе игры, означающие, что клиент загрузился и отрисовал окно.
+const GAME_START_MARKERS = ["Backend library:", "OpenAL initialized", "Sound engine started"];
+
+let mainWindow = null;
+let launching = false;
+let gameStarted = false;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    title: CONFIG.launcher.title,
+    width: CONFIG.launcher.width,
+    height: CONFIG.launcher.height,
+    minWidth: 640,
+    minHeight: 460,
+    frame: false,
+    transparent: true,
+    backgroundColor: "#00000000",
+    resizable: true,
+    webPreferences: {
+      preload: path.join(ROOT, "src", "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  mainWindow.loadFile(path.join(ROOT, "index.html"));
+
+  // Автопроверка при запуске: сначала самообновление лаунчера, затем файлы игры.
+  mainWindow.webContents.on("did-finish-load", () => {
+    if (CONFIG.selfUpdate && CONFIG.selfUpdate.enabled) runSelfUpdate();
+    if (CONFIG.updater && CONFIG.updater.enabled) runUpdater();
+  });
+
+  mainWindow.on("closed", () => { mainWindow = null; });
+}
+
+// Автообновление самого лаунчера: проверить версию, скачать новый EXE и перезапуститься.
+async function runSelfUpdate() {
+  const s = CONFIG.selfUpdate || {};
+  if (!s.enabled) return { ok: true, skipped: true, message: "Автообновление лаунчера отключено" };
+  if (!app.isPackaged) {
+    console.log("[selfupdate] пропуск: dev-режим (electron .) — обновление применяется только к собранному EXE");
+    return { ok: true, skipped: true, message: "dev-режим" };
+  }
+
+  const send = (payload) => { if (mainWindow) mainWindow.webContents.send("launcher:update", payload); };
+
+  try {
+    const current = s.currentVersion || app.getVersion();
+    const check = await selfUpdate.checkForUpdate({
+      manifestUrl: s.manifestUrl,
+      manifestPath: s.manifestPath,
+      currentVersion: current
+    });
+
+    if (!check.hasUpdate) {
+      console.log(`[selfupdate] обновлений нет (текущая ${current}, удалённая ${check.remote.version})`);
+      return { ok: true, hasUpdate: false, version: current };
+    }
+
+    const remote = check.remote;
+    console.log(`[selfupdate] доступно обновление ${remote.version} (текущая ${current})`);
+    send({ phase: "start", version: remote.version, currentVersion: current });
+
+    const dest = path.join(app.getPath("temp"), "AppleLauncher-update.exe");
+    await selfUpdate.downloadUpdate({
+      url: remote.url,
+      destFile: dest,
+      sha1: remote.sha1,
+      onProgress: (received, total) => send({ phase: "downloading", version: remote.version, bytes: received, bytesTotal: total || remote.size || 0 })
+    });
+
+    if (s.autoApply === false) {
+      send({ phase: "ready", version: remote.version, path: dest });
+      return { ok: true, hasUpdate: true, downloaded: true, version: remote.version, path: dest };
+    }
+
+    // В portable-сборке electron-builder process.execPath указывает на распакованную
+    // копию в %TEMP%, а исходный EXE пользователя задаётся переменной PORTABLE_EXECUTABLE_FILE.
+    const targetExePath = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    send({ phase: "applying", version: remote.version });
+    selfUpdate.applyUpdateAndRestart({ newExePath: dest, targetExePath, pid: process.pid });
+    setTimeout(() => app.quit(), 500);
+    return { ok: true, hasUpdate: true, applied: true, version: remote.version };
+  } catch (err) {
+    console.error("[selfupdate] ошибка:", err.message);
+    send({ phase: "error", message: err.message });
+    return { ok: false, message: err.message };
+  }
+}
+
+// Проверка целостности и дозагрузка игровых файлов из облака (Google Drive).
+async function runUpdater() {
+  const u = CONFIG.updater || {};
+  if (!u.enabled) return { ok: true, skipped: true, message: "Автообновление отключено" };
+
+  try {
+    const results = await updater.runUpdate({
+      manifestUrl: u.manifestUrl,
+      manifestPath: u.manifestPath,
+      targetPath: u.targetPath,
+      onProgress: (p) => {
+        if (mainWindow) mainWindow.webContents.send("updater:progress", p);
+      }
+    });
+    console.log("[updater] готово:", results);
+    return { ok: true, results };
+  } catch (err) {
+    console.error("[updater] ошибка:", err.message);
+    return { ok: false, message: err.message };
+  }
+}
+
+// Оставить в списке серверов игры только серверы из config.json (servers.enforce).
+function applyPinnedServers() {
+  const s = CONFIG.servers || {};
+  if (!s.enforce) return false;
+  const list = Array.isArray(s.list) ? s.list.filter((x) => x && x.ip) : [];
+  if (!list.length) return false;
+  try {
+    servers.writeServersDat(GAME_DIR, list);
+    console.log(`[servers] servers.dat перезаписан: ${list.length} сервер(ов) — ${list.map((x) => x.ip).join(", ")}`);
+    return true;
+  } catch (err) {
+    console.error("[servers] ошибка записи servers.dat:", err.message);
+    return false;
+  }
+}
+
+function collectBackgrounds() {
+  const dirs = [CONFIG.backgrounds.path, ...(CONFIG.backgrounds.additionalPaths || [])];
+  const files = [];
+  for (const dir of dirs) {
+    try {
+      for (const file of fs.readdirSync(dir)) {
+        if (IMAGE_EXTS.includes(path.extname(file).toLowerCase())) {
+          files.push(path.join(dir, file));
+        }
+      }
+    } catch (_) {
+      // каталог может отсутствовать — пропускаем
+    }
+  }
+  return files;
+}
+
+// Оффлайн-UUID (пиратский режим): MD5 от "OfflinePlayer:<ник>" с битами version 3 / RFC 4122.
+// Тот же алгоритм, что используют Spigot/Paper при online-mode=false.
+function offlineUUID(name) {
+  const hash = crypto.createHash("md5").update("OfflinePlayer:" + name, "utf8").digest();
+  hash[6] = (hash[6] & 0x0f) | 0x30;
+  hash[8] = (hash[8] & 0x3f) | 0x80;
+  const hex = hash.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+// Фикс бага "Сетевая игра отключена" в Minecraft 1.16.5:
+// authlib 2.1.28 при неудачной авторизации блокирует мультиплеер по умолчанию.
+// Заменяем authlib на 2.3.31 в version JSON перед запуском.
+function patchAuthlib(versionJsonPath) {
+  try {
+    if (!fs.existsSync(versionJsonPath)) return false;
+    const raw = fs.readFileSync(versionJsonPath, "utf8");
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.libraries)) return false;
+
+    let changed = false;
+    for (const lib of data.libraries) {
+      if (lib.name && lib.name.startsWith("com.mojang:authlib:")) {
+        const wanted = `com.mojang:authlib:${AUTHLIB_FIX_VERSION}`;
+        if (lib.name !== wanted) {
+          lib.name = wanted;
+          if (lib.downloads && lib.downloads.artifact) {
+            lib.downloads.artifact.url = `https://libraries.minecraft.net/com/mojang/authlib/${AUTHLIB_FIX_VERSION}/authlib-${AUTHLIB_FIX_VERSION}.jar`;
+            delete lib.downloads.artifact.sha1;
+            delete lib.downloads.artifact.size;
+          }
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      fs.writeFileSync(versionJsonPath, JSON.stringify(data, null, 2));
+      console.log(`[authlib] обновлён до ${AUTHLIB_FIX_VERSION} в ${path.basename(versionJsonPath)}`);
+    }
+    return changed;
+  } catch (err) {
+    console.error("[authlib] ошибка патча:", err.message);
+    return false;
+  }
+}
+
+ipcMain.handle("window:minimize", () => { if (mainWindow) mainWindow.minimize(); });
+ipcMain.handle("window:close", () => { if (mainWindow) mainWindow.close(); });
+
+ipcMain.handle("config:get", () => CONFIG);
+
+ipcMain.handle("updater:check", () => runUpdater());
+
+ipcMain.handle("launcher:checkUpdate", () => runSelfUpdate());
+
+ipcMain.handle("backgrounds:random", () => {
+  const files = collectBackgrounds();
+  if (!files.length) return null;
+  const picked = files[Math.floor(Math.random() * files.length)];
+  return pathToFileURL(picked).href;
+});
+
+ipcMain.handle("game:launch", async (event, username) => {
+  if (launching) return { ok: false, message: "Игра уже запускается" };
+
+  const name = (username || "").trim() || DEFAULT_USERNAME;
+  const versionDir = path.join(GAME_DIR, "versions", VERSION_CUSTOM);
+  const versionJson = path.join(versionDir, VERSION_CUSTOM + ".json");
+
+  if (!fs.existsSync(versionJson)) {
+    return { ok: false, message: "Не найдена версия: " + versionJson };
+  }
+
+  patchAuthlib(versionJson);
+  const baseVersionJson = path.join(GAME_DIR, "versions", VERSION_NUMBER, VERSION_NUMBER + ".json");
+  patchAuthlib(baseVersionJson);
+
+  launching = true;
+
+  const offlineMode = CONFIG.launcher.offline !== false;
+  const uuid = offlineUUID(name);
+
+  const opts = {
+    authorization: offlineMode
+      ? {
+          access_token: "0",
+          client_token: uuid,
+          uuid,
+          name,
+          user_properties: "{}",
+          meta: { type: "mojang" }
+        }
+      : {
+          access_token: "",
+          client_token: uuid,
+          uuid,
+          name,
+          user_properties: "{}",
+          meta: { type: "msa" }
+        },
+    root: GAME_DIR,
+    version: {
+      number: VERSION_NUMBER,
+      type: VERSION_TYPE,
+      custom: VERSION_CUSTOM
+    },
+    memory: {
+      min: String(CONFIG.launcher.memory.min),
+      max: String(CONFIG.launcher.memory.max)
+    },
+    os: "windows",
+    customArgs: [
+      "-XX:+IgnoreUnrecognizedVMOptions",
+      "--add-opens=java.base/java.util=ALL-UNNAMED",
+      "--add-opens=java.base/java.lang=ALL-UNNAMED",
+      "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+      "--add-opens=java.base/java.util.jar=ALL-UNNAMED",
+      "--add-opens=java.base/sun.security.util=ALL-UNNAMED",
+      "--add-opens=java.base/sun.net.www.protocol.jar=ALL-UNNAMED",
+      "--add-opens=java.base/java.io=ALL-UNNAMED",
+      "--add-opens=java.base/java.util.stream=ALL-UNNAMED",
+      "--add-opens=java.base/java.nio=ALL-UNNAMED",
+      "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+      "-Dfml.earlyprogresswindow=false"
+    ]
+  };
+
+  // Автоподключение к серверу отключено: игра всегда открывает главное меню Minecraft,
+  // игрок сам выбирает «Одиночная игра» / «Сетевая игра».
+  // Перед запуском оставляем в списке серверов только сервер из config.json.
+  applyPinnedServers();
+
+  try {
+    const client = new Client();
+    gameStarted = false;
+
+    client.on("data", (e) => {
+      const text = String(e);
+      if (mainWindow) mainWindow.webContents.send("game:data", text);
+
+      // Как только игра отрисовала окно — скрываем лаунчер с экрана.
+      if (!gameStarted && GAME_START_MARKERS.some((m) => text.includes(m))) {
+        gameStarted = true;
+        if (mainWindow) mainWindow.hide();
+      }
+    });
+    client.on("progress", (e) => {
+      if (mainWindow) mainWindow.webContents.send("game:progress", e);
+    });
+    client.on("close", (code) => {
+      launching = false;
+      gameStarted = false;
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send("game:close", code);
+      }
+    });
+    client.on("error", (err) => {
+      launching = false;
+      gameStarted = false;
+      const msg = err && err.message ? err.message : String(err);
+      console.error("[mlc error]", msg);
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.webContents.send("game:error", msg);
+      }
+    });
+    client.on("debug", (e) => console.log("[mlc debug]", e));
+
+    await client.launch(opts);
+    return { ok: true };
+  } catch (err) {
+    launching = false;
+    const msg = err && err.message ? err.message : String(err);
+    console.error("[launcher] launch failed", msg);
+    return { ok: false, message: msg };
+  }
+});
+
+app.whenReady().then(() => {
+  applyPinnedServers();
+  createWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});

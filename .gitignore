@@ -1,0 +1,24 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Сборка (electron-builder)
+dist/
+build/
+
+# Игровые файлы (скачиваются динамически, не коммитятся)
+minecraft/
+
+# Логи и краш-дампы
+logs/
+*.log
+*.log.gz
+hs_err_pid*.log
+
+# Локальные резервные копии
+backups/
+*.bak
+
+# ОС
+.DS_Store
+Thumbs.db
