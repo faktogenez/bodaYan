@@ -430,6 +430,39 @@ Google Drive/
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
 
+### Сессия 2026-11-19 — Публикация релиза v1.0.0 в GitHub Releases
+
+**Запрос пользователя:** проанализировать процесс релиза и причины трудностей; после предоставления доступа самостоятельно выполнить все этапы: проверка основной ветки, генерация release notes из коммитов, сборка и тест артефактов, тег и публикация релиза; обновить документацию и ченджлог; предоставить отчёт.
+
+**Изменения в коде/конфиге:**
+- **`config/config.json`**: `selfUpdate.enabled: true`, `selfUpdate.manifestUrl` = `https://github.com/faktogenez/bodaYan/releases/latest/download/launcher-version.json`.
+- **`.gitignore`**: добавлен `release/`.
+- **`updater/launcher-version.json`** (новый): `{version:1.0.0, url:…/releases/download/v1.0.0/AppleLauncher-1.0.0.exe, sha1:98e3c9a61d2ab670e3b5dea8b194963fc9b9c5c0, size:80663386}`.
+- **`updater/manifest.json`** (новый): пустой шаблон `{files:[]}` (манифест модпака).
+- **`README.md`** (новый) — пользовательская документация; **`CHANGELOG.md`** (новый) — первый релиз.
+
+**Действия:**
+1. Установлен `gh` CLI (winget, v2.105.0); device-flow авторизация под `faktogenez` (scopes: `repo`, `gist`, `read:org`).
+2. Ветка переименована `master` → `main`; remote `origin` → `https://github.com/faktogenez/bodaYan.git`.
+3. Сборка упала с `EBUSY … app.asar locked` (каталог `dist/` залочен) → сборка перенесена в `release/` (`--config.directories.output=release`).
+4. Артефакт `release/AppleLauncher-1.0.0.exe` (76.9 МБ, SHA1 `98e3c9a6…`); smoke-тест: 4 процесса, окно «AppleLauncher», внешний `config/config.json` создан с `manifestUrl` — OK.
+5. Коммит `3448e01` (9 файлов) → push в `origin/main`.
+6. Опубликован релиз `v1.0.0` с ассетами `AppleLauncher-1.0.0.exe` + `launcher-version.json`.
+
+**Результат:** https://github.com/faktogenez/bodaYan/releases/tag/v1.0.0 — опубликован (не draft/prerelease). Манифест `…/releases/latest/download/launcher-version.json` отдаёт **HTTP 200** с корректным JSON.
+
+**Статус:** ✅ релиз создан, тег и ассеты на месте, автообновление настроено (1.0.0 == 1.0.0 → апдейта нет, петли нет).
+
+**Проблемы/примечания:**
+- Песочница блокирует `AppData\Local` → сборка только с `ELECTRON_BUILDER_CACHE`/`ELECTRON_CACHE` внутри проекта.
+- `dist/` залочен (вероятно, IDE) — сборка перенесена в `release/`.
+- Иконка пока дефолтная (Electron), подпись кода не настроена (SmartScreen).
+- `git push` выполняется через credential-helper `gh` (передан флагом `-c`, глобальный git-конфиг не изменялся).
+
+**Открытые вопросы:** тест на чистой системе (раздел 12.7); заполнение `updater/manifest.json` при готовности модпака; иконка; подпись кода.
+
+---
+
 ### Сессия 2026-11-19 — Сборка portable EXE
 
 **Запрос пользователя:** собрать EXE-файл лаунчера; определить, где хранить файлы; уточнить, какие данные GitHub нужно предоставить.
@@ -724,9 +757,9 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 1. **Автозапуск игры после загрузки** — требование «сразу открывается игра» конфликтует с ранее утверждённым поведением (пользователь сам жмёт «Играть», автоподключения к серверу нет). Вариант: флаг `launcher.autoLaunch` (по умолчанию `false`).
 2. **Java runtime**: встроить (A) или докачивать (B) — влияет на размер EXE и работу офлайн.
-3. **Хостинг**: выбрать сервис (рекомендация — GitHub Releases) и завести репозиторий/бакет.
+3. **Хостинг**: ✅ решено — GitHub Releases репозитория `faktogenez/bodaYan`; релиз `v1.0.0` опубликован, манифест отдаётся по `…/releases/latest/download/launcher-version.json`.
 4. **Подпись кода** — нужно ли (SmartScreen).
 
 ---
 
-*Последнее обновление: 2026-11-19 | Сессия: (1) собран portable EXE — `dist/AppleLauncher-1.0.0.exe` (76.9 МБ), запуск проверен (electron-builder 26.18.0, кэш в `.cache/`); (2) фиксация рабочего состояния — резервная копия `backups/AppleLauncher-src-20261119-065008.zip`, git-репозиторий (коммиты `c4a3d51`, `169e5d0`); (3) подготовка к продакшену — выбор Java (`resolveJavaPath`), `os` из `process.platform`, защита self-update на не-Windows. Ранее: self-update лаунчера; переносимость одним EXE (`APP_DIR`); servers.dat — только свой сервер; автоскрытие окна; автообновление файлов; прогресс-бар. Детальный журнал — раздел 11.*
+*Последнее обновление: 2026-11-19 | Сессия: (1) опубликован релиз **v1.0.0** в GitHub Releases (`https://github.com/faktogenez/bodaYan/releases/tag/v1.0.0`) — ассеты `AppleLauncher-1.0.0.exe` (76.9 МБ, SHA1 `98e3c9a61d2ab670e3b5dea8b194963fc9b9c5c0`) + `launcher-version.json`; ветка `main` запушена; (2) подключён `gh` CLI, self-update включён (`manifestUrl` → `…/releases/latest/download/launcher-version.json`); (3) добавлены `README.md`, `CHANGELOG.md`, манифесты `updater/*`. Ранее: собран portable EXE; фиксация рабочего состояния (`backups/…zip`, коммиты `c4a3d51`, `169e5d0`); подготовка к продакшену (`resolveJavaPath`, `os` из `process.platform`, защита self-update на не-Windows); self-update лаунчера; переносимость одним EXE (`APP_DIR`); `servers.dat` — только свой сервер; автоскрытие окна; автообновление файлов; прогресс-бар. Детальный журнал — раздел 11.*
