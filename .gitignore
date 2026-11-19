@@ -4,7 +4,9 @@ npm-debug.log*
 
 # Сборка (electron-builder)
 dist/
+release/
 build/
+.cache/
 
 # Игровые файлы (скачиваются динамически, не коммитятся)
 minecraft/

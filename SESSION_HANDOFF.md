@@ -218,7 +218,7 @@ delete lib.downloads.artifact.size;
 2. **Опциональная авторизация Microsoft** — второй режим (`launcher.offline = false`) для лицензии; поля уже готовы, нужен OAuth-flow (device code).
 3. **Больше фонов** — добавить изображения в `assets/backgrounds/` (сейчас только `skyblock.png`).
 4. **Боевая настройка автообновления** — выбрать хостинг (рекомендация: **GitHub Releases**), залить модпак, заполнить `updater/manifest.json` и включить `updater.enabled = true`; заполнить `updater/launcher-version.json` и включить `selfUpdate.enabled = true` (см. разделы 10 и 12).
-5. **Сборка EXE** — `npm run dist` (electron-builder portable), проверить на чистой машине по плану из раздела 12.7.
+5. **Сборка EXE** — ✅ `npm run dist` выполнен: `dist/AppleLauncher-1.0.0.exe` (76.9 МБ), запуск проверен. Осталось: иконка (`.ico`), тест на чистой машине (12.7). В песочнице Trae сборке нужны `ELECTRON_BUILDER_CACHE`/`ELECTRON_CACHE` в `.cache/` (см. журнал, раздел 11).
 6. **Решение по Java runtime** — механизм выбора уже реализован (`resolveJavaPath`: `launcher.javaPath` → `APP_DIR/jre/bin/javaw.exe` → PATH). Остаётся решить: встроить JRE 17 в EXE (вариант A) или докачивать через манифест (вариант B) (см. 12.4).
 7. **Решение по автозапуску игры** — реализовать флаг `launcher.autoLaunch` (по умолчанию `false`), если нужен автоматический старт игры после проверки файлов (см. 12.8).
 
@@ -429,6 +429,32 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-19 — Сборка portable EXE
+
+**Запрос пользователя:** собрать EXE-файл лаунчера; определить, где хранить файлы; уточнить, какие данные GitHub нужно предоставить.
+
+**Изменения в коде/конфиге:**
+- **`package.json`**: `electron` перенесён в `devDependencies` (в `dependencies` остаётся только `minecraft-launcher-core`); добавлены `build.asar: true` и `build.directories.output: "dist"`; `electron-builder@^26.18.0` — в `devDependencies`.
+- **`.gitignore`**: добавлен `.cache/` (кэш electron-builder).
+
+**Действия:**
+1. Установлен `electron-builder` (242 пакета).
+2. Первая сборка (`npm run dist`) упала: `EPERM ... mkdir 'C:\Users\LEO\AppData\Local\electron-builder'` — песочница Trae запрещает запись в `AppData\Local`.
+3. Обход: переменные `ELECTRON_BUILDER_CACHE=.cache/electron-builder` и `ELECTRON_CACHE=.cache/electron` (внутри проекта) → сборка прошла.
+
+**Результат:** `dist/AppleLauncher-1.0.0.exe` — **76.9 МБ**, portable x64. Запуск EXE проверен: процессы `AppleLauncher` (main + renderer + GPU) поднялись, окно открылось, краха нет.
+
+**Статус:** ✅ EXE собран и запускается; ⬜ тест на чистой системе (раздел 12.7); ⬜ иконка (пока дефолтная Electron — `default Electron icon is used`); ⬜ подпись кода (SmartScreen).
+
+**Команда для повторной сборки (в песочнице Trae):**
+```
+$env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE="$PWD\.cache\electron"; npm run dist
+```
+
+**Открытые вопросы:** хостинг файлов (рекомендация — GitHub Releases) и необходимые данные аккаунта GitHub для загрузки.
+
+---
 
 ### Сессия 2026-11-19 — Фиксация рабочего состояния + подготовка к продакшену
 
@@ -703,4 +729,4 @@ Google Drive/
 
 ---
 
-*Последнее обновление: 2026-11-19 | Сессия: (1) фиксация рабочего состояния — резервная копия `backups/AppleLauncher-src-20261119-065008.zip`, git-репозиторий (коммиты `c4a3d51` + адаптации); (2) подготовка к продакшену — выбор Java (`resolveJavaPath`: config → встроенная JRE → PATH), `os` из `process.platform`, защита self-update на не-Windows; (3) тесты: offlineUUID на 5 аккаунтах — PASS, синтаксис/парсинг/`npm start` — OK. Ранее: self-update лаунчера; переносимость одним EXE (`APP_DIR`); servers.dat — только свой сервер; автоскрытие окна; автообновление файлов; прогресс-бар. Детальный журнал — раздел 11.*
+*Последнее обновление: 2026-11-19 | Сессия: (1) собран portable EXE — `dist/AppleLauncher-1.0.0.exe` (76.9 МБ), запуск проверен (electron-builder 26.18.0, кэш в `.cache/`); (2) фиксация рабочего состояния — резервная копия `backups/AppleLauncher-src-20261119-065008.zip`, git-репозиторий (коммиты `c4a3d51`, `169e5d0`); (3) подготовка к продакшену — выбор Java (`resolveJavaPath`), `os` из `process.platform`, защита self-update на не-Windows. Ранее: self-update лаунчера; переносимость одним EXE (`APP_DIR`); servers.dat — только свой сервер; автоскрытие окна; автообновление файлов; прогресс-бар. Детальный журнал — раздел 11.*

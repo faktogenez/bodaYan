@@ -47,8 +47,8 @@
     ]
   },
   "selfUpdate": {
-    "enabled": false,
-    "manifestUrl": "",
+    "enabled": true,
+    "manifestUrl": "https://github.com/faktogenez/bodaYan/releases/latest/download/launcher-version.json",
     "currentVersion": "1.0.0",
     "autoApply": true
   }

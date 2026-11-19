@@ -11,7 +11,6 @@
     "dist:installer": "electron-builder --win nsis"
   },
   "dependencies": {
-    "electron": "^33.2.1",
     "minecraft-launcher-core": "^3.18.2"
   },
   "build": {
@@ -19,6 +18,10 @@
     "productName": "AppleLauncher",
     "artifactName": "AppleLauncher-${version}.${ext}",
     "compression": "maximum",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
     "files": [
       "main.js",
       "src/**/*",
@@ -42,5 +45,9 @@
     "portable": {
       "artifactName": "AppleLauncher-${version}.exe"
     }
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^26.18.0"
   }
 }
