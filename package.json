@@ -1,6 +1,6 @@
 {
   "name": "apple-launcher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SkyBlock Launcher",
   "author": "AppleLauncher",
   "main": "main.js",
@@ -33,6 +33,7 @@
       "config/config.json"
     ],
     "win": {
+      "icon": "assets/icon.ico",
       "target": [
         {
           "target": "portable",

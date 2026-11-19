@@ -117,6 +117,7 @@ let gameStarted = false;
 function createWindow() {
   mainWindow = new BrowserWindow({
     title: CONFIG.launcher.title,
+    icon: path.join(ROOT, "assets", "icon.ico"),
     width: CONFIG.launcher.width,
     height: CONFIG.launcher.height,
     minWidth: 640,
