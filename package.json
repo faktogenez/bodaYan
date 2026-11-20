@@ -7,6 +7,8 @@
   "scripts": {
     "start": "electron .",
     "build:jre": "node scripts/build-jre.js",
+    "manifest": "node scripts/gen-manifest.js",
+    "publish:modpack": "node scripts/publish-modpack.js",
     "pack": "electron-builder --dir",
     "dist": "node scripts/build-jre.js && electron-builder --win portable",
     "dist:installer": "electron-builder --win nsis"

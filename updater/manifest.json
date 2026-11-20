@@ -3,105 +3,111 @@
   "files": [
     {
       "path": "mods/apple-autojoin-1.0.0.jar",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/mods__apple-autojoin-1.0.0.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__apple-autojoin-1.0.0.jar",
       "sha1": "729edacb0df8b5a11b463eac6b73bdcde1818016",
       "size": 2589
     },
     {
       "path": "mods/CustomNPCs-1.16.5.20220515.jar",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/mods__CustomNPCs-1.16.5.20220515.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__CustomNPCs-1.16.5.20220515.jar",
       "sha1": "868c476be34bac92bc4f98d864a8d62c3792817d",
       "size": 12457390
     },
     {
       "path": "mods/WorldEdit-CUI-FE3-1.16.5-3.0.9.jar",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/mods__WorldEdit-CUI-FE3-1.16.5-3.0.9.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__WorldEdit-CUI-FE3-1.16.5-3.0.9.jar",
       "sha1": "6df0a9e0487ff164c10639f636a1e072ebaedb64",
       "size": 869842
     },
     {
       "path": "mods/worldedit-mod-7.2.5-1.16.5-fabric-forge.jar",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/mods__worldedit-mod-7.2.5-1.16.5-fabric-forge.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__worldedit-mod-7.2.5-1.16.5-fabric-forge.jar",
       "sha1": "9524fbe78c31228f80730313df3abbc7bfebc77c",
       "size": 5312767
     },
     {
       "path": "customnpcs/assets/customnpcs/sounds.json",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__sounds.json",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__sounds.json",
       "sha1": "1bd8ce28f3075c8699068a4628ebd664915b4a1a",
       "size": 4
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/diamond_block.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__diamond_block.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__diamond_block.png",
       "sha1": "3f789b3d9243c59baf8c176511b386d108123fe6",
       "size": 524
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/gold_block.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__gold_block.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__gold_block.png",
       "sha1": "d6b8120f6bd7ff315e4b0f7d65ee1b114018da22",
       "size": 758
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/iron_block.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__iron_block.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__iron_block.png",
       "sha1": "d210ca8eea5fc3ac00846f2b1cce4806bccb2f82",
       "size": 381
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/planks_acacia.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__planks_acacia.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__planks_acacia.png",
       "sha1": "f3a79b4b84d3978c85d377c51dcf298f42bc0175",
       "size": 335
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/planks_big_oak.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__planks_big_oak.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__planks_big_oak.png",
       "sha1": "51fa08ce7b547226013ef489b690a3db860e257c",
       "size": 307
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/planks_birch.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__planks_birch.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__planks_birch.png",
       "sha1": "c6024b0e9650630c83503e04166fcd31cada2d00",
       "size": 333
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/planks_jungle.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__planks_jungle.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__planks_jungle.png",
       "sha1": "45f82a0627133ea8b6d0ecd3949fb78a8201b6a0",
       "size": 325
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/planks_oak.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__planks_oak.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__planks_oak.png",
       "sha1": "cebdf4f21af13d46d2efddaedb52eb3bb919a8e8",
       "size": 315
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/planks_spruce.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__planks_spruce.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__planks_spruce.png",
       "sha1": "6fe5ebe4258e762ad801ea38534b3fc02e00eea2",
       "size": 320
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/stone.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__stone.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__stone.png",
       "sha1": "7799244e7fa73ff913a6d9a72be40bc59be92901",
       "size": 296
     },
     {
       "path": "customnpcs/assets/customnpcs/textures/cache/wool_colored_white.png",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__assets__customnpcs__textures__cache__wool_colored_white.png",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__assets__customnpcs__textures__cache__wool_colored_white.png",
       "sha1": "a2dda0646964665f936d361585201f470326dd4c",
       "size": 570
     },
     {
       "path": "customnpcs/pack.mcmeta",
-      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/customnpcs__pack.mcmeta",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/customnpcs__pack.mcmeta",
       "sha1": "485e37a760a3a42c843330af9c5a4fcf7d2da43c",
       "size": 103
+    },
+    {
+      "path": "versions/Forge 1.16.5/Forge 1.16.5.json",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/versions__Forge_1.16.5__Forge_1.16.5.json",
+      "sha1": "7230909abcf5a44fdedad7d2d5bed340caa010ec",
+      "size": 45771
     }
   ]
 }

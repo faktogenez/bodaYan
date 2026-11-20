@@ -35,7 +35,7 @@
   },
   "updater": {
     "enabled": true,
-    "manifestUrl": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1/manifest.json"
+    "manifestUrl": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/manifest.json"
   },
   "servers": {
     "enforce": true,

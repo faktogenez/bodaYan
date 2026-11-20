@@ -1,21 +1,39 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { assetName } = require("./assetName");
 
 // Генерация updater/manifest.json из локальной игровой папки.
 // Считает sha1 + размер каждого файла и формирует прямые ссылки на GitHub Releases.
 //
 // Соглашение об именах ассетов: GitHub Releases не поддерживает "/" в именах,
-// поэтому имя ассета = путь с заменой "/" на "__" (например config/forge.cfg → config__forge.cfg).
+// поэтому имя ассета = путь с заменой "/" на "__" (например mods/foo.jar → mods__foo.jar).
 // Лаунчер раскладывает файлы по полю "path", поэтому имя ассета не влияет на размещение.
+//
+// Использование:
+//   node scripts/gen-manifest.js [--game-dir <путь>] [--base-url <url>] [--out <файл>]
 
 const ROOT = path.resolve(__dirname, "..");
-const GAME_DIR = path.join(ROOT, "minecraft", "game");
-const OUT = path.join(ROOT, "updater", "manifest.json");
 
-// Что включаем в модпак (клиентский контент) и куда публикуем.
-const INCLUDE = ["mods", "customnpcs"];
-const BASE_URL = "https://github.com/faktogenez/bodaYan/releases/download/modpack-v1";
+// Что включаем в модпак (клиентский контент).
+// Каталоги обходим рекурсивно; отдельные файлы добавляем точечно.
+// libraries/assets/base-версию клиента MCLC качает сам, поэтому их не публикуем.
+const INCLUDE_DIRS = ["mods", "customnpcs"];
+const INCLUDE_FILES = ["versions/Forge 1.16.5/Forge 1.16.5.json"];
+
+const DEFAULT_BASE_URL = "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2";
+
+function parseArgs(argv) {
+  const args = { gameDir: path.join(ROOT, "minecraft", "game"), baseUrl: DEFAULT_BASE_URL, out: path.join(ROOT, "updater", "manifest.json") };
+  for (let i = 0; i < argv.length; i++) {
+    const key = argv[i];
+    const val = argv[i + 1];
+    if (key === "--game-dir" && val) { args.gameDir = path.resolve(val); i++; }
+    else if (key === "--base-url" && val) { args.baseUrl = val.replace(/\/+$/, ""); i++; }
+    else if (key === "--out" && val) { args.out = path.resolve(val); i++; }
+  }
+  return args;
+}
 
 function sha1File(filePath) {
   return new Promise((resolve, reject) => {
@@ -37,29 +55,49 @@ function walk(dir) {
   return out;
 }
 
-const assetName = (rel) => rel.split("/").join("__");
-
 (async () => {
-  const files = [];
+  const { gameDir: GAME_DIR, baseUrl: BASE_URL, out: OUT } = parseArgs(process.argv.slice(2));
 
-  for (const inc of INCLUDE) {
+  if (!fs.existsSync(GAME_DIR)) {
+    console.error("[manifest] игровая директория не найдена:", GAME_DIR);
+    process.exit(1);
+  }
+
+  const queue = [];
+
+  for (const inc of INCLUDE_DIRS) {
     const dir = path.join(GAME_DIR, inc);
     if (!fs.existsSync(dir)) {
       console.warn("[manifest] нет каталога, пропуск:", dir);
       continue;
     }
-    for (const full of walk(dir)) {
-      const rel = path.relative(GAME_DIR, full).split(path.sep).join("/");
-      files.push({
-        path: rel,
-        url: `${BASE_URL}/${assetName(rel)}`,
-        sha1: await sha1File(full),
-        size: fs.statSync(full).size
-      });
-    }
+    queue.push(...walk(dir));
   }
 
+  for (const rel of INCLUDE_FILES) {
+    const full = path.join(GAME_DIR, rel.split("/").join(path.sep));
+    if (!fs.existsSync(full)) {
+      console.warn("[manifest] нет файла, пропуск:", full);
+      continue;
+    }
+    queue.push(full);
+  }
+
+  const files = [];
+  for (const full of queue) {
+    const rel = path.relative(GAME_DIR, full).split(path.sep).join("/");
+    files.push({
+      path: rel,
+      url: `${BASE_URL}/${assetName(rel)}`,
+      sha1: await sha1File(full),
+      size: fs.statSync(full).size
+    });
+  }
+
+  fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({ version: 1, files }, null, 2) + "\n");
+  console.log("[manifest] игровая директория:", GAME_DIR);
+  console.log("[manifest] base-url:", BASE_URL);
   console.log("[manifest] записано:", OUT);
   console.log("[manifest] файлов:", files.length);
   for (const f of files) {

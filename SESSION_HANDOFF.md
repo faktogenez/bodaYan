@@ -95,11 +95,16 @@ renderer.js (клик "Играть")
 - `updater:check` (invoke) + `updater:progress` (send) — проверка/дозагрузка файлов игры (см. раздел 10)
 - `launcher:checkUpdate` (invoke) + `launcher:update` (send) — автообновление самого лаунчера (см. раздел 12.6)
 
-### Каталог данных (`APP_DIR`) — переносимость
+### Каталог данных (`DATA_DIR`) и папка EXE (`EXE_DIR`) — переносимость
 
-В dev `APP_DIR = __dirname` (корень проекта). В собранном EXE `APP_DIR` — папка рядом с исходным EXE (из `process.env.PORTABLE_EXECUTABLE_DIR`, т.к. portable-сборка распаковывается в `%TEMP%`). От `APP_DIR` выводятся `launcher.gameDirectory`, `updater.targetPath`, `selfUpdate.manifestPath`; внешний `config/config.json` при первом запуске копируется из встроенного шаблона (`resources/config/config.json`). Так один EXE работает на любой машине без правки путей.
+В dev `DATA_DIR = __dirname` (корень проекта). В собранном EXE `DATA_DIR = %APPDATA%\AppleLauncher` (`app.getPath("appData")`) — **постоянный** записываемый каталог, не зависящий от места запуска EXE. Это устранило прежнее поведение, когда данные создавались рядом с EXE (в т.ч. на рабочем столе).
 
-Portable EXE не содержит каталог `minecraft/game`: для запуска нужна отдельная полная игровая папка рядом с EXE. Автообновление игрового манифеста выключено, а текущий манифест не включает Forge, libraries и assets.
+От `DATA_DIR` выводятся: `CONFIG_DIR/config.json`, `updater/manifest.json`, `updater/launcher-version.json`, `launcher.gameDirectory` (`minecraft/game`), `backgrounds.additionalPaths` (`assets/backgrounds`). Внешний `config/config.json` при первом запуске копируется из встроенного шаблона (`resources/config/config.json`).
+
+`EXE_DIR` (из `process.env.PORTABLE_EXECUTABLE_DIR` или `path.dirname(process.execPath)`) используется **только** для поиска встроенной/внешней JRE и для однократной миграции старых данных (`migrateDataDir()`: `EXE_DIR/minecraft` → `DATA_DIR/minecraft`).
+
+Проверка целостности игровых файлов (`ensureGameFiles()`, см. 12.5) запускается автоматически при старте, по кнопке и перед запуском игры; манифест — `modpack-v2` (включает `mods/**`, `customnpcs/**` и `versions/Forge 1.16.5/Forge 1.16.5.json`).
+
 
 ### Автоподключение к серверу — через свой клиентский мод (важно)
 
@@ -503,6 +508,38 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-21 — Постоянный каталог данных + встроенная проверка целостности (модпак v2)
+
+**Запрос пользователя:** проанализировать лаунчер, который «загружает папки на рабочий стол и выдаёт ошибку отсутствия файла», и реализовать: (1) автоматический выбор постоянного каталога данных (не рабочий стол) без лишних файлов в пользовательских каталогах; (2) встроенную проверку целостности при каждом запуске (сравнение sha1/списка с сервером, авто-докачка); (3) полностью автоматизированный сценарий с индикатором прогресса и авто-запуском игры; (4) лаунчер — единственный необходимый файл; (5) тестирование (чистая система / повреждённые файлы / успешный запуск).
+
+**Анализ причин исходных проблем:**
+- Файлы складывались рядом с EXE, потому что `APP_DIR` вычислялся от папки EXE (`PORTABLE_EXECUTABLE_DIR`). При запуске EXE с рабочего стола там создавались `config/`, `minecraft/`, `updater/`.
+- «Ошибка отсутствия файла» — в облачном манифесте `modpack-v1` не было `versions/Forge 1.16.5/Forge 1.16.5.json`, а проверка целостности не запускалась перед стартом игры.
+
+**Изменения в коде/конфиге:**
+- [main.js](file:///C:/Users/LEO/AppleLauncher/main.js): `APP_DIR` заменён на `EXE_DIR` (только для поиска встроенной JRE и миграции) + новый `DATA_DIR = app.isPackaged ? %APPDATA%\AppleLauncher : ROOT`. От него теперь выводятся `config/`, `updater/`, `gameDirectory`, `backgrounds.additionalPaths`, `updater.*`, `selfUpdate.*`. Логгер пишет в `DATA_DIR`.
+- `migrateDataDir()` — однократный перенос старых данных `EXE_DIR/minecraft` → `DATA_DIR/minecraft` (`renameSync` с fallback `cpSync`+`rmSync`) для пользователей прежних версий.
+- `runUpdater()` → `ensureGameFiles(reason)`: проверка целостности вызывается при старте (`startup`), по кнопке (`manual`) и перед запуском игры (`pre-launch`). Возвращает `{ ok, results }`. `game:launch` теперь сначала `await ensureGameFiles("pre-launch")`, затем проверяет version JSON; сообщение об ошибке сделано понятным. Устранён дубликат `launching = true;`.
+- [scripts/gen-manifest.js](file:///C:/Users/LEO/AppleLauncher/scripts/gen-manifest.js): добавлены `--game-dir`/`--base-url`/`--out`, точечное включение `versions/Forge 1.16.5/Forge 1.16.5.json` (`INCLUDE_FILES`), базовый URL → `modpack-v2`.
+- [scripts/assetName.js](file:///C:/Users/LEO/AppleLauncher/scripts/assetName.js) (новый): каноническое кодирование пути в имя ассета (`/`→`__`, пробелы/спецсимволы→`_`), общее для ген-скрипта и публикации (URL манифеста всегда = имя ассета).
+- [scripts/publish-modpack.js](file:///C:/Users/LEO/AppleLauncher/scripts/publish-modpack.js) (новый): пересборка манифеста → стейджинг копий под именами ассетов → пересоздание релиза (`gh release delete/create/upload`).
+- [package.json](file:///C:/Users/LEO/AppleLauncher/package.json): добавлены скрипты `manifest` и `publish:modpack`.
+- [config/config.json](file:///C:/Users/LEO/AppleLauncher/config/config.json): `updater.manifestUrl` → `modpack-v2/manifest.json`.
+
+**Действия:**
+1. Сгенерирован манифест (18 файлов: 4 `mods` + 13 `customnpcs` + `versions/Forge 1.16.5/Forge 1.16.5.json`).
+2. Первая публикация через `gh` с `path#label` дала неверные имена ассетов (`#` задаёт лишь подпись, а имя = basename, пробелы → точки). Исправлено стейджингом → релиз пересоздан.
+3. Опубликован **modpack-v2** (19 ассетов). Проверены имена ассетов и HTTP 200 для `manifest.json`, version JSON и jar-мода.
+4. Тесты целостности в изолированном каталоге (`%TEMP%`): чистый каталог → 18 обновлено/0 ошибок; повтор → 18 пропущено; повреждённый файл → 1 обновлён; отсутствующий → 1 обновлён; финальная сверка sha1 — все совпадают.
+
+**Результаты:** данные хранятся в `%APPDATA%\AppleLauncher`; проверка целостности с авто-докачкой работает в старте/кнопке/перед игрой; индикатор прогресса (`updater:progress`: check/download/done) отображается; лаунчер остаётся единственным пусковым файлом.
+
+**Статус:** ✅ каталог данных · ✅ проверка целостности · ✅ прогресс-индикатор · ✅ modpack-v2 опубликован · ✅ тесты пройдены · ⬜ сборка/release нового EXE.
+
+**Проблемы:** первый прогон теста дал транзиентную ошибку на version JSON (ретраи отработали; отдельный стресс-тест 5/5 OK, sha1 совпадает). Примечание: `versions/Forge 1.16.5/Forge 1.16.5.json` содержит `tlauncherVersion`/`time` — специфичные поля TLauncher, на запуск через MCLC не влияют.
+
+**Открытые вопросы:** собирать ли и публиковать новый EXE (`v1.0.7`) для доставки изменений через self-update? Переносить ли git-теги и править ли `release/config/config.json` (из прошлой сессии)?
 
 ### Сессия 2026-11-21 — Проверка версии 1.0.6 + закрепление правила Git-синхронизации
 
@@ -1140,7 +1177,7 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 5. Перезаписывает `servers.dat` (только свой сервер).
 6. Открывается главное меню Minecraft.
 
-Рядом с EXE создаётся рабочая папка (данные, а не «зависимости»): `config/config.json`, `minecraft/game/**`, `updater/launcher-version.json`. Пользователь их руками не передаёт и не настраивает — лаунчер создаёт их сам (см. раздел 3, `APP_DIR`).
+В постоянном каталоге данных `%APPDATA%\AppleLauncher` лаунчер сам создаёт рабочую папку (данные, а не «зависимости»): `config/config.json`, `minecraft/game/**`, `updater/*.json`. Пользователь их руками не передаёт и не настраивает — лаунчер создаёт их сам (см. раздел 3, `DATA_DIR`). Рядом с EXE ничего не создаётся (кроме случая, когда EXE специально положен рядом с `jre/`).
 
 ### 12.2 Сервисы хранения и раздачи файлов — сравнение
 
@@ -1169,8 +1206,8 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 **Докачивается при первом запуске** — тяжёлое/изменяемое:
 - **Java 17 (JRE)** — ✅ встроена в EXE (вариант A): `extraResources: jre` → `resources/jre` (см. 12.4);
-- **Модпак** (по манифесту `updater.js`): `mods/**`, `config/**`, `defaultconfigs/**`, `scripts/**`, `resourcepacks/**`;
-- **Клиент Minecraft** (сам, через MCLC): `versions/1.16.5`, `versions/Forge 1.16.5`, `libraries/**`, `assets/**`, `natives/**`.
+- **Модпак** (по манифесту `modpack-v2`, `updater.js`): `mods/**`, `customnpcs/**`, `versions/Forge 1.16.5/Forge 1.16.5.json`;
+- **Клиент Minecraft** (сам, через MCLC): ванильные `versions/1.16.5`, `libraries/**`, `assets/**`, `natives/**` (Forge-библиотеки — по version JSON из модпака).
 
 **Никогда не передаётся** (личное/регенерируемое): `saves/**`, `logs/**`, `crash-reports/**`, `options.txt`, `*.part`.
 
@@ -1181,7 +1218,7 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 3. **Только production-зависимости**: `electron` — в `devDependencies` (не пакуется), `minecraft-launcher-core` — в `dependencies` (пакуется).
 4. **Иконка и метаданные**: `win.icon` (.ico 256×256), `version`, `productName`, `appId`.
 5. **Java runtime** — ✅ **выбран и реализован вариант A** (встроить JRE 17): `extraResources: ["config/config.json", "jre"]` → внутри EXE в `resources/jre`; `resolveJavaPath()` находит её первой. Сборка JRE — `npm run build:jre` (`scripts/build-jre.js`, `jlink`, ~48 МБ; на `npm run dist` собирается автоматически). Полная автономность офлайн. *Вариант B (докачивать через манифест) — не используется.* Внимание: portable распаковывается в `%TEMP%` при каждом запуске, поэтому встроенная JRE замедляет старт; при необходимости можно вернуться к `jre/` рядом с EXE (код поддерживает).
-6. **Записываемые данные — рядом с EXE, не внутри ASAR**: `APP_DIR` (см. 3 и 12.1). ASAR только для чтения.
+6. **Записываемые данные — в постоянном каталоге, не внутри ASAR**: `DATA_DIR` = `%APPDATA%\AppleLauncher` (dev — корень проекта), см. 3 и 12.1. ASAR только для чтения.
 7. **Подпись кода (опционально)**: без неё Windows SmartScreen покажет предупреждение. Для публичного релиза — сертификат OV/EV.
 8. **Без установщика**: portable не пишет в реестр и не требует прав администратора.
 
@@ -1190,6 +1227,8 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 **Манифест** (формат — раздел 10.3): `{ "version": 1, "files": [ { "path": "mods/x.jar", "url": "https://...", "sha1": "…", "size": 12345 } ] }`.
 
 **Алгоритм по каждому файлу** (реализовано в `src/updater.js`): файла нет → скачать; размер не совпал → скачать; SHA1 не совпал → скачать; иначе — пропустить (0 трафика).
+
+**Оркестрация** (`ensureGameFiles(reason)` в [main.js](file:///C:/Users/LEO/AppleLauncher/main.js)): проверка запускается при старте лаунчера (`startup`), по IPC-кнопке (`manual`, `updater:check`) и перед запуском игры (`pre-launch`, внутри `game:launch`); прогресс идёт в UI через `updater:progress` (фазы `check`/`download`/`done`).
 
 **Докачка при обрыве** (✅ реализовано в `src/updater.js`):
 - загрузка во временный `<dest>.part`;
@@ -1225,7 +1264,7 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 1. **Запуск**: двойной щелчок → окно лаунчера, прогресс-бар «Проверка файлов».
 2. **Java**: JRE 17 **встроена** в EXE (`resources/jre`) — отдельная установка Java не нужна; в логе должно быть `[java] используется: …\resources\jre\bin\javaw.exe` (не `java из PATH`).
-3. **Файлы игры**: догружаются `versions/Forge 1.16.5`, `libraries`, `assets`, моды (прогресс с байтами). Создаются `config/` и `minecraft/game/` рядом с EXE.
+3. **Файлы игры**: догружаются `versions/Forge 1.16.5` (version JSON из модпака), `libraries`, `assets`, моды (прогресс с байтами). Данные создаются в `%APPDATA%\AppleLauncher` (`config/`, `minecraft/game/`) — рядом с EXE ничего не появляется.
 4. **Запуск игры**: открывается главное меню Minecraft; в логе нет ошибок Forge/Java.
 5. **Автоскрытие**: при старте игры окно лаунчера скрывается; после закрытия игры — возвращается.
 6. **Список серверов**: в «Сетевая игра» только сервер из `config.json`.
@@ -1246,4 +1285,4 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 ---
 
-*Последнее обновление: 2026-11-21 | Сессия: **синхронизация с GitHub** — код v1.0.2–v1.0.6 закоммичен и запушен в `origin/main` (коммит `7a2a3f6`); ветка `main` = `origin/main`, дерево чистое. Предыдущее: 2026-11-19 | Сессия: **фикс краша** `spawn cmd.exe ENOENT` в self-update (`%ComSpec%` + `child.on("error")`; та же защита для `taskkill`), затем **собран и опубликован `v1.0.5`** (Latest): `AppleLauncher-1.0.5.exe`, 111 697 444 Б, SHA1 `fe315f5d…` + `launcher-version.json`; `CHANGELOG.md` дополнен 1.0.2–1.0.5. Ранее в этой сессии закрыты задачи v1.0.4 — (1) **валидация никнейма** (3–16, `[A-Za-z0-9_]`) в UI и `main.js`; (2) **кнопка «Остановить»** (IPC `game:stop`, `taskkill /T /F`); (3) **логирование** `src/logger.js` в `debug.log` (только `process.env.DEBUG`); (4) **докачка HTTP Range** в `src/updater.js` (до 3 попыток); собрана/опубликована v1.0.4 и **релиз модпака `modpack-v1`** (17 ассетов); `updater.enabled=true`. Предыдущее: **встроена JRE 17** (`extraResources: jre`, `scripts/build-jre.js`); **v1.0.1** — иконка `.ico`; **v1.0.0** — первый релиз в GitHub Releases (`https://github.com/faktogenez/bodaYan/releases`). Ветка `main`; `gh` CLI; self-update включён; `README.md`, `CHANGELOG.md`, манифесты `updater/*`. Детальный журнал — раздел 11.*
+*Последнее обновление: 2026-11-21 | Сессия: **постоянный каталог данных + встроенная проверка целостности** — данные перенесены в `%APPDATA%\AppleLauncher` (`DATA_DIR`/`EXE_DIR` + `migrateDataDir()`), `ensureGameFiles()` запускается при старте/по кнопке/перед игрой с авто-докачкой по SHA1; расширены `scripts/gen-manifest.js` (`--game-dir`, version JSON) и добавлены `scripts/assetName.js` + `scripts/publish-modpack.js`; опубликован релиз модпака **`modpack-v2`** (19 ассетов), `config.manifestUrl` обновлён; тесты целостности пройдены. Предыдущее: 2026-11-21 | Сессия: **синхронизация с GitHub** — код v1.0.2–v1.0.6 закоммичен и запушен в `origin/main` (коммит `7a2a3f6`); ветка `main` = `origin/main`. Предыдущее: 2026-11-19 | Сессия: **фикс краша** `spawn cmd.exe ENOENT` в self-update (`%ComSpec%` + `child.on("error")`; та же защита для `taskkill`), затем **собран и опубликован `v1.0.5`** (Latest): `AppleLauncher-1.0.5.exe`, 111 697 444 Б, SHA1 `fe315f5d…` + `launcher-version.json`; `CHANGELOG.md` дополнен 1.0.2–1.0.5. Ранее в этой сессии закрыты задачи v1.0.4 — (1) **валидация никнейма** (3–16, `[A-Za-z0-9_]`) в UI и `main.js`; (2) **кнопка «Остановить»** (IPC `game:stop`, `taskkill /T /F`); (3) **логирование** `src/logger.js` в `debug.log` (только `process.env.DEBUG`); (4) **докачка HTTP Range** в `src/updater.js` (до 3 попыток); собрана/опубликована v1.0.4 и **релиз модпака `modpack-v1`** (17 ассетов); `updater.enabled=true`. Предыдущее: **встроена JRE 17** (`extraResources: jre`, `scripts/build-jre.js`); **v1.0.1** — иконка `.ico`; **v1.0.0** — первый релиз в GitHub Releases (`https://github.com/faktogenez/bodaYan/releases`). Ветка `main`; `gh` CLI; self-update включён; `README.md`, `CHANGELOG.md`, манифесты `updater/*`. Детальный журнал — раздел 11.*

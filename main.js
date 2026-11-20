@@ -12,25 +12,52 @@ const logger = require("./src/logger");
 
 const ROOT = __dirname;
 
-// Каталог данных (записываемый): рядом с исходным EXE в portable-сборке, иначе корень проекта.
-// В portable-сборке electron-builder распаковывает приложение в %TEMP%, поэтому реальную
-// папку запуска берём из PORTABLE_EXECUTABLE_DIR, а не из process.execPath.
-const APP_DIR = app.isPackaged
+// Папка, из которой запущен EXE. В portable-сборке electron-builder распаковывает приложение
+// в %TEMP%, поэтому реальную папку запуска берём из PORTABLE_EXECUTABLE_DIR, а не из process.execPath.
+// Используется только для поиска встроенной JRE рядом с EXE и для миграции старых данных.
+const EXE_DIR = app.isPackaged
   ? (process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath))
   : ROOT;
 
-// Файловый лог (debug.log рядом с EXE) — только при process.env.DEBUG.
-logger.setLogDir(APP_DIR);
+// Постоянный каталог данных (записываемый). НЕ зависит от места EXE: при запуске EXE с рабочего
+// стола рядом создавались бы config/minecraft/updater — теперь всё хранится в %APPDATA%\AppleLauncher.
+// В dev-режиме используется корень проекта.
+const DATA_DIR = app.isPackaged ? path.join(app.getPath("appData"), "AppleLauncher") : ROOT;
+
+// Лог (debug.log в каталоге данных) — только при process.env.DEBUG.
+logger.setLogDir(DATA_DIR);
+
+// Однократный перенос игровых данных из старого каталога (рядом с EXE) в постоянный,
+// чтобы пользователи предыдущих версий не качали модпак заново.
+function migrateDataDir() {
+  try {
+    if (path.resolve(EXE_DIR) === path.resolve(DATA_DIR)) return;
+    const from = path.join(EXE_DIR, "minecraft");
+    const to = path.join(DATA_DIR, "minecraft");
+    if (!fs.existsSync(from) || fs.existsSync(to)) return;
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    try {
+      fs.renameSync(from, to); // быстро, если оба каталога на одном диске
+    } catch (_) {
+      fs.cpSync(from, to, { recursive: true });
+      fs.rmSync(from, { recursive: true, force: true });
+    }
+    logger.log("[data] игровые данные перенесены:", from, "->", to);
+  } catch (err) {
+    logger.error("[data] не удалось перенести игровые данные:", err.message);
+  }
+}
+migrateDataDir();
 
 // Встроенный шаблон конфига (в dev — в проекте, в сборке — в resources).
 const BUNDLED_CONFIG = app.isPackaged
   ? path.join(process.resourcesPath, "config", "config.json")
   : path.join(ROOT, "config", "config.json");
 
-const CONFIG_DIR = path.join(APP_DIR, "config");
+const CONFIG_DIR = path.join(DATA_DIR, "config");
 const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 
-// Первый запуск: внешний конфиг рядом с EXE создаётся из встроенного шаблона.
+// Первый запуск: внешний конфиг в каталоге данных создаётся из встроенного шаблона.
 function ensureConfig() {
   try {
     if (fs.existsSync(CONFIG_PATH)) return;
@@ -58,18 +85,18 @@ const DEFAULT_CONFIG = {
     memory: { min: "2048", max: "4096" },
     version: { number: "1.16.5", type: "release", custom: "Forge 1.16.5" },
     javaPath: "",
-    gameDirectory: path.join(APP_DIR, "minecraft", "game")
+    gameDirectory: path.join(DATA_DIR, "minecraft", "game")
   },
   theme: {},
   backgrounds: {
     path: path.join(ROOT, "assets", "backgrounds"),
-    additionalPaths: [path.join(APP_DIR, "assets", "backgrounds")]
+    additionalPaths: [path.join(DATA_DIR, "assets", "backgrounds")]
   },
   updater: {
-    enabled: false,
+    enabled: true,
     manifestUrl: "",
-    manifestPath: path.join(APP_DIR, "updater", "manifest.json"),
-    targetPath: path.join(APP_DIR, "minecraft", "game")
+    manifestPath: path.join(DATA_DIR, "updater", "manifest.json"),
+    targetPath: path.join(DATA_DIR, "minecraft", "game")
   },
   servers: {
     enforce: true,
@@ -78,7 +105,7 @@ const DEFAULT_CONFIG = {
   selfUpdate: {
     enabled: false,
     manifestUrl: "",
-    manifestPath: path.join(APP_DIR, "updater", "launcher-version.json"),
+    manifestPath: path.join(DATA_DIR, "updater", "launcher-version.json"),
     currentVersion: "1.0.0",
     autoApply: true
   }
@@ -145,10 +172,11 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(ROOT, "index.html"));
 
-  // Автопроверка при запуске: сначала самообновление лаунчера, затем файлы игры.
+  // Автопроверка при запуске: сначала самообновление лаунчера, затем целостность файлов игры.
+  // Проверка файлов идёт ВСЕГДА при старте (если задан манифест), без участия пользователя.
   mainWindow.webContents.on("did-finish-load", () => {
     if (CONFIG.selfUpdate && CONFIG.selfUpdate.enabled) runSelfUpdate();
-    if (CONFIG.updater && CONFIG.updater.enabled) runUpdater();
+    ensureGameFiles("startup");
   });
 
   mainWindow.on("closed", () => { mainWindow = null; });
@@ -216,12 +244,17 @@ async function runSelfUpdate() {
   }
 }
 
-// Проверка целостности и дозагрузка игровых файлов из облака (Google Drive).
-async function runUpdater() {
+// Проверка целостности игровых файлов и дозагрузка недостающих/повреждённых из облака.
+// Запускается автоматически: при старте лаунчера, по кнопке и перед запуском игры.
+// Сравнивает sha1/размер каждого файла манифеста с локальным и качает только расхождения.
+async function ensureGameFiles(reason) {
   const u = CONFIG.updater || {};
-  if (!u.enabled) return { ok: true, skipped: true, message: "Автообновление отключено" };
+  if (!u.manifestUrl || u.enabled === false) {
+    return { ok: true, skipped: true, message: "Манифест не задан" };
+  }
 
   try {
+    logger.log(`[updater] проверка целостности файлов (${reason})…`);
     const results = await updater.runUpdate({
       manifestUrl: u.manifestUrl,
       manifestPath: u.manifestPath,
@@ -230,8 +263,8 @@ async function runUpdater() {
         if (mainWindow) mainWindow.webContents.send("updater:progress", p);
       }
     });
-    logger.log("[updater] готово:", results);
-    return { ok: true, results };
+    logger.log(`[updater] проверка завершена (${reason}):`, results);
+    return { ok: results.failed.length === 0, results };
   } catch (err) {
     logger.error("[updater] ошибка:", err.message);
     return { ok: false, message: err.message };
@@ -319,7 +352,7 @@ function patchAuthlib(versionJsonPath) {
 }
 
 // Поиск Java 17: 1) явный путь из config.json; 2) встроенная JRE внутри EXE
-// (resources/jre — extraResources); 3) JRE рядом с EXE (APP_DIR/jre);
+// (resources/jre — extraResources); 3) JRE рядом с EXE (EXE_DIR/jre);
 // 4) иначе пусто — minecraft-launcher-core возьмёт java/javaw из PATH.
 function resolveJavaPath() {
   const configured = String(CONFIG.launcher.javaPath || "").trim();
@@ -333,13 +366,13 @@ function resolveJavaPath() {
     ? [
         path.join(bundled, "jre", "bin", "javaw.exe"),
         path.join(bundled, "jre", "bin", "java.exe"),
-        path.join(APP_DIR, "jre", "bin", "javaw.exe"),
-        path.join(APP_DIR, "jre", "bin", "java.exe"),
+        path.join(EXE_DIR, "jre", "bin", "javaw.exe"),
+        path.join(EXE_DIR, "jre", "bin", "java.exe"),
         path.join(ROOT, "jre", "bin", "javaw.exe")
       ]
     : [
         path.join(bundled, "jre", "bin", "java"),
-        path.join(APP_DIR, "jre", "bin", "java"),
+        path.join(EXE_DIR, "jre", "bin", "java"),
         path.join(ROOT, "jre", "bin", "java")
       ];
 
@@ -379,7 +412,7 @@ ipcMain.handle("game:stop", () => {
 
 ipcMain.handle("config:get", () => CONFIG);
 
-ipcMain.handle("updater:check", () => runUpdater());
+ipcMain.handle("updater:check", () => ensureGameFiles("manual"));
 
 ipcMain.handle("launcher:checkUpdate", () => runSelfUpdate());
 
@@ -398,18 +431,22 @@ ipcMain.handle("game:launch", async (event, username) => {
     return { ok: false, message: "Никнейм: 3–16 символов, только латиница, цифры и «_»" };
   }
 
+  launching = true;
+
+  // Перед запуском гарантируем наличие и целостность файлов игры — докачиваем недостающие.
+  await ensureGameFiles("pre-launch");
+
   const versionDir = path.join(GAME_DIR, "versions", VERSION_CUSTOM);
   const versionJson = path.join(versionDir, VERSION_CUSTOM + ".json");
 
   if (!fs.existsSync(versionJson)) {
-    return { ok: false, message: "Не найдена версия: " + versionJson };
+    launching = false;
+    return { ok: false, message: `Не найдена версия ${VERSION_CUSTOM}. Проверьте соединение с интернетом и повторите запуск.` };
   }
 
   patchAuthlib(versionJson);
   const baseVersionJson = path.join(GAME_DIR, "versions", VERSION_NUMBER, VERSION_NUMBER + ".json");
   patchAuthlib(baseVersionJson);
-
-  launching = true;
 
   const offlineMode = CONFIG.launcher.offline !== false;
   const uuid = offlineUUID(name);
