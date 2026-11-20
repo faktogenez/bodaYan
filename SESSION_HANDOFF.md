@@ -308,8 +308,23 @@ delete lib.downloads.artifact.size;
 ### Сервер СкайБлок Деревня (`C:\Server_Skyblock`) — аудит и план улучшений
 > Источник: аудит 2026-11-21 по итогам анализа конкурента `cubixworld` (см. раздел 11, запись «Аудит сервера vs CubixWorld»).
 - **P0 (критично):** (1) `server.properties` `gamemode=creative` → `survival` + `force-gamemode` согласовать с BSkyBlock (новый игрок не должен стартовать в креативе); (2) включить спавн мобов — `spawn-monsters=false`/`spawn-animals=false` ломают прогрессию SkyBlock (нет дропов/ферм) → `true` либо таргетировать per-world; (3) `sync-chunk-writes=true` → `false` (перф).
-- **P1:** унифицировать экономику (Essentials Eco ↔ Vault ↔ BentoBox Bank); снизить `Bank.interestRate` (10% — гиперинфляция); выставить `difficulty` единообразно (`easy` vs BentoBox `NORMAL`); `Challenges.undeployed-view-mode` → `HIDDEN`/задеплоить челленджи; убрать дубль WorldEdit (mod + CUI).
+- **P1:** экономика уже унифицирована удалением Bank (осталась EssentialsX Eco через Vault); выставить `difficulty` единообразно (`easy` vs BentoBox `NORMAL`); `Challenges.undeployed-view-mode` → `HIDDEN`/задеплоить челленджи; вынести `WorldEdit-CUI` из серверных `mods/` в клиент.
 - **P2:** добавить LuckPerms (ранги/права), плагин бэкапов мира+BentoBox db, `spark` для профилирования; развить тему «Деревня» через CustomNPCs (квесты/диалоги/награды); связать `Level` (уровень острова) с наградами; QoL-моды как у CubixWorld (jade/jei/Neat) — но БЕЗ разрастания модпака (концепция «минимум модов»).
+
+**Концепция сервера (озвучена пользователем 2026-11-21):** ламповый SkyBlock-«деревня» на 1.16.5 + жёсткая техно-автоматизация. Старт на **кастомных островах** (blueprint), личный мир = центральный спавн, кооп на 2–4 игрока, живой мир (НПС/мобы), вход через свой лаунчер. **Целевые моды:** Ex Nihilo: Sequentia, Create, Mekanism, AE2. Вывод: текущий сервер — это **плагинный** SkyBlock (BentoBox), а концепция требует **Forge-модов** → `mods/` сейчас почти пуст (только CustomNPCs + WorldEdit). Нужно добавить Forge-моды + зависимости.
+
+**Факт текущего набора (аудит 2026-11-21):**
+- `mods/`: `CustomNPCs-1.16.5`, `worldedit-mod-7.2.5`, `WorldEdit-CUI-FE3-1.16.5` (**клиентский — убрать с сервера**).
+- `plugins/`: BentoBox 1.16.2, EssentialsX (+Spawn) 2.22.0, Vault, WorldBorderPlugin.
+- `plugins/BentoBox/addons/`: Bank ❌(удалён), Biomes, BSkyBlock, Challenges, ControlPanel, IslandFly, Level, Limits, Warps.
+- Корень: `mohist-1.16.5-...jar` (рабочий, из `.start.bat`), `forge-1.16.5-36.2.39.jar`, `minecraft_server.1.16.5.jar`, forge-installer (мусор, не используется).
+- ✅ **Bank удалён** (jar + `addons/Bank/config.yml`); применится после рестарта. Экономика теперь одна — EssentialsX Eco через Vault.
+
+**Обновление плана под концепцию:**
+- **P0 (без изменений):** survival / вернуть мобов / `sync-chunk-writes=false`.
+- **P1:** добавить Forge-ядро: **Ex Nihilo: Sequentia**, **Create + Flywheel**, **Mekanism + MekanismGenerators(+Tools)**, **AE2** (все — строго 1.16.5/Forge 36.2.x, на сервер И в лаунчер-клиент); вынести `WorldEdit-CUI` в клиент.
+- **P2:** BSkyBlock blueprint под «деревню» + спавн = личная карта; челленджи/уровень→награды; CustomNPCs-квесты; бэкапы, LuckPerms, `spark`.
+- ⚠️ Риск: тяжёлые Forge-моды под Mohist — следить за TPS/крашами (`logs/latest.log`); при несовместимости — рассмотреть Forge-only ядро (потеря BentoBox).
 
 ---
 
