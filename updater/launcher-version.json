@@ -1,7 +1,7 @@
 {
-  "version": "1.0.8",
-  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.8/AppleLauncher.exe",
-  "sha1": "6b4b871e956702b5dbcd7a9f36c9e2383bb6ec91",
-  "size": 111696317,
-  "notes": "Fix: зависание загрузки на 77% на некоторых ноутбуках. Добавлен inactivity timeout (15с) в HTTP-запросы загрузчика — при сетевом сталке соединение обрывается и загрузка автоматически повторяется (до 3 попыток с докачкой). Предыдущие функции сохранены: постоянный каталог данных %APPDATA%\\AppleLauncher, проверка целостности SHA1, автодокачка, self-update."
+  "version": "1.0.9",
+  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.9/AppleLauncher.exe",
+  "sha1": "76b8207add3ef75afc6b2fe253b2db21fd93d49c",
+  "size": 111697840,
+  "notes": "Fix: зависание загрузки на 77%. В v1.0.8 таймаут обрывал запрос через req.destroy() без аргумента — Node не emit-ит 'error', promise не reject-ился и загрузка вставала навсегда. Теперь req.destroy(new Error(...)) гарантирует reject и запуск retry (до 3 попыток с докачкой через HTTP Range). Дополнительно: при обрыве закрывается файловый поток (.part не остаётся залоченным на Windows), добавлено логирование неудачных попыток. Прошлые функции сохранены: каталог данных %APPDATA%\\AppleLauncher, проверка целостности SHA1, автодокачка, self-update."
 }

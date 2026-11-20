@@ -4,6 +4,7 @@ const https = require("https");
 const http = require("http");
 const crypto = require("crypto");
 const { URL } = require("url");
+const logger = require("./logger");
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleLauncher";
 const MAX_REDIRECTS = 5;
@@ -34,9 +35,14 @@ function fetchBuffer(urlStr, redirects = 0) {
       }
       const chunks = [];
       res.on("data", (c) => chunks.push(c));
+      res.on("error", reject);
       res.on("end", () => resolve({ statusCode, headers, buffer: Buffer.concat(chunks) }));
     });
-    req.setTimeout(INACTIVITY_TIMEOUT_MS, () => { req.destroy(); });
+    // ВАЖНО: destroy() без аргумента НЕ emit-ит 'error' на запросе — promise зависнет навсегда.
+    // Передаём Error, чтобы reject сработал и запустился retry.
+    req.setTimeout(INACTIVITY_TIMEOUT_MS, () => {
+      req.destroy(new Error("Таймаут загрузки: нет данных " + (INACTIVITY_TIMEOUT_MS / 1000) + " с"));
+    });
     req.on("error", reject);
   });
 }
@@ -64,6 +70,7 @@ async function downloadToFile(urlStr, destPath, onBytes, opts = {}) {
       return await streamDownload(urlStr, destPath, onBytes, opts, 0);
     } catch (err) {
       lastErr = err;
+      logger.warn(`[updater] попытка ${attempt}/${maxAttempts} не удалась для ${path.basename(destPath)}: ${err.message}`);
       if (attempt < maxAttempts) {
         const delay = 1000 * Math.pow(2, attempt - 1); // 1s → 2s → 4s
         await new Promise((r) => setTimeout(r, delay));
@@ -140,16 +147,23 @@ function streamDownload(urlStr, destPath, onBytes, opts, redirects) {
       const out = fs.createWriteStream(tmpPath, { flags: append ? "a" : "w" });
       let received = startBytes;
 
+      // Единая точка отказа: закрываем файловый поток (иначе на Windows .part остаётся
+      // залоченным и следующая попытка докачки не сможет записать/переименовать файл).
+      const fail = (err) => {
+        try { out.destroy(); } catch (_) {}
+        reject(err);
+      };
+
       const proceed = () => {
         res.on("data", (chunk) => {
           received += chunk.length;
           hash.update(chunk);
           if (onBytes) onBytes(received, total);
         });
-        res.on("error", reject);
+        res.on("error", fail);
         res.pipe(out);
 
-        out.on("error", reject);
+        out.on("error", fail);
         out.on("finish", () => {
           out.close(() => {
             try {
@@ -169,7 +183,10 @@ function streamDownload(urlStr, destPath, onBytes, opts, redirects) {
       }
     });
 
-    req.setTimeout(INACTIVITY_TIMEOUT_MS, () => { req.destroy(); });
+    // destroy() без Error не emit-ит 'error' на запросе — promise зависнет. Передаём Error.
+    req.setTimeout(INACTIVITY_TIMEOUT_MS, () => {
+      req.destroy(new Error("Таймаут загрузки: нет данных " + (INACTIVITY_TIMEOUT_MS / 1000) + " с"));
+    });
     req.on("error", reject);
   });
 }
