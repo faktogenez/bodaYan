@@ -88,52 +88,41 @@ function winEnv() {
 }
 
 // Формирует содержимое apply-скрипта (чистая функция — пишется отдельно, удобно тестировать).
-// Логика замены перенесена из старого бесконечного цикла в устойчивый протокол:
-//   1) ждём завершения И процесса приложения (по PID), И portable-обёртки (по имени образа EXE) —
-//      оба держат целевой файл открытым, пока живы;
-//   2) заменяем с ретраями, НЕ глуша ошибку move (пишем её в лог);
-//   3) при исчерпании ретраев — резервный путь copy /Y + del;
-//   4) любой исход завершает скрипт (нет зависания без следов).
+// КРИТИЧНО: скрипт НЕ использует конвейеры (`|`) и внешние утилиты (tasklist/find).
+// В detached-cmd (spawn: { detached:true, stdio:"ignore" }) конвейер вида `tasklist | find`
+// зависает НАВСЕГДА, поэтому прежний `:wait`-цикл никогда не завершался и move не вызывался —
+// именно это и было причиной остановки на 77%. Замена построена на чистой ретрай-логике:
+//   повторяем `move /Y` (встроенная команда, без конвейеров), пока целевой файл занят
+//   запущенным лаунчером/portable-обёрткой; как только оба процесса завершатся, move проходит.
+//   1) при исчерпании ретраев — резервный путь copy /Y + del;
+//   2) любой исход завершает скрипт (нет зависания без следов).
 function buildApplyScript({ newExePath, targetExePath, pid }) {
   const dir = path.dirname(newExePath);
   const batPath = path.join(dir, "apply-launcher-update.bat");
   const logPath = path.join(dir, "apply-launcher-update.log");
-  const targetName = path.basename(targetExePath);
   const content = [
     "@echo off",
     "setlocal",
+    // PATH гарантирует наличие ping.exe; move/copy/del/start — встроенные команды cmd.
+    `set "PATH=%SystemRoot%\\System32;%PATH%"`,
     `set "TARGET=${targetExePath}"`,
     `set "SOURCE=${newExePath}"`,
     `set "PID=${pid}"`,
-    `set "IMG=${targetName}"`,
     `set "LOG=${logPath}"`,
     `echo [%date% %time%] apply start TARGET=%TARGET% SOURCE=%SOURCE% PID=%PID%>>"%LOG%"`,
-    // Ждём выхода приложения и portable-обёртки. Ограничено по числу итераций (~5 мин),
-    // чтобы при неустранимом состоянии не зависать навсегда.
-    "set /a w=0",
-    ":wait",
-    "set /a w+=1",
-    "if %w% GEQ 300 goto timeout",
-    `tasklist /FI "PID eq %PID%" 2>nul | find "%PID%" >nul`,
-    "if not errorlevel 1 goto wait_pause",
-    `tasklist /FI "IMAGENAME eq %IMG%" 2>nul | find /I "%IMG%" >nul`,
-    "if not errorlevel 1 goto wait_pause",
-    `echo [%date% %time%] launcher processes exited (waited %w%)>>"%LOG%"`,
-    "goto replace",
-    ":wait_pause",
-    "ping -n 2 127.0.0.1 >nul",
-    "goto wait",
-    // Подмена: ошибка move НЕ глушится, а пишется в лог — раньше это скрывало причину сбоя.
+    // Если источник уже отсутствует — нечего подменять, просто перезапускаем прежний файл.
+    `if not exist "%SOURCE%" goto nosource`,
+    // Подмена: ошибка move НЕ глушится, а пишется в лог — иначе причина сбоя скрыта.
     "set /a r=0",
     ":replace",
     `move /Y "%SOURCE%" "%TARGET%" >>"%LOG%" 2>&1`,
     "if not errorlevel 1 goto replace_ok",
     "set /a r+=1",
-    "if %r% GEQ 300 goto fallback",
+    "if %r% GEQ 90 goto fallback",
     "ping -n 2 127.0.0.1 >nul",
     "goto replace",
     ":replace_ok",
-    `echo [%date% %time%] move OK (failed tries: %r%)>>"%LOG%"`,
+    `echo [%date% %time%] move OK (tries: %r%)>>"%LOG%"`,
     "goto launch",
     // Резервный путь, если move не срабатывает (например, удержание файла оболочкой/AV).
     ":fallback",
@@ -143,11 +132,11 @@ function buildApplyScript({ newExePath, targetExePath, pid }) {
     `del /F /Q "%SOURCE%" >>"%LOG%" 2>&1`,
     `echo [%date% %time%] copy fallback OK>>"%LOG%"`,
     "goto launch",
+    ":nosource",
+    `echo [%date% %time%] SOURCE missing -> relaunch current target>>"%LOG%"`,
+    "goto launch",
     ":giveup",
     `echo [%date% %time%] UPDATE FAILED: cannot replace target>>"%LOG%"`,
-    "goto end",
-    ":timeout",
-    `echo [%date% %time%] UPDATE FAILED: timeout waiting for processes>>"%LOG%"`,
     "goto end",
     ":launch",
     `start "" "%TARGET%"`,

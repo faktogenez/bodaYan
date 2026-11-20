@@ -94,18 +94,19 @@ async function main() {
       }), /размера/);
     });
 
-    await check("apply-скрипт заменяет с логами, ждёт обёртку и имеет fallback", async () => {
+    await check("apply-скрипт заменяет без конвейеров, с логами, ретраями и fallback", async () => {
       const { batPath, content } = selfUpdate.buildApplyScript({
         newExePath: path.join(tempDir, "AppleLauncher-update.exe"),
         targetExePath: path.join(tempDir, "AppleLauncher.exe"),
         pid: 4321
       });
       assert.strictEqual(batPath, path.join(tempDir, "apply-launcher-update.bat"));
-      // ждём и по PID, и по имени образа portable-обёртки
       assert.ok(content.includes('set "PID=4321"'));
-      assert.ok(content.includes('set "IMG=AppleLauncher.exe"'));
-      assert.ok(content.includes('tasklist /FI "IMAGENAME eq %IMG%"'));
-      // ошибка move больше НЕ глушится в >nul, а пишется в лог
+      // КРИТИЧНО: без конвейеров и внешних tasklist/find — они зависают в detached-cmd.
+      assert.ok(!content.includes("|"), "конвейер в apply-скрипте недопустим");
+      assert.ok(!/tasklist/i.test(content), "tasklist недопустим в apply-скрипте");
+      assert.ok(!/\bfind\b/i.test(content), "find недопустим в apply-скрипте");
+      // ошибка move НЕ глушится в >nul, а пишется в лог
       assert.ok(/move \/Y "%SOURCE%" "%TARGET%" >>"%LOG%" 2>&1/.test(content));
       assert.ok(!/move \/Y "%SOURCE%" "%TARGET%" >nul/.test(content));
       // есть резервный путь и гарантированное завершение
