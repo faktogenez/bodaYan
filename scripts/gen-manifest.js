@@ -19,7 +19,17 @@ const ROOT = path.resolve(__dirname, "..");
 // Каталоги обходим рекурсивно; отдельные файлы добавляем точечно.
 // libraries/assets/base-версию клиента MCLC качает сам, поэтому их не публикуем.
 const INCLUDE_DIRS = ["mods", "customnpcs"];
-const INCLUDE_FILES = ["versions/Forge 1.16.5/Forge 1.16.5.json"];
+// Точечно включаем version JSON Forge и 4 локально-генерируемые библиотеки Forge.
+// У них в version JSON относительные artifact.url (напр. "/libraries/net/minecraft/..."),
+// которых нет на публичных зеркалах — MCLC не может их скачать (см. отчёт об ошибке
+// 2026-11-20). Поэтому раскладываем их сами через манифест.
+const INCLUDE_FILES = [
+  "versions/Forge 1.16.5/Forge 1.16.5.json",
+  "libraries/net/minecraft/client/1.16.5-20210115.111550/client-1.16.5-20210115.111550-slim.jar",
+  "libraries/net/minecraft/client/1.16.5-20210115.111550/client-1.16.5-20210115.111550-extra.jar",
+  "libraries/net/minecraft/client/1.16.5-20210115.111550/client-1.16.5-20210115.111550-srg.jar",
+  "libraries/net/minecraftforge/forge/1.16.5-36.2.42/forge-1.16.5-36.2.42-client.jar"
+];
 
 const DEFAULT_BASE_URL = "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2";
 

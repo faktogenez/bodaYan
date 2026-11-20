@@ -589,6 +589,18 @@ ipcMain.handle("game:launch", async (event, username) => {
     client.on("debug", (e) => logger.log("[mlc debug]", e));
 
     gameProcess = await client.launch(opts);
+    // MCLC при внутренней ошибке НЕ отклоняет промис, а возвращает null и пишет причину
+    // только в debug. Без этой проверки UI «зависает» на последнем прогрессе (например 77%),
+    // т.к. события game:error / game:close не приходят.
+    if (!gameProcess) {
+      launching = false;
+      diagnostic.handleError(
+        "MCLC: не удалось запустить игру (launch вернул null)",
+        null,
+        { scope: "game-launch/no-process", details: { username: name, version: VERSION_CUSTOM } }
+      );
+      return { ok: false, message: "Не удалось запустить игру. Отчёт сохранён на Рабочем столе." };
+    }
     return { ok: true };
   } catch (err) {
     launching = false;

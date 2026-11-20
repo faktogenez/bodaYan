@@ -216,6 +216,30 @@
       "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/versions__Forge_1.16.5__Forge_1.16.5.json",
       "sha1": "7230909abcf5a44fdedad7d2d5bed340caa010ec",
       "size": 45771
+    },
+    {
+      "path": "libraries/net/minecraft/client/1.16.5-20210115.111550/client-1.16.5-20210115.111550-slim.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/libraries__net__minecraft__client__1.16.5-20210115.111550__client-1.16.5-20210115.111550-slim.jar",
+      "sha1": "045d6edac8fe1b004e159c49704b5b729f551079",
+      "size": 9118806
+    },
+    {
+      "path": "libraries/net/minecraft/client/1.16.5-20210115.111550/client-1.16.5-20210115.111550-extra.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/libraries__net__minecraft__client__1.16.5-20210115.111550__client-1.16.5-20210115.111550-extra.jar",
+      "sha1": "4aef4168f94d97bc73bf510213b2518942f931d1",
+      "size": 8428369
+    },
+    {
+      "path": "libraries/net/minecraft/client/1.16.5-20210115.111550/client-1.16.5-20210115.111550-srg.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/libraries__net__minecraft__client__1.16.5-20210115.111550__client-1.16.5-20210115.111550-srg.jar",
+      "sha1": "5ae3dab51810747dcceda5cd89b14b6862c13fec",
+      "size": 11352644
+    },
+    {
+      "path": "libraries/net/minecraftforge/forge/1.16.5-36.2.42/forge-1.16.5-36.2.42-client.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/libraries__net__minecraftforge__forge__1.16.5-36.2.42__forge-1.16.5-36.2.42-client.jar",
+      "sha1": "427f13ce6f486c182c9693e94e907e2eb049773f",
+      "size": 4214276
     }
   ]
 }

@@ -104,7 +104,9 @@ function configSummary(cfg) {
 // Собирает структуру отчёта (данные без записи файла).
 function buildReport(title, context) {
   const now = new Date();
-  const err = (context && context.error) || lastError;
+  // Если в контекст явно передан ключ error (даже null) — используем его; иначе последнюю ошибку.
+  const hasErr = context && Object.prototype.hasOwnProperty.call(context, "error");
+  const err = hasErr ? context.error : lastError;
 
   let electron = "";
   let app = null;
@@ -287,9 +289,11 @@ function writeReport(title, context) {
 }
 
 // Полный цикл: перехватить ошибку и записать отчёт (используется обработчиками ошибок).
+// Если ошибка не передана (например, ручной отчёт кнопкой) — секция «ОШИБКА» остаётся пустой,
+// а не заполняется фиктивным «Error: null».
 function handleError(title, err, context) {
-  captureError(err, context && context.scope);
-  return writeReport(title, { ...(context || {}), error: lastError });
+  if (err) captureError(err, context && context.scope);
+  return writeReport(title, { ...(context || {}), error: err ? lastError : null });
 }
 
 module.exports = {
