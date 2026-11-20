@@ -575,8 +575,10 @@ Google Drive/
 **Действия и результаты:**
 - `npm test` → все 4 набора PASS: `test-nickname-session` 5/5, `test-renderer-auth` 6/6, `test-self-update` 6/6, `test-netsel` 10/10.
 - Проверено отсутствие «висячих» ссылок на удалённые сущности (`loginBtn`, `authenticate`, `isAuthenticated`, `restoreNicknameSession`, `.login-btn`) — вне `src/nicknameSession.js` (внутреннее имя переменной) ссылок нет.
+- **Сборка**: `npx electron-builder --win portable` c `ELECTRON_BUILDER_CACHE=C:\Users\LEO\AppleLauncher\.eb-cache`. EXE v1.0.16: **113 309 770 Б, SHA1 `f0f744ef13ab8790663c4df31ba7d8c717ba86d3`**.
+- **Публикация**: коммит `3d86cc4` → `origin/main`; релиз **v1.0.16** (Latest) с ассетами `AppleLauncher.exe` + `launcher-version.json`; `releases/latest/download/launcher-version.json` отдаёт версию **1.0.16** (проверено `Invoke-WebRequest`).
 
-**Статус:** ✅ Все три доработки реализованы и покрыты автотестами. Сборка/публикация v1.0.16 — см. п. ниже.
+**Статус:** ✅ Все три доработки реализованы, покрыты автотестами, собраны и опубликованы как v1.0.16.
 
 **Проблемы/нюансы:** кнопка «Играть» намеренно **не блокируется** при пустом поле (иначе пользователь не увидит сообщение об ошибке); запуск при этом полностью блокируется в `launchGame()` до валидного ника.
 
