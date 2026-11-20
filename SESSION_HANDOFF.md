@@ -305,6 +305,12 @@ delete lib.downloads.artifact.size;
 9. **Подпись кода** (SmartScreen) — сертификат OV/EV, если потребуется публичный релиз без предупреждения.
 10. **Удалить `servers.dat.bak`** — резервная копия от прежних запусков, если она больше не нужна.
 
+### Сервер СкайБлок Деревня (`C:\Server_Skyblock`) — аудит и план улучшений
+> Источник: аудит 2026-11-21 по итогам анализа конкурента `cubixworld` (см. раздел 11, запись «Аудит сервера vs CubixWorld»).
+- **P0 (критично):** (1) `server.properties` `gamemode=creative` → `survival` + `force-gamemode` согласовать с BSkyBlock (новый игрок не должен стартовать в креативе); (2) включить спавн мобов — `spawn-monsters=false`/`spawn-animals=false` ломают прогрессию SkyBlock (нет дропов/ферм) → `true` либо таргетировать per-world; (3) `sync-chunk-writes=true` → `false` (перф).
+- **P1:** унифицировать экономику (Essentials Eco ↔ Vault ↔ BentoBox Bank); снизить `Bank.interestRate` (10% — гиперинфляция); выставить `difficulty` единообразно (`easy` vs BentoBox `NORMAL`); `Challenges.undeployed-view-mode` → `HIDDEN`/задеплоить челленджи; убрать дубль WorldEdit (mod + CUI).
+- **P2:** добавить LuckPerms (ранги/права), плагин бэкапов мира+BentoBox db, `spark` для профилирования; развить тему «Деревня» через CustomNPCs (квесты/диалоги/награды); связать `Level` (уровень острова) с наградами; QoL-моды как у CubixWorld (jade/jei/Neat) — но БЕЗ разрастания модпака (концепция «минимум модов»).
+
 ---
 
 ## 6. Инструкция по продолжению работы
@@ -508,6 +514,28 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-21 — Аудит сервера «СкайБлок Деревня» vs конкурент CubixWorld (OceanBlock_1165)
+
+**Запрос пользователя:** комплексный анализ сервера-конкурента `cubixworld` (режим `OceanBlock_1165`, файлы `C:\Users\LEO\cubixworld`), полный аудит собственного сервера `C:\Server_Skyblock`, практические советы по оптимизации (производительность, геймплей, экономика, баланс, UX) с учётом концепции «минимум модов».
+
+**Проанализированные файлы:**
+- Конкурент: `updates/OceanBlock_1165/{CubixMenu.json, servers.json, config/{cubixtops,cubixquiz,cbx_scrs, ccl.cfg}.toml, mods/*}`, `updates/Industrial/cubixmenu/localMenuData.json`.
+- Свой сервер: `server.properties`, `spigot.yml`, `bukkit.yml`, `plugins/BentoBox/addons/{BSkyBlock,Bank,Challenges}/config.yml`, `plugins/Essentials/{kits.yml}`, `mods/*`, `ops.json`, `world/customnpcs/dialogs/Villager/*.json`.
+
+**Ключевые выводы (конкурент):** коммерческая лаунчер-платформа (`api.cubixworld.net`), in-launcher меню (новости/серверы/валюта `ruble`+`bonus`), live-события (квиз каждые 30 мин; лидерборды money/kills/playtime/quiz с недельными наградами), устойчивый реконнект (5 попыток/30с). QoL/перф-моды: `lazydfu`, `smoothboot`, `jade`, `jei`+`jeresources`, `Neat`, `litematica`, `mouse-tweaks`, `RPC`. Контент — крупный тематический модпак (против концепции «минимум модов» → берём только сервисный слой).
+
+**Ключевые выводы (свой сервер):** Mohist 1.16.5 (Forge+Bukkit) + моды CustomNPCs/WorldEdit(×2), BentoBox+9 аддонов (BSkyBlock/Bank/Biomes/Challenges/ControlPanel/IslandFly/Level/Limits/Warps), EssentialsX, Vault, WorldBorder. 4 игрока. **Найдено:** `gamemode=creative` в `server.properties` (конфликт с BSkyBlock SURVIVAL); `spawn-monsters=false`/`spawn-animals=false` → нет мобов (ломает SkyBlock); `sync-chunk-writes=true`; дубль WorldEdit; `Bank.interestRate=10` (гиперинфляция); нет плагина прав/бэкапов; CustomNPCs-диалоги — заглушки без квестов.
+
+**Изменения в коде/конфиге:** файлы сервера НЕ трогались (аудит). Обновлён [SESSION_HANDOFF.md](file:///C:/Users/LEO/AppleLauncher/SESSION_HANDOFF.md): раздел 5 (новый подраздел «Сервер СкайБлок Деревня — аудит и план», P0/P1/P2) и данная запись.
+
+**Результаты:** подготовлен структурированный отчёт (анализ конкурента → сильные/слабые стороны → рекомендации → план приоритетов P0/P1/P2) в ответе пользователю.
+
+**Статус:** ✅ анализ конкурента · ✅ аудит сервера · ✅ рекомендации и план · ⬜ применение правок конфигов сервера (по отдельному запросу; сервер запущен — правки стоп-старт).
+
+**Проблемы:** нет.
+
+**Открытые вопросы:** начинать ли применение P0-правок (gamemode/spawn/sync-chunk-writes) сразу, и в каком порядке?
 
 ### Сессия 2026-11-21 — Сборка и публикация v1.0.7 (доставка доработок через self-update)
 
