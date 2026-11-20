@@ -6,7 +6,7 @@ const nicknameSession = require("../src/nicknameSession");
 
 const rendererSource = fs.readFileSync(path.join(__dirname, "..", "src", "renderer.js"), "utf8");
 const elementIds = [
-  "username", "usernameError", "loginBtn", "playBtn", "stopBtn", "reportBtn",
+  "username", "usernameError", "playBtn", "stopBtn", "reportBtn", "splash",
   "statusText", "bgLayer", "progressWrap", "progressTrack", "progressBar",
   "progressLabel", "metaVersion", "metaMemory", "metaServer", "minimizeBtn", "closeBtn"
 ];
@@ -32,12 +32,13 @@ function makeRenderer(storage) {
   const elements = Object.fromEntries(elementIds.map((id) => [id, new FakeElement(id)]));
   let domReady;
   let launcherUpdateHandler;
-  const apiCalls = [];
+  const loginCalls = [];
+  const launchCalls = [];
   const electronAPI = {
     getConfig: async () => ({}),
     getRandomBackground: async () => null,
     loginByNickname: async (username) => {
-      apiCalls.push(username);
+      loginCalls.push(username);
       return nicknameSession.login(username);
     },
     onGameData() {},
@@ -48,7 +49,7 @@ function makeRenderer(storage) {
     onLauncherUpdate: (callback) => { launcherUpdateHandler = callback; },
     reportError() {},
     sendReport: async () => ({ ok: true }),
-    launchGame: async () => ({ ok: true }),
+    launchGame: async () => { launchCalls.push(true); return { ok: true }; },
     stopGame: async () => ({ ok: true }),
     minimize() {},
     close() {}
@@ -71,7 +72,7 @@ function makeRenderer(storage) {
     clearTimeout
   };
   vm.runInNewContext(rendererSource, context, { filename: "renderer.js" });
-  return { elements, apiCalls, domReady, emitUpdate: (event) => launcherUpdateHandler(event) };
+  return { elements, loginCalls, launchCalls, domReady, emitUpdate: (event) => launcherUpdateHandler(event) };
 }
 
 async function initialize(app) {
@@ -92,32 +93,32 @@ async function main() {
   assert.strictEqual(first.elements.username.value, "");
   console.log("  PASS первый запуск оставляет поле никнейма пустым");
 
-  await first.elements.loginBtn.listeners.click();
-  assert.strictEqual(first.apiCalls.length, 0);
+  await first.elements.playBtn.listeners.click();
+  assert.strictEqual(first.loginCalls.length, 0);
+  assert.strictEqual(first.launchCalls.length, 0);
   assert.match(first.elements.usernameError.textContent, /Введите никнейм/);
-  console.log("  PASS пустой ник отклоняется с понятной ошибкой");
+  assert.match(first.elements.statusText.textContent, /Введите никнейм/);
+  console.log("  PASS пустой ник блокирует запуск с понятной ошибкой");
 
   first.elements.username.value = "bodayan";
-  await first.elements.loginBtn.listeners.click();
-  assert.strictEqual(first.apiCalls.length, 0);
+  await first.elements.playBtn.listeners.click();
+  assert.strictEqual(first.loginCalls.length, 0);
+  assert.strictEqual(first.launchCalls.length, 0);
   assert.match(first.elements.usernameError.textContent, /стандартный ник/);
   console.log("  PASS стандартный ник отклоняется");
 
   first.elements.username.value = "Player_2026";
-  await first.elements.loginBtn.listeners.click();
-  assert.deepStrictEqual(first.apiCalls, ["Player_2026"]);
-  assert.strictEqual(values.get("appleLauncher.username"), "Player_2026");
-  assert.strictEqual(first.elements.playBtn.disabled, false);
-  assert.strictEqual(first.elements.loginBtn.hidden, true);
-  console.log("  PASS успешный вход сохраняет ник и разрешает запуск");
+  await first.elements.playBtn.listeners.click();
+  assert.deepStrictEqual(first.loginCalls, ["Player_2026"]);
+  assert.strictEqual(first.launchCalls.length, 1);
+  assert.strictEqual(first.elements.username.value, "Player_2026");
+  console.log("  PASS кнопка «Играть» выполняет вход и запускает игру");
 
-  nicknameSession.clear();
   const second = makeRenderer(storage);
   await initialize(second);
-  assert.strictEqual(second.elements.username.value, "Player_2026");
-  assert.deepStrictEqual(second.apiCalls, ["Player_2026"]);
-  assert.strictEqual(second.elements.playBtn.disabled, false);
-  console.log("  PASS сохранённый ник подставляется и автоматически входит при следующем запуске");
+  assert.strictEqual(second.elements.username.value, "");
+  assert.strictEqual(second.loginCalls.length, 0);
+  console.log("  PASS повторный запуск не подставляет ник автоматически");
 
   second.emitUpdate({ phase: "checking", currentVersion: "1.0.12" });
   assert.match(second.elements.progressLabel.textContent, /Проверка обновлений/);

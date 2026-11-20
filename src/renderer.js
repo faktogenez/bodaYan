@@ -1,7 +1,6 @@
 const elements = {
   username: document.getElementById("username"),
   usernameError: document.getElementById("usernameError"),
-  loginBtn: document.getElementById("loginBtn"),
   playBtn: document.getElementById("playBtn"),
   stopBtn: document.getElementById("stopBtn"),
   reportBtn: document.getElementById("reportBtn"),
@@ -13,14 +12,13 @@ const elements = {
   progressLabel: document.getElementById("progressLabel"),
   metaVersion: document.getElementById("metaVersion"),
   metaMemory: document.getElementById("metaMemory"),
-  metaServer: document.getElementById("metaServer")
+  metaServer: document.getElementById("metaServer"),
+  splash: document.getElementById("splash")
 };
 
 // Никнейм Minecraft: 3–16 символов, латиница/цифры/«_» (совпадает с проверкой в main.js).
 const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
 const STANDARD_USERNAME = "bodayan";
-const SAVED_USERNAME_KEY = "appleLauncher.username";
-let isAuthenticated = false;
 
 function usernameError(value) {
   const name = (value || "").trim();
@@ -33,60 +31,14 @@ function usernameError(value) {
   return "";
 }
 
-// Обновляет индикацию ошибки и доступность кнопки «Играть».
+// Обновляет индикацию ошибки поля никнейма. Возвращает true, если ник валиден.
 function validateUsername() {
   const error = usernameError(elements.username.value);
   const valid = !error;
   elements.username.classList.toggle("invalid", !valid);
   elements.usernameError.textContent = error;
   elements.usernameError.hidden = valid;
-  elements.playBtn.disabled = !valid || !isAuthenticated;
   return valid;
-}
-
-async function authenticate() {
-  if (!validateUsername()) {
-    setStatus(elements.usernameError.textContent, "error");
-    elements.username.focus();
-    return false;
-  }
-
-  elements.loginBtn.disabled = true;
-  setStatus("Выполняется вход…", "loading");
-  try {
-    const result = await window.electronAPI.loginByNickname(elements.username.value.trim());
-    if (!result || !result.ok) {
-      setStatus((result && result.message) || "Не удалось выполнить вход.", "error");
-      elements.loginBtn.disabled = false;
-      return false;
-    }
-
-    isAuthenticated = true;
-    elements.username.value = result.username;
-    elements.username.disabled = true;
-    elements.loginBtn.hidden = true;
-    try { localStorage.setItem(SAVED_USERNAME_KEY, result.username); } catch (_) {}
-    validateUsername();
-    setStatus(`Вход выполнен: ${result.username}`, "success");
-    return true;
-  } catch (err) {
-    setStatus("Ошибка входа: " + err.message, "error");
-    elements.loginBtn.disabled = false;
-    return false;
-  }
-}
-
-async function restoreNicknameSession() {
-  let saved = "";
-  try { saved = localStorage.getItem(SAVED_USERNAME_KEY) || ""; } catch (_) {}
-  if (!saved) return;
-
-  elements.username.value = saved;
-  if (!validateUsername()) {
-    setStatus(elements.usernameError.textContent, "error");
-    return;
-  }
-  await authenticate();
 }
 
 function formatMemory(value) {
@@ -304,42 +256,58 @@ window.electronAPI.onLauncherUpdate((u) => {
 window.electronAPI.onGameClose((code) => {
   elements.stopBtn.hidden = true;
   elements.stopBtn.disabled = false;
+  elements.playBtn.disabled = false;
   resetProgress();
-  validateUsername();
   setStatus(code === 0 ? "Игра закрыта" : `Игра закрыта с кодом ${code}`, code === 0 ? "info" : "error");
 });
 
 window.electronAPI.onGameError((err) => {
   elements.stopBtn.hidden = true;
   elements.stopBtn.disabled = false;
+  elements.playBtn.disabled = false;
   resetProgress();
-  validateUsername();
   setStatus("Ошибка: " + err + " — отчёт сохранён на Рабочем столе", "error");
 });
 
 async function launchGame() {
-  if (!isAuthenticated) {
-    setStatus("Сначала войдите под собственным никнеймом.", "error");
-    elements.username.focus();
-    return;
-  }
+  // Обязательная валидация: пустое или некорректное поле блокирует запуск игры.
   if (!validateUsername()) {
-    setStatus(elements.usernameError.textContent, "error");
+    setStatus(elements.usernameError.textContent || "Введите никнейм", "error");
     elements.username.focus();
     return;
   }
 
+  const username = elements.username.value.trim();
   elements.playBtn.disabled = true;
   elements.stopBtn.hidden = false;
   elements.stopBtn.disabled = false;
   showProgress("Подготовка к запуску…");
+  setStatus("Выполняется вход…", "loading");
+
+  // Единственный путь авторизации — кнопка «Играть».
+  let login;
+  try {
+    login = await window.electronAPI.loginByNickname(username);
+  } catch (err) {
+    login = { ok: false, message: "Ошибка входа: " + err.message };
+  }
+  if (!login || !login.ok) {
+    elements.stopBtn.hidden = true;
+    elements.playBtn.disabled = false;
+    resetProgress();
+    setStatus((login && login.message) || "Не удалось выполнить вход.", "error");
+    elements.username.focus();
+    return;
+  }
+
+  elements.username.value = login.username;
   setStatus("Подготовка к запуску...", "loading");
 
   const result = await window.electronAPI.launchGame();
   if (!result.ok) {
     elements.stopBtn.hidden = true;
+    elements.playBtn.disabled = false;
     resetProgress();
-    validateUsername();
     setStatus(result.message || "Ошибка запуска", "error");
   }
 }
@@ -354,20 +322,28 @@ async function stopGame() {
   }
 }
 
+// Прячет экран-заглушку после завершения инициализации лаунчера.
+function hideSplash() {
+  if (!elements.splash) return;
+  elements.splash.classList.add("splash-hidden");
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   setStatus("Готов к запуску", "info");
   elements.playBtn.addEventListener("click", launchGame);
-  elements.loginBtn.addEventListener("click", authenticate);
   elements.stopBtn.addEventListener("click", stopGame);
   elements.reportBtn.addEventListener("click", sendReport);
   elements.username.addEventListener("input", validateUsername);
   document.getElementById("minimizeBtn").addEventListener("click", () => window.electronAPI.minimize());
   document.getElementById("closeBtn").addEventListener("click", () => window.electronAPI.close());
 
-  const config = await window.electronAPI.getConfig();
-  applyTheme(config && config.theme);
-  applyMeta(config);
-  await restoreNicknameSession();
-  validateUsername();
-  await applyBackground();
+  try {
+    const config = await window.electronAPI.getConfig();
+    applyTheme(config && config.theme);
+    applyMeta(config);
+    await applyBackground();
+  } finally {
+    // Заглушка держится на экране до полной инициализации и загрузки ресурсов.
+    hideSplash();
+  }
 });
