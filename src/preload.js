@@ -9,6 +9,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   stopGame: () => ipcRenderer.invoke("game:stop"),
   checkUpdate: () => ipcRenderer.invoke("updater:check"),
   checkLauncherUpdate: () => ipcRenderer.invoke("launcher:checkUpdate"),
+  // Сбор диагностического отчёта на Рабочий стол (ручная кнопка и авто-ошибки UI).
+  sendReport: (payload) => ipcRenderer.invoke("diagnostics:report", payload),
+  reportError: (scope, error) =>
+    ipcRenderer.invoke("diagnostics:report", {
+      scope,
+      error: error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : null
+    }),
   onGameData: (cb) => ipcRenderer.on("game:data", (_e, data) => cb(data)),
   onGameProgress: (cb) => ipcRenderer.on("game:progress", (_e, progress) => cb(progress)),
   onGameClose: (cb) => ipcRenderer.on("game:close", (_e, code) => cb(code)),

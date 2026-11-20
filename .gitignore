@@ -7,6 +7,7 @@ dist/
 release/
 build/
 .cache/
+.electron-builder-cache/
 
 # Игровые файлы (скачиваются динамически, не коммитятся)
 minecraft/

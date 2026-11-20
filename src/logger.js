@@ -8,6 +8,11 @@ const path = require("path");
 
 let logPath = path.join(process.cwd(), "debug.log");
 
+// Кольцевой буфер последних строк в памяти. Пишется ВСЕГДА (независимо от DEBUG),
+// чтобы диагностический отчёт об ошибке содержал свежий лог даже без включённого debug.log.
+const RING_MAX = 300;
+const ring = [];
+
 function setLogDir(dir) {
   try {
     if (dir) logPath = path.join(dir, "debug.log");
@@ -35,6 +40,15 @@ function format(args) {
     .join(" ");
 }
 
+function toRing(level, args) {
+  try {
+    ring.push(`[${new Date().toISOString()}] [${level}] ${format(args)}`);
+    if (ring.length > RING_MAX) ring.shift();
+  } catch (_) {
+    // некритично
+  }
+}
+
 function toFile(level, args) {
   if (!process.env.DEBUG) return;
   const line = `[${new Date().toISOString()}] [${level}] ${format(args)}\n`;
@@ -45,19 +59,27 @@ function toFile(level, args) {
   }
 }
 
+// Последние строки лога (для диагностического отчёта).
+function getRecent() {
+  return ring.slice();
+}
+
 function log(...args) {
   console.log(...args);
+  toRing("LOG", args);
   toFile("LOG", args);
 }
 
 function warn(...args) {
   console.warn(...args);
+  toRing("WARN", args);
   toFile("WARN", args);
 }
 
 function error(...args) {
   console.error(...args);
+  toRing("ERROR", args);
   toFile("ERROR", args);
 }
 
-module.exports = { log, warn, error, setLogDir, getLogPath };
+module.exports = { log, warn, error, setLogDir, getLogPath, getRecent };

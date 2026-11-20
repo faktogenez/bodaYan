@@ -3,6 +3,7 @@ const elements = {
   usernameError: document.getElementById("usernameError"),
   playBtn: document.getElementById("playBtn"),
   stopBtn: document.getElementById("stopBtn"),
+  reportBtn: document.getElementById("reportBtn"),
   status: document.getElementById("statusText"),
   bgLayer: document.getElementById("bgLayer"),
   progressWrap: document.getElementById("progressWrap"),
@@ -93,6 +94,43 @@ async function applyBackground() {
 function setStatus(text, type = "info") {
   elements.status.textContent = text;
   elements.status.className = "status-bar " + type;
+}
+
+// Автосбор диагностики при ошибках интерфейса: отчёт уходит в main и пишется на Рабочий стол.
+window.addEventListener("error", (e) => {
+  const err = e.error || { name: "Error", message: e.message, stack: "" };
+  window.electronAPI.reportError("renderer:window.onerror", err);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  const r = e.reason;
+  const err = r instanceof Error ? r : { name: "UnhandledRejection", message: String(r), stack: "" };
+  window.electronAPI.reportError("renderer:unhandledrejection", err);
+});
+
+// Ручная отправка отчёта (кнопка «Сообщить об ошибке»).
+async function sendReport() {
+  elements.reportBtn.disabled = true;
+  const prevStatus = elements.status.textContent;
+  setStatus("Сбор диагностики…", "loading");
+  try {
+    const result = await window.electronAPI.sendReport({
+      title: "Отчёт по запросу пользователя",
+      scope: "manual",
+      details: {
+        lastStatus: prevStatus,
+        username: elements.username.value
+      }
+    });
+    if (result && result.ok) {
+      setStatus("Отчёт сохранён: " + result.path, "success");
+    } else {
+      setStatus("Не удалось сохранить отчёт" + (result && result.error ? ": " + result.error : ""), "error");
+    }
+  } catch (err) {
+    setStatus("Не удалось сохранить отчёт: " + err.message, "error");
+  } finally {
+    elements.reportBtn.disabled = false;
+  }
 }
 
 function formatBytes(bytes) {
@@ -209,7 +247,7 @@ window.electronAPI.onGameError((err) => {
   elements.stopBtn.disabled = false;
   resetProgress();
   validateUsername();
-  setStatus("Ошибка: " + err, "error");
+  setStatus("Ошибка: " + err + " — отчёт сохранён на Рабочем столе", "error");
 });
 
 async function launchGame() {
@@ -248,6 +286,7 @@ async function stopGame() {
 document.addEventListener("DOMContentLoaded", async () => {
   elements.playBtn.addEventListener("click", launchGame);
   elements.stopBtn.addEventListener("click", stopGame);
+  elements.reportBtn.addEventListener("click", sendReport);
   elements.username.addEventListener("input", validateUsername);
   document.getElementById("minimizeBtn").addEventListener("click", () => window.electronAPI.minimize());
   document.getElementById("closeBtn").addEventListener("click", () => window.electronAPI.close());

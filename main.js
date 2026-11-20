@@ -9,6 +9,7 @@ const updater = require("./src/updater");
 const servers = require("./src/servers");
 const selfUpdate = require("./src/selfUpdate");
 const logger = require("./src/logger");
+const diagnostic = require("./src/diagnostic");
 
 const ROOT = __dirname;
 
@@ -137,6 +138,24 @@ const DEFAULT_USERNAME = CONFIG.launcher.defaultUsername;
 const SERVER_HOST = CONFIG.launcher.server.host;
 const SERVER_PORT = CONFIG.launcher.server.port;
 
+// Контекст для диагностических отчётов: пути и конфиг, которые нужны модулю diagnostic.
+diagnostic.configure({
+  dataDir: DATA_DIR,
+  exeDir: EXE_DIR,
+  gameDir: GAME_DIR,
+  config: CONFIG,
+  javaPath: resolveJavaPath()
+});
+
+// Автосбор диагностики при необработанных ошибках/отклонённых промисах в главном процессе.
+// Отчёт кладётся на Рабочий стол; лаунчер при этом продолжает работу.
+process.on("uncaughtException", (err) => {
+  diagnostic.handleError("Необработанное исключение (main process)", err, { scope: "uncaughtException" });
+});
+process.on("unhandledRejection", (reason) => {
+  diagnostic.handleError("Необработанный отказ промиса (main process)", reason, { scope: "unhandledRejection" });
+});
+
 const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
 
 // Допустимый никнейм Minecraft: 3–16 символов, только латиница, цифры и «_».
@@ -239,6 +258,7 @@ async function runSelfUpdate() {
     return { ok: true, hasUpdate: true, applied: true, version: remote.version };
   } catch (err) {
     logger.error("[selfupdate] ошибка:", err.message);
+    diagnostic.handleError("Ошибка автообновления лаунчера", err, { scope: "selfupdate" });
     send({ phase: "error", message: err.message });
     return { ok: false, message: err.message };
   }
@@ -267,6 +287,7 @@ async function ensureGameFiles(reason) {
     return { ok: results.failed.length === 0, results };
   } catch (err) {
     logger.error("[updater] ошибка:", err.message);
+    diagnostic.handleError("Ошибка проверки/дозагрузки файлов", err, { scope: "updater", details: { reason } });
     return { ok: false, message: err.message };
   }
 }
@@ -412,6 +433,22 @@ ipcMain.handle("game:stop", () => {
 
 ipcMain.handle("config:get", () => CONFIG);
 
+// Ручная/автоматическая отправка отчёта из renderer (кнопка «Сообщить об ошибке»,
+// window.onerror, неудачный вызов API). Возвращает путь к созданному файлу.
+ipcMain.handle("diagnostics:report", (_event, payload) => {
+  const p = payload || {};
+  const err = p.error
+    ? Object.assign(new Error(p.error.message || "Ошибка рендерера"), {
+        name: p.error.name || "Error",
+        stack: p.error.stack || ""
+      })
+    : null;
+  return diagnostic.handleError(p.title || "Ошибка интерфейса лаунчера", err, {
+    scope: p.scope || "renderer",
+    details: p.details || null
+  });
+});
+
 ipcMain.handle("updater:check", () => ensureGameFiles("manual"));
 
 ipcMain.handle("launcher:checkUpdate", () => runSelfUpdate());
@@ -543,6 +580,7 @@ ipcMain.handle("game:launch", async (event, username) => {
       gameProcess = null;
       const msg = err && err.message ? err.message : String(err);
       logger.error("[mlc error]", msg);
+      diagnostic.handleError("Ошибка клиента Minecraft", err, { scope: "game-client" });
       if (mainWindow) {
         mainWindow.show();
         mainWindow.webContents.send("game:error", msg);
@@ -556,6 +594,7 @@ ipcMain.handle("game:launch", async (event, username) => {
     launching = false;
     const msg = err && err.message ? err.message : String(err);
     logger.error("[launcher] launch failed", msg);
+    diagnostic.handleError("Не удалось запустить игру", err, { scope: "game-launch", details: { username: name } });
     return { ok: false, message: msg };
   }
 });

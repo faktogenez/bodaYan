@@ -248,6 +248,24 @@ input[type="text"].invalid:focus {
   cursor: not-allowed;
 }
 
+.report-btn {
+  align-self: center;
+  margin-top: 2px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: color 0.2s ease;
+}
+
+.report-btn:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
 .progress-wrap {
   display: flex;
   flex-direction: column;
