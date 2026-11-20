@@ -1,13 +1,14 @@
 {
   "name": "apple-launcher",
-  "version": "1.0.1",
+  "version": "1.0.6",
   "description": "SkyBlock Launcher",
   "author": "AppleLauncher",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "build:jre": "node scripts/build-jre.js",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win portable",
+    "dist": "node scripts/build-jre.js && electron-builder --win portable",
     "dist:installer": "electron-builder --win nsis"
   },
   "dependencies": {
@@ -16,7 +17,7 @@
   "build": {
     "appId": "com.applelauncher.skyblock",
     "productName": "AppleLauncher",
-    "artifactName": "AppleLauncher-${version}.${ext}",
+    "artifactName": "AppleLauncher.${ext}",
     "compression": "maximum",
     "asar": true,
     "directories": {
@@ -30,7 +31,8 @@
       "package.json"
     ],
     "extraResources": [
-      "config/config.json"
+      "config/config.json",
+      "jre"
     ],
     "win": {
       "icon": "assets/icon.ico",
@@ -44,7 +46,7 @@
       ]
     },
     "portable": {
-      "artifactName": "AppleLauncher-${version}.exe"
+      "artifactName": "AppleLauncher.exe"
     }
   },
   "devDependencies": {

@@ -3,6 +3,42 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — по [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.0.6] - 2026-11-19
+
+### Fixed
+
+- Повторный крэш `spawn cmd.exe ENOENT`, первопричина: текущая версия лаунчера бралась из внешнего `config.json` (`selfUpdate.currentVersion`), который «застревал» на старой версии (1.0.3) — self-update ложно срабатывал при каждом запуске. Теперь версия берётся из самого EXE (`app.getVersion()`).
+- Устойчивость запуска apply-скрипта: `cmd.exe` запускается по абсолютному пути (`%ComSpec%`), а дочернему процессу принудительно добавляется `%SystemRoot%\System32` в `PATH` (при урезанном `PATH` не находились ни `cmd.exe`, ни `tasklist/find/ping/move`).
+
+## [1.0.5] - 2026-11-19
+
+### Fixed
+
+- Крэш main-процесса `spawn cmd.exe ENOENT` при автообновлении: путь к `cmd.exe` берётся из `%ComSpec%` (fallback `%SystemRoot%\System32\cmd.exe`), добавлен обработчик `error` дочернего процесса. Ранее при отсутствии `cmd.exe` в `PATH` приложение падало uncaught-исключением.
+- Та же защита добавлена для `taskkill` в кнопке «Остановить».
+
+## [1.0.4] - 2026-11-19
+
+### Added
+
+- Валидация никнейма (3–16 символов, `[A-Za-z0-9_]`) в UI и в main-процессе.
+- Кнопка «Остановить» — принудительное завершение процесса игры (`taskkill /T /F`).
+- Логирование в `debug.log` (`src/logger.js`, только при `process.env.DEBUG`).
+- Докачка загрузок по HTTP Range (до 3 попыток) в `src/updater.js`.
+
+## [1.0.3] - 2026-11-19
+
+### Fixed
+
+- Встроенная JRE: добавлен модуль `jdk.dynalink` (требуется Nashorn из Forge coremods; иначе `NoClassDefFoundError` при запуске).
+
+## [1.0.2] - 2026-11-19
+
+### Added
+
+- Встроенная JRE 17 (минимальная сборка через `jlink`, `scripts/build-jre.js`) — лаунчер работает без установленной Java.
+- Манифест модпака (`updater/manifest.json`, генератор `scripts/gen-manifest.js`) для автообновления игровых файлов.
+
 ## [1.0.1] - 2026-11-19
 
 ### Added

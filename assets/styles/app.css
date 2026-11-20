@@ -175,6 +175,18 @@ input[type="text"]:focus {
   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.22);
 }
 
+input[type="text"].invalid,
+input[type="text"].invalid:focus {
+  border-color: #ff453a;
+  box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.22);
+}
+
+.input-error {
+  font-size: 11px;
+  color: #ff453a;
+  letter-spacing: 0.2px;
+}
+
 .meta-row {
   display: flex;
   justify-content: space-between;
@@ -208,6 +220,30 @@ input[type="text"]:focus {
 }
 
 .play-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.stop-btn {
+  width: 100%;
+  background: transparent;
+  color: #ff453a;
+  border: 1px solid rgba(255, 69, 58, 0.5);
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.stop-btn:hover:not(:disabled) {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: #ff453a;
+}
+
+.stop-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }

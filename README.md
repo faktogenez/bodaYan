@@ -15,7 +15,7 @@
 ## Требования
 
 - Windows 10/11 x64.
-- Java 17 (либо встроенная JRE рядом с EXE в папке `jre/`).
+- Java 17 (JRE **встроена в EXE** — отдельная установка не требуется).
 
 ## Быстрый старт
 
@@ -32,7 +32,7 @@
 | `launcher` | `defaultUsername` | Ник по умолчанию |
 | `launcher` | `server.host` / `server.port` | Адрес сервера |
 | `launcher` | `memory.min` / `memory.max` | ОЗУ (МБ): по умолчанию 2048 / 4096 |
-| `launcher` | `javaPath` | Путь к Java (пусто = автопоиск: `jre/` рядом с EXE → `java` из PATH) |
+| `launcher` | `javaPath` | Путь к Java (пусто = автопоиск: встроенная JRE в EXE → `jre/` рядом с EXE → `java` из PATH) |
 | `servers` | `enforce` / `list` | Принудительный список серверов в сетевой игре |
 | `selfUpdate` | `enabled` / `manifestUrl` | Автообновление лаунчера |
 | `updater` | `enabled` / `manifestUrl` | Обновление игровых файлов по манифесту |

@@ -21,7 +21,8 @@ const opts = {
     user_properties: "{}",
     meta: { type: "mojang" }
   },
-  root: "C:\\Users\\LEO\\AppleLauncher\\minecraft\\game",
+  root: process.env.MC_ROOT || "C:\\Users\\LEO\\AppleLauncher\\minecraft\\game",
+  javaPath: process.env.MC_JAVA || undefined,
   version: { number: "1.16.5", type: "release", custom: "Forge 1.16.5" },
   memory: { max: "4096", min: "2048" },
   os: "windows",

@@ -30,6 +30,7 @@
         <div class="input-group">
           <label for="username">Никнейм</label>
           <input type="text" id="username" placeholder="Введите ник" value="bodayan" maxlength="16" autocomplete="off">
+          <div class="input-error" id="usernameError" hidden></div>
         </div>
 
         <div class="meta-row">
@@ -39,6 +40,7 @@
         </div>
 
         <button class="play-btn" id="playBtn">Играть</button>
+        <button class="stop-btn" id="stopBtn" hidden>Остановить</button>
 
         <div class="progress-wrap" id="progressWrap" hidden>
           <div class="progress" id="progressTrack"><div class="progress-bar" id="progressBar"></div></div>

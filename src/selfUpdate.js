@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const updater = require("./updater");
+const logger = require("./logger");
 
 // Автообновление самого лаунчера: проверка версии по манифесту, загрузка нового EXE,
 // подмена собственного файла и перезапуск.
@@ -49,6 +50,9 @@ async function checkForUpdate({ manifestUrl, manifestPath, currentVersion }) {
 async function downloadUpdate({ url, destFile, sha1, onProgress }) {
   fs.mkdirSync(path.dirname(destFile), { recursive: true });
   if (fs.existsSync(destFile)) fs.unlinkSync(destFile);
+  // Свежая загрузка: убираем возможный фрагмент докачки от прежней попытки.
+  const partFile = destFile + ".part";
+  if (fs.existsSync(partFile)) fs.unlinkSync(partFile);
 
   const dl = await updater.downloadToFile(url, destFile, (received, total) => {
     if (onProgress) onProgress(received, total);
@@ -58,6 +62,26 @@ async function downloadUpdate({ url, destFile, sha1, onProgress }) {
     throw new Error("Несовпадение SHA1 обновления лаунчера");
   }
   return dl;
+}
+
+// Полный путь к cmd.exe: %ComSpec% надёжнее, чем поиск по PATH (в portable/PATH может быть урезан).
+function resolveCmdExe() {
+  return process.env.ComSpec || path.join(process.env.SystemRoot || "C:\\Windows", "System32", "cmd.exe");
+}
+
+// Окружение для дочернего cmd.exe: гарантируем %SystemRoot%\System32 в PATH.
+// При урезанном PATH не находятся ни сам cmd.exe (при запуске по имени), ни его встроенные
+// утилиты tasklist/find/ping/move — тогда apply-скрипт молча не сработает.
+function winEnv() {
+  const sys32 = path.join(process.env.SystemRoot || "C:\\Windows", "System32");
+  const key = Object.keys(process.env).find((k) => k.toUpperCase() === "PATH") || "Path";
+  const env = { ...process.env };
+  const cur = env[key] || "";
+  const has = cur
+    .split(";")
+    .some((p) => p.replace(/[\\/]+$/, "").toLowerCase() === sys32.toLowerCase());
+  if (!has) env[key] = sys32 + ";" + cur;
+  return env;
 }
 
 // Запускает отсоединённый .bat, который дождётся выхода текущего процесса,
@@ -87,10 +111,21 @@ function applyUpdateAndRestart({ newExePath, targetExePath, pid }) {
   ];
   fs.writeFileSync(batPath, lines.join("\r\n"), "utf8");
 
-  const child = spawn("cmd.exe", ["/c", batPath], {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: true
+  let child;
+  try {
+    child = spawn(resolveCmdExe(), ["/c", batPath], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      env: winEnv()
+    });
+  } catch (err) {
+    throw new Error("не удалось запустить apply-скрипт: " + err.message);
+  }
+  // spawn-ошибки асинхронные (событие "error"), try/catch их не ловит —
+  // без этого слушателя процесс падает uncaught-исключением при ENOENT.
+  child.on("error", (err) => {
+    logger.error("[selfupdate] apply-скрипт не запущен:", err.message);
   });
   child.unref();
   return batPath;

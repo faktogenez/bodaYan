@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getConfig: () => ipcRenderer.invoke("config:get"),
   getRandomBackground: () => ipcRenderer.invoke("backgrounds:random"),
   launchGame: (username) => ipcRenderer.invoke("game:launch", username),
+  stopGame: () => ipcRenderer.invoke("game:stop"),
   checkUpdate: () => ipcRenderer.invoke("updater:check"),
   checkLauncherUpdate: () => ipcRenderer.invoke("launcher:checkUpdate"),
   onGameData: (cb) => ipcRenderer.on("game:data", (_e, data) => cb(data)),

@@ -1,6 +1,8 @@
 const elements = {
   username: document.getElementById("username"),
+  usernameError: document.getElementById("usernameError"),
   playBtn: document.getElementById("playBtn"),
+  stopBtn: document.getElementById("stopBtn"),
   status: document.getElementById("statusText"),
   bgLayer: document.getElementById("bgLayer"),
   progressWrap: document.getElementById("progressWrap"),
@@ -11,6 +13,28 @@ const elements = {
   metaMemory: document.getElementById("metaMemory"),
   metaServer: document.getElementById("metaServer")
 };
+
+// Никнейм Minecraft: 3–16 символов, латиница/цифры/«_» (совпадает с проверкой в main.js).
+const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
+
+function usernameError(value) {
+  const name = (value || "").trim();
+  if (!name) return "Введите никнейм";
+  if (name.length < 3) return "Слишком короткий ник (минимум 3 символа)";
+  if (!USERNAME_RE.test(name)) return "Только латиница, цифры и «_» (3–16 символов)";
+  return "";
+}
+
+// Обновляет индикацию ошибки и доступность кнопки «Играть».
+function validateUsername() {
+  const error = usernameError(elements.username.value);
+  const valid = !error;
+  elements.username.classList.toggle("invalid", !valid);
+  elements.usernameError.textContent = error;
+  elements.usernameError.hidden = valid;
+  elements.playBtn.disabled = !valid;
+  return valid;
+}
 
 function formatMemory(value) {
   const num = parseInt(value, 10);
@@ -173,33 +197,58 @@ window.electronAPI.onLauncherUpdate((u) => {
 });
 
 window.electronAPI.onGameClose((code) => {
-  elements.playBtn.disabled = false;
+  elements.stopBtn.hidden = true;
+  elements.stopBtn.disabled = false;
   resetProgress();
+  validateUsername();
   setStatus(code === 0 ? "Игра закрыта" : `Игра закрыта с кодом ${code}`, code === 0 ? "info" : "error");
 });
 
 window.electronAPI.onGameError((err) => {
-  elements.playBtn.disabled = false;
+  elements.stopBtn.hidden = true;
+  elements.stopBtn.disabled = false;
   resetProgress();
+  validateUsername();
   setStatus("Ошибка: " + err, "error");
 });
 
 async function launchGame() {
-  const username = (elements.username.value || "").trim() || "bodayan";
+  if (!validateUsername()) {
+    setStatus(elements.usernameError.textContent, "error");
+    elements.username.focus();
+    return;
+  }
+
+  const username = elements.username.value.trim();
   elements.playBtn.disabled = true;
+  elements.stopBtn.hidden = false;
+  elements.stopBtn.disabled = false;
   showProgress("Подготовка к запуску…");
   setStatus("Подготовка к запуску...", "loading");
 
   const result = await window.electronAPI.launchGame(username);
   if (!result.ok) {
-    elements.playBtn.disabled = false;
+    elements.stopBtn.hidden = true;
     resetProgress();
+    validateUsername();
     setStatus(result.message || "Ошибка запуска", "error");
+  }
+}
+
+async function stopGame() {
+  elements.stopBtn.disabled = true;
+  setStatus("Остановка игры...", "loading");
+  const result = await window.electronAPI.stopGame();
+  if (!result.ok) {
+    elements.stopBtn.disabled = false;
+    setStatus(result.message || "Не удалось остановить игру", "error");
   }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   elements.playBtn.addEventListener("click", launchGame);
+  elements.stopBtn.addEventListener("click", stopGame);
+  elements.username.addEventListener("input", validateUsername);
   document.getElementById("minimizeBtn").addEventListener("click", () => window.electronAPI.minimize());
   document.getElementById("closeBtn").addEventListener("click", () => window.electronAPI.close());
 
@@ -209,6 +258,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (config && config.launcher && config.launcher.defaultUsername) {
     elements.username.value = config.launcher.defaultUsername;
   }
+  validateUsername();
   await applyBackground();
 
   setStatus("Готов к запуску", "info");

@@ -11,6 +11,12 @@ build/
 # Игровые файлы (скачиваются динамически, не коммитятся)
 minecraft/
 
+# Java runtime (генерируется scripts/build-jre.js, не коммитится)
+jre/
+
+# Вывод сборки мода (mods-src/**/out, генерируется build.ps1, не коммитится)
+mods-src/**/out/
+
 # Логи и краш-дампы
 logs/
 *.log

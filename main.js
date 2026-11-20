@@ -2,11 +2,13 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { spawn } = require("child_process");
 const { pathToFileURL } = require("url");
 const { Client } = require("minecraft-launcher-core");
 const updater = require("./src/updater");
 const servers = require("./src/servers");
 const selfUpdate = require("./src/selfUpdate");
+const logger = require("./src/logger");
 
 const ROOT = __dirname;
 
@@ -16,6 +18,9 @@ const ROOT = __dirname;
 const APP_DIR = app.isPackaged
   ? (process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath))
   : ROOT;
+
+// Файловый лог (debug.log рядом с EXE) — только при process.env.DEBUG.
+logger.setLogDir(APP_DIR);
 
 // Встроенный шаблон конфига (в dev — в проекте, в сборке — в resources).
 const BUNDLED_CONFIG = app.isPackaged
@@ -32,10 +37,10 @@ function ensureConfig() {
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
     if (fs.existsSync(BUNDLED_CONFIG)) {
       fs.copyFileSync(BUNDLED_CONFIG, CONFIG_PATH);
-      console.log("[config] создан внешний конфиг:", CONFIG_PATH);
+      logger.log("[config] создан внешний конфиг:", CONFIG_PATH);
     }
   } catch (err) {
-    console.error("[config] не удалось создать внешний конфиг:", err.message);
+    logger.error("[config] не удалось создать внешний конфиг:", err.message);
   }
 }
 ensureConfig();
@@ -91,7 +96,7 @@ function readConfig() {
       selfUpdate: { ...DEFAULT_CONFIG.selfUpdate, ...(cfg.selfUpdate || {}) }
     };
   } catch (err) {
-    console.error("[config] не удалось прочитать config.json, используются значения по умолчанию:", err.message);
+    logger.error("[config] не удалось прочитать config.json, используются значения по умолчанию:", err.message);
     return DEFAULT_CONFIG;
   }
 }
@@ -107,12 +112,17 @@ const SERVER_PORT = CONFIG.launcher.server.port;
 
 const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
 
+// Допустимый никнейм Minecraft: 3–16 символов, только латиница, цифры и «_».
+// Важно для оффлайн-UUID: никнейм напрямую попадает в MD5("OfflinePlayer:" + name).
+const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
+
 // Маркеры в логе игры, означающие, что клиент загрузился и отрисовал окно.
 const GAME_START_MARKERS = ["Backend library:", "OpenAL initialized", "Sound engine started"];
 
 let mainWindow = null;
 let launching = false;
 let gameStarted = false;
+let gameProcess = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -149,18 +159,21 @@ async function runSelfUpdate() {
   const s = CONFIG.selfUpdate || {};
   if (!s.enabled) return { ok: true, skipped: true, message: "Автообновление лаунчера отключено" };
   if (!app.isPackaged) {
-    console.log("[selfupdate] пропуск: dev-режим (electron .) — обновление применяется только к собранному EXE");
+    logger.log("[selfupdate] пропуск: dev-режим (electron .) — обновление применяется только к собранному EXE");
     return { ok: true, skipped: true, message: "dev-режим" };
   }
   if (process.platform !== "win32") {
-    console.log("[selfupdate] пропуск: подмена запущенного EXE поддерживается только на Windows");
+    logger.log("[selfupdate] пропуск: подмена запущенного EXE поддерживается только на Windows");
     return { ok: true, skipped: true, message: "Поддерживается только Windows" };
   }
 
   const send = (payload) => { if (mainWindow) mainWindow.webContents.send("launcher:update", payload); };
 
   try {
-    const current = s.currentVersion || app.getVersion();
+    // Текущую версию берём из самого EXE (app.getVersion), а НЕ из внешнего config.json:
+    // внешний конфиг обновляется вручную и легко «застревает» на старой версии, из-за чего
+    // self-update срабатывал при каждом запуске (в т.ч. бесконечным циклом).
+    const current = app.getVersion();
     const check = await selfUpdate.checkForUpdate({
       manifestUrl: s.manifestUrl,
       manifestPath: s.manifestPath,
@@ -168,12 +181,12 @@ async function runSelfUpdate() {
     });
 
     if (!check.hasUpdate) {
-      console.log(`[selfupdate] обновлений нет (текущая ${current}, удалённая ${check.remote.version})`);
+      logger.log(`[selfupdate] обновлений нет (текущая ${current}, удалённая ${check.remote.version})`);
       return { ok: true, hasUpdate: false, version: current };
     }
 
     const remote = check.remote;
-    console.log(`[selfupdate] доступно обновление ${remote.version} (текущая ${current})`);
+    logger.log(`[selfupdate] доступно обновление ${remote.version} (текущая ${current})`);
     send({ phase: "start", version: remote.version, currentVersion: current });
 
     const dest = path.join(app.getPath("temp"), "AppleLauncher-update.exe");
@@ -197,7 +210,7 @@ async function runSelfUpdate() {
     setTimeout(() => app.quit(), 500);
     return { ok: true, hasUpdate: true, applied: true, version: remote.version };
   } catch (err) {
-    console.error("[selfupdate] ошибка:", err.message);
+    logger.error("[selfupdate] ошибка:", err.message);
     send({ phase: "error", message: err.message });
     return { ok: false, message: err.message };
   }
@@ -217,10 +230,10 @@ async function runUpdater() {
         if (mainWindow) mainWindow.webContents.send("updater:progress", p);
       }
     });
-    console.log("[updater] готово:", results);
+    logger.log("[updater] готово:", results);
     return { ok: true, results };
   } catch (err) {
-    console.error("[updater] ошибка:", err.message);
+    logger.error("[updater] ошибка:", err.message);
     return { ok: false, message: err.message };
   }
 }
@@ -233,10 +246,10 @@ function applyPinnedServers() {
   if (!list.length) return false;
   try {
     servers.writeServersDat(GAME_DIR, list);
-    console.log(`[servers] servers.dat перезаписан: ${list.length} сервер(ов) — ${list.map((x) => x.ip).join(", ")}`);
+    logger.log(`[servers] servers.dat перезаписан: ${list.length} сервер(ов) — ${list.map((x) => x.ip).join(", ")}`);
     return true;
   } catch (err) {
-    console.error("[servers] ошибка записи servers.dat:", err.message);
+    logger.error("[servers] ошибка записи servers.dat:", err.message);
     return false;
   }
 }
@@ -296,31 +309,36 @@ function patchAuthlib(versionJsonPath) {
 
     if (changed) {
       fs.writeFileSync(versionJsonPath, JSON.stringify(data, null, 2));
-      console.log(`[authlib] обновлён до ${AUTHLIB_FIX_VERSION} в ${path.basename(versionJsonPath)}`);
+      logger.log(`[authlib] обновлён до ${AUTHLIB_FIX_VERSION} в ${path.basename(versionJsonPath)}`);
     }
     return changed;
   } catch (err) {
-    console.error("[authlib] ошибка патча:", err.message);
+    logger.error("[authlib] ошибка патча:", err.message);
     return false;
   }
 }
 
-// Поиск Java 17: 1) явный путь из config.json; 2) встроенная JRE рядом с EXE (APP_DIR/jre);
-// 3) иначе пусто — minecraft-launcher-core возьмёт java/javaw из PATH.
+// Поиск Java 17: 1) явный путь из config.json; 2) встроенная JRE внутри EXE
+// (resources/jre — extraResources); 3) JRE рядом с EXE (APP_DIR/jre);
+// 4) иначе пусто — minecraft-launcher-core возьмёт java/javaw из PATH.
 function resolveJavaPath() {
   const configured = String(CONFIG.launcher.javaPath || "").trim();
   if (configured) {
     if (fs.existsSync(configured)) return configured;
-    console.warn("[java] путь из config.json не найден:", configured);
+    logger.warn("[java] путь из config.json не найден:", configured);
   }
 
+  const bundled = process.resourcesPath || "";
   const candidates = process.platform === "win32"
     ? [
+        path.join(bundled, "jre", "bin", "javaw.exe"),
+        path.join(bundled, "jre", "bin", "java.exe"),
         path.join(APP_DIR, "jre", "bin", "javaw.exe"),
         path.join(APP_DIR, "jre", "bin", "java.exe"),
         path.join(ROOT, "jre", "bin", "javaw.exe")
       ]
     : [
+        path.join(bundled, "jre", "bin", "java"),
         path.join(APP_DIR, "jre", "bin", "java"),
         path.join(ROOT, "jre", "bin", "java")
       ];
@@ -333,6 +351,31 @@ function resolveJavaPath() {
 
 ipcMain.handle("window:minimize", () => { if (mainWindow) mainWindow.minimize(); });
 ipcMain.handle("window:close", () => { if (mainWindow) mainWindow.close(); });
+
+// Принудительная остановка запущенного процесса игры (вместе с дочерними JVM).
+function stopGame() {
+  if (!gameProcess || !gameProcess.pid) return false;
+  const pid = gameProcess.pid;
+  try {
+    if (process.platform === "win32") {
+      const taskkill = path.join(process.env.SystemRoot || "C:\\Windows", "System32", "taskkill.exe");
+      const child = spawn(taskkill, ["/pid", String(pid), "/T", "/F"], { windowsHide: true });
+      // spawn-ошибки асинхронные (событие "error") — без слушателя процесс упал бы uncaught.
+      child.on("error", (err) => logger.error("[game] taskkill не запущен:", err.message));
+    } else {
+      gameProcess.kill("SIGTERM");
+    }
+    return true;
+  } catch (err) {
+    logger.error("[game] не удалось остановить игру:", err.message);
+    return false;
+  }
+}
+
+ipcMain.handle("game:stop", () => {
+  if (!launching && !gameProcess) return { ok: false, message: "Игра не запущена" };
+  return { ok: stopGame(), message: "Остановка игры" };
+});
 
 ipcMain.handle("config:get", () => CONFIG);
 
@@ -351,6 +394,10 @@ ipcMain.handle("game:launch", async (event, username) => {
   if (launching) return { ok: false, message: "Игра уже запускается" };
 
   const name = (username || "").trim() || DEFAULT_USERNAME;
+  if (!USERNAME_RE.test(name)) {
+    return { ok: false, message: "Никнейм: 3–16 символов, только латиница, цифры и «_»" };
+  }
+
   const versionDir = path.join(GAME_DIR, "versions", VERSION_CUSTOM);
   const versionJson = path.join(versionDir, VERSION_CUSTOM + ".json");
 
@@ -416,9 +463,9 @@ ipcMain.handle("game:launch", async (event, username) => {
   const javaPath = resolveJavaPath();
   if (javaPath) {
     opts.javaPath = javaPath;
-    console.log("[java] используется:", javaPath);
+    logger.log("[java] используется:", javaPath);
   } else {
-    console.warn("[java] JRE не найдена рядом с EXE, будет использована java из PATH");
+    logger.warn("[java] JRE не найдена рядом с EXE, будет использована java из PATH");
   }
 
   // Автоподключение к серверу отключено: игра всегда открывает главное меню Minecraft,
@@ -446,6 +493,7 @@ ipcMain.handle("game:launch", async (event, username) => {
     client.on("close", (code) => {
       launching = false;
       gameStarted = false;
+      gameProcess = null;
       if (mainWindow) {
         mainWindow.show();
         mainWindow.focus();
@@ -455,21 +503,22 @@ ipcMain.handle("game:launch", async (event, username) => {
     client.on("error", (err) => {
       launching = false;
       gameStarted = false;
+      gameProcess = null;
       const msg = err && err.message ? err.message : String(err);
-      console.error("[mlc error]", msg);
+      logger.error("[mlc error]", msg);
       if (mainWindow) {
         mainWindow.show();
         mainWindow.webContents.send("game:error", msg);
       }
     });
-    client.on("debug", (e) => console.log("[mlc debug]", e));
+    client.on("debug", (e) => logger.log("[mlc debug]", e));
 
-    await client.launch(opts);
+    gameProcess = await client.launch(opts);
     return { ok: true };
   } catch (err) {
     launching = false;
     const msg = err && err.message ? err.message : String(err);
-    console.error("[launcher] launch failed", msg);
+    logger.error("[launcher] launch failed", msg);
     return { ok: false, message: msg };
   }
 });

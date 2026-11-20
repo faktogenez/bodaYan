@@ -52,9 +52,33 @@ function parseConfirm(html) {
 
 // Потоковая загрузка URL в файл с подсчётом SHA1 и прогрессом по байтам.
 // Для Google Drive автоматически обрабатывает предупреждение о вирусах (confirm token).
+// При обрыве — до 3 попыток с докачкой через HTTP Range (bytes=<received>-).
 async function downloadToFile(urlStr, destPath, onBytes, opts = {}) {
-  const result = await streamDownload(urlStr, destPath, onBytes, opts, 0);
-  return result;
+  const maxAttempts = opts.maxAttempts || 3;
+  let lastErr;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await streamDownload(urlStr, destPath, onBytes, opts, 0);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        const delay = 1000 * Math.pow(2, attempt - 1); // 1s → 2s → 4s
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+// Догружает содержимое существующего файла в hash перед продолжением загрузки.
+function hashExistingFile(hash, filePath) {
+  return new Promise((resolve, reject) => {
+    const s = fs.createReadStream(filePath);
+    s.on("data", (d) => hash.update(d));
+    s.on("end", resolve);
+    s.on("error", reject);
+  });
 }
 
 function streamDownload(urlStr, destPath, onBytes, opts, redirects) {
@@ -63,22 +87,28 @@ function streamDownload(urlStr, destPath, onBytes, opts, redirects) {
     const u = new URL(urlStr);
     const mod = u.protocol === "http:" ? http : https;
 
-    const req = mod.get(urlStr, { headers: { "User-Agent": USER_AGENT } }, (res) => {
+    const tmpPath = destPath + ".part";
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+    // Докачка: если есть неполный .part — продолжаем с его конца через Range.
+    let startBytes = 0;
+    try { if (fs.existsSync(tmpPath)) startBytes = fs.statSync(tmpPath).size; } catch (_) { startBytes = 0; }
+
+    const reqHeaders = { "User-Agent": USER_AGENT };
+    if (startBytes > 0) reqHeaders["Range"] = `bytes=${startBytes}-`;
+
+    const req = mod.get(urlStr, { headers: reqHeaders }, (res) => {
       const { statusCode, headers } = res;
 
       if (statusCode >= 300 && statusCode < 400 && headers.location) {
         res.resume();
         return resolve(streamDownload(new URL(headers.location, urlStr).href, destPath, onBytes, opts, redirects + 1));
       }
-      if (statusCode !== 200) {
-        res.resume();
-        return reject(new Error("HTTP " + statusCode));
-      }
 
       const contentType = String(headers["content-type"] || "");
 
       // Google Drive вернул страницу подтверждения — извлекаем токен и повторяем.
-      if (contentType.includes("text/html") && opts.gdriveId && !opts._confirmed) {
+      if (statusCode === 200 && contentType.includes("text/html") && opts.gdriveId && !opts._confirmed) {
         const chunks = [];
         res.on("data", (c) => chunks.push(c));
         res.on("end", () => {
@@ -92,33 +122,49 @@ function streamDownload(urlStr, destPath, onBytes, opts, redirects) {
         return;
       }
 
-      const total = parseInt(headers["content-length"] || "0", 10);
+      if (statusCode !== 200 && statusCode !== 206) {
+        res.resume();
+        return reject(new Error("HTTP " + statusCode));
+      }
+
+      // Сервер может проигнорировать Range и вернуть 200 → начинаем файл заново.
+      const append = statusCode === 206 && startBytes > 0;
+      if (!append) startBytes = 0;
+
+      const len = parseInt(headers["content-length"] || "0", 10);
+      const total = len ? startBytes + len : 0;
+
       const hash = crypto.createHash("sha1");
-      const tmpPath = destPath + ".part";
-      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+      const out = fs.createWriteStream(tmpPath, { flags: append ? "a" : "w" });
+      let received = startBytes;
 
-      const out = fs.createWriteStream(tmpPath);
-      let received = 0;
-
-      res.on("data", (chunk) => {
-        received += chunk.length;
-        hash.update(chunk);
-        if (onBytes) onBytes(received, total);
-      });
-      res.on("error", reject);
-      res.pipe(out);
-
-      out.on("error", reject);
-      out.on("finish", () => {
-        out.close(() => {
-          try {
-            fs.renameSync(tmpPath, destPath);
-            resolve({ sha1: hash.digest("hex"), size: received });
-          } catch (err) {
-            reject(err);
-          }
+      const proceed = () => {
+        res.on("data", (chunk) => {
+          received += chunk.length;
+          hash.update(chunk);
+          if (onBytes) onBytes(received, total);
         });
-      });
+        res.on("error", reject);
+        res.pipe(out);
+
+        out.on("error", reject);
+        out.on("finish", () => {
+          out.close(() => {
+            try {
+              fs.renameSync(tmpPath, destPath);
+              resolve({ sha1: hash.digest("hex"), size: received });
+            } catch (err) {
+              reject(err);
+            }
+          });
+        });
+      };
+
+      if (append) {
+        hashExistingFile(hash, tmpPath).then(proceed).catch(reject);
+      } else {
+        proceed();
+      }
     });
 
     req.on("error", reject);
