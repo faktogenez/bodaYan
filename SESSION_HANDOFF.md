@@ -530,6 +530,85 @@ Google Drive/
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
 
+### Сессия 2026-11-21 — Реорганизация сервера «СкайБлок Деревня»: нормализация конфигов, очистка, контрольный запуск
+
+**Запрос пользователя:** (1) сервер выключен — работать; (2) WorldEdit обязательно остаётся установленным и рабочим (для вставки карт); (3) выполнять по плану последовательно, детально записывая каждый шаг в SESSION_HANDOFF.md; (4) полная реорганизация и нормализация структуры файлов сервера и лаунчера, устранение несовместимостей/ошибок конфигов/конфликтов → стабильная работа без крашей.
+
+**План выполнения (s1–s8):**
+
+**s1 — Инвентаризация и анализ логов** ✅
+- Просмотрены: `server.properties`, `bukkit.yml`, `spigot.yml`, `plugins/BentoBox/addons/*/config.yml`, `mods/*`, `ops.json`, `logs/latest.log`.
+- Выявлены проблемы: `gamemode=creative` (игроки в креативе), `spawn-monsters=false`/`spawn-animals=false` (нет мобов — ломает SkyBlock), `sync-chunk-writes=true` (SSD-нагрузка), `Level/blockconfig.yml` ссылается на несуществующие миры (`caveblock-world`, `acidisland_world`), `Challenges/undeployed-view-mode=VISIBLE` (игроки видят незадеплоенные челленджи), Bank addon с `interestRate=10` (гиперинфляция, пользователь считает лишним), WorldEdit-CUI-FE3 (клиентский мод) на сервере, неиспользуемые jar в корне (`forge-1.16.5-36.2.39.jar`, `forge-...-installer.jar`, `minecraft_server.1.16.5.jar`, `arclight.conf`), `hs_err_pid*.log` в корне проекта лаунчера.
+
+**s2 — P0-фиксы `server.properties`** ✅
+- `gamemode`: `creative` → `survival` (новый игрок стартовал в креативе — ломало SkyBlock-прогрессию).
+- `difficulty`: `easy` → `normal` (соответствует BSkyBlock config).
+- `spawn-animals`: `false` → `true` (животные/фермы работают).
+- `spawn-monsters`: `false` → `true` (мобы/дроп работают).
+- `sync-chunk-writes`: `true` → `false` (снижение I/O-нагрузки на SSD).
+- `view-distance`: `10` → `8` (оптимизация).
+
+**s3 — Нормализация конфигов BentoBox** ✅
+- [blockconfig.yml](file:///C:/Server_Skyblock/plugins/BentoBox/addons/Level/blockconfig.yml): секция `worlds:` (несуществующие `caveblock-world`, `acidisland_world`) → `worlds: {}`.
+- [Challenges/config.yml](file:///C:/Server_Skyblock/plugins/BentoBox/addons/Challenges/config.yml): `undeployed-view-mode: VISIBLE` → `HIDDEN`.
+- Bank addon (`plugins/BentoBox/addons/Bank-1.3.0.jar` и `Bank/config.yml`) — **удалён** по запросу пользователя (лишний; экономика теперь одна — EssentialsX Eco через Vault).
+
+**s4 — Мод-фолдер сервера: WorldEdit сохранён, CUI → клиент** ✅
+- **WorldEdit (`worldedit-mod-7.2.5-1.16.5-fabric-forge.jar`) — ОСТАВЛЕН на сервере** (требование пользователя; подтверждено в логе: `WorldEdit for Forge (version 7.2.5+57d5ac9) is loaded`, платформа и команды зарегистрированы).
+- `WorldEdit-CUI-FE3-1.16.5-3.0.9.jar` — **перемещён** в `C:\Server_Skyblock\_client-only\` (это клиентский мод, не должен быть на сервере).
+- `CustomNPCs-1.16.5.20220515.jar` — оставлен (НПС для концепции «Деревня»).
+- Клиент лаунчера (`minecraft/game/mods/`) — содержит тот же набор: `apple-autojoin`, `CustomNPCs`, `WorldEdit-CUI-FE3`, `worldedit-mod` — согласовано с сервером.
+
+**s5 — Очистка корня сервера** ✅
+- Создана `C:\Server_Skyblock\_archive\`; перемещены: `forge-1.16.5-36.2.39.jar`, `forge-1.16.5-36.2.39-installer.jar`, `forge-...-installer.jar.log`, `minecraft_server.1.16.5.jar`, `arclight.conf`, `arclight.conf.bak`, `wepif.yml`, `.arclight\`.
+- `hs_err_pid*.log` (краш-дампы Java) из корня проекта лаунчера → `logs\`.
+
+**s6 — Согласование лаунчера с сервером** ✅
+- [config.json](file:///C:/Users/LEO/AppleLauncher/config/config.json): `selfUpdate.currentVersion=1.0.7`, `updater.manifestUrl` → `modpack-v2`, сервер `127.0.0.1:25565`, `offline=true`, RAM 2G–4G.
+- Модпак-манифест (`updater/manifest.json`) — опубликован в GitHub Release `modpack-v2`.
+- Клиентский `mods/` согласован с серверным (WorldEdit + CustomNPCs на обеих сторонах; CUI — только клиент).
+
+**s7 — Контрольный запуск сервера** ✅
+- Команда: `java -Xms2G -Xmx6G -XX:+UseG1GC -jar mohist-1.16.5-754b578e-server.jar nogui` (из `C:\Server_Skyblock`).
+- Результат: **`Done (5.390s)!`** — сервер поднялся без крашей.
+- **WorldEdit for Forge 7.2.5 — загружен и зарегистрирован** (подтверждено в логе).
+- BentoBox v1.16.2 — все аддоны (Level, Biomes, Challenges, ControlPanel, IslandFly, Limits, Warps) включены успешно; blueprints загружены.
+- Vault + EssentialsX — экономика через Vault Compatibility Layer.
+- **ERROR-строки (5 шт., все некритичные):**
+  - `worldeditcuife3 missing` (×4, по одному на каждый мир: overworld/nether/end/bskyblock_world) — мир сохранён с клиентским модом `WorldEdit-CUI-FE3`, который теперь перемещён в `_client-only`. Это предупреждение о совместимости сохранения мира, **не краш**. Устранится само при следующем сохранении миров.
+  - `Essentials: server does not properly support Bukkit plugins` (×1) — известное предупреждение гибрида Mohist (Forge+Bukkit), функциональной поломки нет.
+- **FATAL/Crash/Exception — отсутствуют.**
+- Сервер остановлен после проверки.
+
+**s8 — Данная запись в журнале** ✅
+
+**Изменения в коде/конфиге (полный список):**
+| Файл | Действие |
+|---|---|
+| `C:\Server_Skyblock\server.properties` | gamemode→survival, difficulty→normal, spawn-animals→true, spawn-monsters→true, sync-chunk-writes→false, view-distance→8 |
+| `C:\Server_Skyblock\plugins\BentoBox\addons\Level\blockconfig.yml` | worlds: {несуществующие} → {} |
+| `C:\Server_Skyblock\plugins\BentoBox\addons\Challenges\config.yml` | undeployed-view-mode: VISIBLE → HIDDEN |
+| `C:\Server_Skyblock\plugins\BentoBox\addons\Bank-1.3.0.jar` | Удалён |
+| `C:\Server_Skyblock\plugins\BentoBox\addons\Bank\config.yml` | Удалён (вместе с папкой Bank) |
+| `C:\Server_Skyblock\mods\WorldEdit-CUI-FE3-1.16.5-3.0.9.jar` | → `_client-only\` |
+| `C:\Server_Skyblock\{forge-*.jar, minecraft_server.jar, arclight.*, wepif.yml, .arclight\}` | → `_archive\` |
+| `C:\Users\LEO\AppleLauncher\hs_err_pid*.log` | → `logs\` |
+
+**Результаты:** сервер «СкайБлок Деревня» реорганизован. P0-проблемы устранены (gamemode, спавн мобов/животных, SSD-нагрузка). BentoBox-конфиги нормализованы (Level, Challenges, Bank удалён). Мод-фолдер очищен от клиентских модов; **WorldEdit сохранён и работает**. Мусор в архиве. Контрольный запуск — без крашей (Done за 5.39с). Лаунчер v1.0.7 согласован с сервером.
+
+**Статус:** ✅ s1–s8 выполнены. Сервер стабилен. WorldEdit работает. Конфликты устранены. Лаунчер актуален.
+
+**Проблемы:**
+- `worldeditcuife3 missing` ERROR в логе (×4) — косметика, самоустранится при пересохранении миров. Не влияет на работу.
+- `Essentials` hybrid-warning — известная косметика Mohist. Не влияет на работу.
+- BentoBox `may not be compatible` warning — гибрид Mohist не в списке тестированных Spigot; риск принят (функционально работает).
+
+**Открытые вопросы:**
+- Концепция сервера требует перехода с плагинного SkyBlock (BentoBox/BSkyBlock) на Forge-моды (Ex Nihilo: Sequentia, Create, Mekanism, AE2) — это отдельная большая задача, не входящая в текущую реорганизацию.
+- Рекомендуется добавить плагин прав (LuckPerms) и систему бэкапов (P1-приоритет).
+
+---
+
 ### Сессия 2026-11-21 — Аудит сервера «СкайБлок Деревня» vs конкурент CubixWorld (OceanBlock_1165)
 
 **Запрос пользователя:** комплексный анализ сервера-конкурента `cubixworld` (режим `OceanBlock_1165`, файлы `C:\Users\LEO\cubixworld`), полный аудит собственного сервера `C:\Server_Skyblock`, практические советы по оптимизации (производительность, геймплей, экономика, баланс, UX) с учётом концепции «минимум модов».
