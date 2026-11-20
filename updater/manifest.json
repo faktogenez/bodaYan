@@ -8,10 +8,118 @@
       "size": 2589
     },
     {
+      "path": "mods/appliedenergistics2-8.4.2.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__appliedenergistics2-8.4.2.jar",
+      "sha1": "c60835eacf8cd3902354c2589643d72d1b5d58ad",
+      "size": 4817971
+    },
+    {
+      "path": "mods/create-mc1.16.5_v0.3.2g.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__create-mc1.16.5_v0.3.2g.jar",
+      "sha1": "5b32b0310d037deed14200e3b748bd02d46d9471",
+      "size": 11564279
+    },
+    {
+      "path": "mods/Cucumber-1.16.4-4.1.10.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Cucumber-1.16.4-4.1.10.jar",
+      "sha1": "bf01350ce62c90e3f32ed345b8c23d514002adb2",
+      "size": 158783
+    },
+    {
       "path": "mods/CustomNPCs-1.16.5.20220515.jar",
       "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__CustomNPCs-1.16.5.20220515.jar",
       "sha1": "868c476be34bac92bc4f98d864a8d62c3792817d",
       "size": 12457390
+    },
+    {
+      "path": "mods/ExCompressum_1.16.5-4.0.5.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__ExCompressum_1.16.5-4.0.5.jar",
+      "sha1": "d4af0c9b86cf906f9a85b00d9d7a8e07784e8215",
+      "size": 711165
+    },
+    {
+      "path": "mods/exnihiloae-1.16-1.0.0.2.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__exnihiloae-1.16-1.0.0.2.jar",
+      "sha1": "397acf591e5bc7fa2cd3dfe8e0e4dfcc78afd9b1",
+      "size": 23872
+    },
+    {
+      "path": "mods/exnihilomekanism-1.16-1.0.0.1.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__exnihilomekanism-1.16-1.0.0.1.jar",
+      "sha1": "ee476f7526fc19a3e919a166cf87aa7fb3bcc293",
+      "size": 19108
+    },
+    {
+      "path": "mods/exnihilosequentia-1.16-20220530-185402.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__exnihilosequentia-1.16-20220530-185402.jar",
+      "sha1": "3ecfc11f2804a898c57ca97795d88d8decb88ea6",
+      "size": 864934
+    },
+    {
+      "path": "mods/ferritecore-2.1.1-forge.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__ferritecore-2.1.1-forge.jar",
+      "sha1": "3ae8dbe663156a8dec621d255856356444586905",
+      "size": 108557
+    },
+    {
+      "path": "mods/flywheel-1.16-0.2.3.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__flywheel-1.16-0.2.3.jar",
+      "sha1": "46db7287a60e40a942eee744064dec917e847ca0",
+      "size": 466311
+    },
+    {
+      "path": "mods/ironchest-1.16.5-11.2.21.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__ironchest-1.16.5-11.2.21.jar",
+      "sha1": "59e263b8dd04ad2742def8b3773d5e2f6e1ba03c",
+      "size": 258298
+    },
+    {
+      "path": "mods/ironfurnaces-1.16.5-2.7.7.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__ironfurnaces-1.16.5-2.7.7.jar",
+      "sha1": "005ebd5c388a2c54d998d749aef672aeb97acd65",
+      "size": 493742
+    },
+    {
+      "path": "mods/Mekanism-1.16.5-10.0.21.448.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Mekanism-1.16.5-10.0.21.448.jar",
+      "sha1": "93117cc4bd81df2dde1ae5ec0aae429b60a19ec1",
+      "size": 8851398
+    },
+    {
+      "path": "mods/MekanismGenerators-1.16.5-10.0.21.448.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__MekanismGenerators-1.16.5-10.0.21.448.jar",
+      "sha1": "a5b6f14e0f58128171d929c1cb536a5669a5a833",
+      "size": 945876
+    },
+    {
+      "path": "mods/MekanismTools-1.16.5-10.0.21.448.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__MekanismTools-1.16.5-10.0.21.448.jar",
+      "sha1": "30c5259c1b8eba9e5a424b0924ca39cc776298ef",
+      "size": 352787
+    },
+    {
+      "path": "mods/observerlib-1.16.5-1.5.3.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__observerlib-1.16.5-1.5.3.jar",
+      "sha1": "a5136bf50a6dba827ceb0e80cd1118bcba193a27",
+      "size": 150815
+    },
+    {
+      "path": "mods/pipez-1.16.5-1.2.17.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__pipez-1.16.5-1.2.17.jar",
+      "sha1": "b0c6cc4ccd64585383924f61c5e9035ccae6136b",
+      "size": 775690
+    },
+    {
+      "path": "mods/supermartijn642configlib-1.1.8-forge-mc1.16.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__supermartijn642configlib-1.1.8-forge-mc1.16.jar",
+      "sha1": "c68924ccae62258ad6128de046fac81d5d699cef",
+      "size": 205918
+    },
+    {
+      "path": "mods/supermartijn642corelib-1.1.24a-forge-mc1.16.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__supermartijn642corelib-1.1.24a-forge-mc1.16.jar",
+      "sha1": "9e00ec7c618f5391b10f74ee310bf4150f973fdd",
+      "size": 543686
     },
     {
       "path": "mods/WorldEdit-CUI-FE3-1.16.5-3.0.9.jar",

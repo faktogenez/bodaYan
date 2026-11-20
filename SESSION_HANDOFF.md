@@ -530,6 +530,28 @@ Google Drive/
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
 
+### Сессия 2026-11-21 — Обновление клиента лаунчера: публикация 22 модов в modpack-v2
+
+**Запрос пользователя:** обновить клиент лаунчера, проверить на чистой машине — пользователь попробует скачать на другой ноут.
+
+**Действия:**
+1. Скопированы 18 новых модов из CubixWorld в `minecraft/game/mods/` (итого 22 jar: 4 существующих + 18 новых).
+2. Запущен `node scripts/gen-manifest.js` — manifest регенерирован: **36 файлов** (22 мода + 13 customnpcs assets + 1 Forge version JSON), для каждого вычислен SHA1 и размер.
+3. Запущен `node scripts/publish-modpack.js` — release `modpack-v2` пересоздан, загружено **37 ассетов** (36 файлов + manifest.json) в GitHub.
+4. Установлен `--prerelease` на `modpack-v2` — чтобы `v1.0.7` остался Latest (иначе self-update ломается).
+
+**Проверка чистой установки (симуляция):**
+- Manifest по HTTP: `https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/manifest.json` → **36 файлов, version 1** ✅
+- 5 ключевых модов проверены по прямым URL (HEAD-запросы): exnihilosequentia (864КБ), create (11.5МБ), Mekanism (8.8МБ), AE2 (4.8МБ), worldedit-mod (5.3МБ) — все **200 OK, размеры совпадают** ✅
+- Self-update: `releases/latest/download/launcher-version.json` → version 1.0.7, SHA1 `ea1beb82…`, size 111МБ ✅
+- Release list: `modpack-v2` = Pre-release, `v1.0.7` = Latest ✅
+
+**Результат:** на чистой машине пользователь скачивает `AppleLauncher.exe` (v1.0.7) → лаунчер проверяет self-update (актуален) → скачивает manifest (36 файлов) → докачивает 22 мода + customnpcs + Forge JSON → запускает игру. **Новый EXE не нужен** — manifest указывает на обновлённый `modpack-v2`.
+
+**Статус:** ✅ Клиент обновлён. 22 мода опубликованы. Manifest доступен. Self-update не сломан. Готово к тесту на другом ноуте.
+
+---
+
 ### Сессия 2026-11-21 — Перенос модов с CubixWorld: Ex Nihilo + Create + Mekanism + AE2
 
 **Запрос пользователя:** перенести моды с сервера Cubix (OceanBlock_1165) на `C:\Server_Skyblock`, выделив только необходимые для минимального выживания и базовой автоматизации. После копирования — полная проверка работоспособности.
