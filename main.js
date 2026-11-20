@@ -101,6 +101,12 @@ const DEFAULT_CONFIG = {
   },
   servers: {
     enforce: true,
+    name: "Мой сервер",
+    // Кандидаты адреса сервера (в порядке приоритета). Лаунчер подключается к первому ДОСТУПНОМУ
+    // (TCP-проба порта): 127.0.0.1 — для машины, где сервер запущен локально; далее сетевые адреса
+    // того же сервера (Wi-Fi-локаль / Radmin VPN) — для второго компьютера. Список задаётся и здесь
+    // (доставляется вместе с EXE), и в config.json (можно переопределить без пересборки).
+    candidates: ["127.0.0.1:25565", "192.168.35.189:25565", "26.178.173.72:25565"],
     list: [{ name: "Мой сервер", ip: "127.0.0.1:25565" }]
   },
   selfUpdate: {
@@ -292,12 +298,44 @@ async function ensureGameFiles(reason) {
   }
 }
 
-// Оставить в списке серверов игры только серверы из config.json (servers.enforce).
-function applyPinnedServers() {
+// Проверка доступности TCP-порта, разбор адресов и автоподбор рабочего адреса сервера
+// (локаль 127.0.0.1 / LAN / Radmin VPN) вынесены в src/netsel.js.
+const netsel = require("./src/netsel");
+
+// Упорядоченный список адресов-кандидатов: config.servers.candidates → ip из servers.list →
+// launcher.server. Дубликаты и некорректные записи отбрасываются.
+function serverCandidates() {
+  const s = CONFIG.servers || {};
+  const raw = [];
+  if (Array.isArray(s.candidates)) raw.push(...s.candidates);
+  if (Array.isArray(s.list)) for (const it of s.list) if (it && it.ip) raw.push(it.ip);
+  raw.push(`${SERVER_HOST}:${SERVER_PORT}`);
+  return netsel.buildCandidates(raw, SERVER_PORT);
+}
+
+// Выбирает ПЕРВЫЙ ДОСТУПНЫЙ адрес сервера через TCP-пробы. Если недоступны все —
+// возвращает первый кандидат (обычно 127.0.0.1), чтобы список серверов не остался пустым.
+async function resolveServerAddress() {
+  return netsel.pickAddress(serverCandidates(), netsel.probeTcp, (msg) => logger.log(msg));
+}
+
+// Оставить в списке серверов игры только сервер из config.json (servers.enforce),
+// автоматически подставив первый ДОСТУПНЫЙ адрес (локаль / LAN / Radmin VPN).
+async function applyPinnedServers() {
   const s = CONFIG.servers || {};
   if (!s.enforce) return false;
-  const list = Array.isArray(s.list) ? s.list.filter((x) => x && x.ip) : [];
-  if (!list.length) return false;
+  const baseList = Array.isArray(s.list) ? s.list.filter((x) => x && x.ip) : [];
+  if (!baseList.length) return false;
+
+  const resolved = await resolveServerAddress();
+  const list = baseList.map((x) => ({
+    name: x.name || s.name || "Сервер",
+    ip: resolved ? `${resolved.host}:${resolved.port}` : x.ip
+  }));
+
+  // Фиксируем выбранный адрес в конфиге, чтобы интерфейс показывал реальный сервер.
+  if (resolved) CONFIG.launcher.server = { host: resolved.host, port: resolved.port };
+
   try {
     servers.writeServersDat(GAME_DIR, list);
     logger.log(`[servers] servers.dat перезаписан: ${list.length} сервер(ов) — ${list.map((x) => x.ip).join(", ")}`);
@@ -544,8 +582,9 @@ ipcMain.handle("game:launch", async (event, username) => {
 
   // Автоподключение к серверу отключено: игра всегда открывает главное меню Minecraft,
   // игрок сам выбирает «Одиночная игра» / «Сетевая игра».
-  // Перед запуском оставляем в списке серверов только сервер из config.json.
-  applyPinnedServers();
+  // Перед запуском оставляем в списке серверов только сервер из config.json, подставив
+  // первый ДОСТУПНЫЙ адрес (локаль / LAN / Radmin VPN) — это ключ к работе со второго ноутбука.
+  await applyPinnedServers();
 
   try {
     const client = new Client();
@@ -611,8 +650,13 @@ ipcMain.handle("game:launch", async (event, username) => {
   }
 });
 
-app.whenReady().then(() => {
-  applyPinnedServers();
+app.whenReady().then(async () => {
+  // Автоподбор адреса сервера до создания окна, чтобы интерфейс сразу показывал реальный адрес.
+  try {
+    await applyPinnedServers();
+  } catch (err) {
+    logger.error("[servers] автоподбор адреса не удался:", err.message);
+  }
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

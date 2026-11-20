@@ -8,6 +8,7 @@ release/
 build/
 .cache/
 .electron-builder-cache/
+.eb-cache/
 
 # Игровые файлы (скачиваются динамически, не коммитятся)
 minecraft/

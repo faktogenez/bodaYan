@@ -39,6 +39,12 @@
   },
   "servers": {
     "enforce": true,
+    "name": "Мой сервер",
+    "candidates": [
+      "127.0.0.1:25565",
+      "192.168.35.189:25565",
+      "26.178.173.72:25565"
+    ],
     "list": [
       {
         "name": "Мой сервер",
@@ -49,7 +55,7 @@
   "selfUpdate": {
     "enabled": true,
     "manifestUrl": "https://github.com/faktogenez/bodaYan/releases/latest/download/launcher-version.json",
-    "currentVersion": "1.0.11",
+    "currentVersion": "1.0.12",
     "autoApply": true
   }
 }
