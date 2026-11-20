@@ -8,6 +8,8 @@
 
 ## 1. Текущий прогресс проекта
 
+**Актуальная сборка: v1.0.13 (2026-11-21, подготовка релиза).** Новая иконка на основе изображения пользователя подключена для EXE; отображаемое имя `AppleLauncher` не изменено. Self-update проверяет manifest до загрузок игровых файлов, показывает прогресс и сообщает о перезапуске, проверяет SHA1 и размер. Вход — по никнейму: пустой и стандартный `bodayan` запрещены, успешно введённый ник сохраняется в renderer `localStorage` и автоматически восстанавливается при следующем запуске. PIN-аутентификация была начата, но по распоряжению пользователя полностью отменена: PIN-модули, UI, IPC и тесты удалены.
+
 **Статус**: ✅ Базовый лаунчер работает. Minecraft 1.16.5 Forge успешно запускается и доходит до главного меню. ✅ Внешний `config/config.json` читается `main.js`; подключены случайный фон, тема из конфига, прогресс-бар загрузки и динамический meta-row. ✅ Работает **оффлайн-режим («пиратка»)** — вычисляется корректный оффлайн-UUID, аккаунт без токенов Mojang. ✅ **Кнопка «Сетевая игра» активна** — фикс authlib 2.1.28 → 2.3.31 (автопатч version JSON перед запуском). ✅ **Автоподключение к серверу без `quickPlay`**: игра всегда открывает главное меню Minecraft (логотип Mojang → меню), а подключение к серверу выполняет клиентский мод `appleautojoin` при открытии «Сетевой игры» (см. ниже). ✅ **Автообновление самого лаунчера** (`src/selfUpdate.js`) — проверка версии по манифесту, скачивание нового EXE, подмена и авто-перезапуск. ✅ **Автообновление файлов игры** (`src/updater.js`) — проверка SHA1/размера по манифесту, докачка по HTTP Range (до 3 попыток), включено (`updater.enabled = true`). ✅ **Валидация никнейма** (3–16, `[A-Za-z0-9_]`) в UI и в `main.js`. ✅ **Кнопка «Остановить»** — принудительное завершение процесса Java (`taskkill /T /F`). ✅ **Логирование в `debug.log`** (`src/logger.js`, только при `process.env.DEBUG`). ✅ Portable EXE **v1.0.5** содержит лаунчер и JRE 17; **игровые файлы Minecraft не входят в EXE** и должны быть отдельно в `minecraft/game` рядом с EXE (см. раздел 11). ✅ **v1.0.5 собрана и опубликована** в GitHub Releases (`faktogenez/bodaYan`): EXE (111 697 444 Б, SHA1 `fe315f5d…`) + `launcher-version.json`, тег `v1.0.5` = Latest. 🔧 **v1.0.5 — фикс краша** `spawn cmd.exe ENOENT` при автообновлении (путь к `cmd.exe` через `%ComSpec%` + обработчик `error`). ✅ **Модпак опубликован** — релиз `modpack-v1` (17 ассетов); smoke-тест лаунчера — PASS; live-запуск из папки `release` доходит до главного меню без крашей (см. раздел 11). ✅ **v1.0.6 собрана и опубликована** (Latest, SHA1 `b076900d…`) — **окончательный фикс** повторного краша `spawn cmd.exe ENOENT`: текущая версия берётся из `app.getVersion()` (внешний «застрявший» `config.json` больше не запускает ложный self-update), а `cmd.exe` запускается по абсолютному пути (`%ComSpec%`) с принудительным `%SystemRoot%\System32` в `PATH` и обработчиком ошибки. ✅ **Автоподключение к серверу ВКЛЮЧЕНО через собственный мод** `appleautojoin` (Forge 1.16.5): при клике «Сетевая игра» игра сразу подключается к серверу из `servers.dat` (лаунчер оставляет там только сервер из `config.json`) — экран выбора серверов не показывается (см. раздел 3 «Автоподключение» и раздел 11). ✅ **Права админа `bodayan` и `boris`** прописаны в `ops.json` сервера (`C:\Server_Skyblock`, level 4). ✅ **Git синхронизирован** — код v1.0.2–v1.0.6 закоммичен и запушен в `origin/main` (коммит `7a2a3f6`, 2026-11-21); ветка `main` = `origin/main`, рабочее дерево чистое (см. раздел 11, запись 2026-11-21). ✅ **v1.0.7 собрана и опубликована** (Latest, SHA1 `ea1beb82…`, размер 111 695 691 Б, ассет `AppleLauncher.exe`) — **постоянный каталог данных** (`%APPDATA%\AppleLauncher` вместо рабочего стола) + **встроенная проверка целостности** при каждом запуске (SHA1/размер по манифесту + автодокачка) + модпак переведён на `modpack-v2` (в манифест добавлен `versions/Forge 1.16.5/Forge 1.16.5.json` — устранена ошибка «файл не найден» на чистой системе). Заведён `latest` (modpack-v2 переведён в prerelease). Теги v1.0.1–v1.0.6 перепривязаны к корректным коммитам (см. раздел 11, запись v1.0.7). ⚠️ **v1.0.8 оказался НЕПОЛНЫМ фиксом** зависания на 77%: таймаут вызывал `req.destroy()` без аргумента, а такой вызов НЕ emit-ит `'error'` на запросе → promise не reject-ился → зависание сохранялось. ✅ **v1.0.9 собрана и опубликована** (Latest, SHA1 `76b8207a…`, размер 111 697 840 Б) — **настоящий фикс**: `req.destroy(new Error(...))` в `fetchBuffer`/`streamDownload` гарантирует reject и запуск retry; добавлены `res.on("error")` и закрытие файлового потока `.part` при обрыве; логирование неудачных попыток (см. раздел 11, запись v1.0.9). ✅ **v1.0.10 (текущая, в репозитории)** — реализована **автоматизированная система сбора и логирования ошибок** (`src/diagnostic.js`): при любых ошибках отчёт автоматически пишется на Рабочий стол (`bodaYan-error-<дата>_<время>.log`) и содержит ошибку/стек, версии компонентов, окружение, пути, сводку конфига и последние логи; в UI добавлена кнопка «Сообщить об ошибке». Протестировано 5 сценариев — все PASS (см. раздел 11, запись v1.0.10). ✅ **v1.0.10 собрана и опубликована** (Latest, SHA1 `7031b933…`, размер 111 702 389 Б, ассеты `AppleLauncher.exe` + `launcher-version.json`); `latest/.../launcher-version.json` → 1.0.10. ✅ **v1.0.11 (текущая) собрана и опубликована** (Latest, SHA1 `25d0a1ed…`, размер 111 706 179 Б) — фиксы по анализу лога: (B) 4 Forge-библиотеки с относительными URL добавлены в `updater/manifest.json` и выложены в `modpack-v2` (40 файлов) → чистые машины самовосстанавливаются; (C) проверка `client.launch()` на `null` в `main.js` (нет «тихого» зависания на 77%); (D) убрана ложная «Error: null» в ручных отчётах (см. раздел 11, запись v1.0.11). ✅ **v1.0.12 (актуальная) собрана и опубликована** (Latest, SHA1 `b56eaa52…`, размер 111 705 014 Б) — **фикс сетевого подключения со второго ноутбука**: `Connection refused` возникал, т.к. в `servers.dat` жёстко писался `127.0.0.1` (на втором ПК это «он сам»). Теперь лаунчер **автоматически подбирает рабочий адрес** (TCP-проба 25565 по кандидатам `127.0.0.1` → Wi-Fi `192.168.35.189` → Radmin VPN `26.178.173.72`) и пишет выбранный в `servers.dat`; список задаётся в `config.json` (`servers.candidates`). Логика вынесена в `src/netsel.js`, покрыта автотестом (10/10 PASS) (см. раздел 11, запись v1.0.12).
 
 **Цель проекта**: Электронный лаунчер Minecraft для запуска Minecraft 1.16.5 Forge с подключением к локальному серверу `127.0.0.1:25565`.
@@ -19,7 +21,7 @@
 ## 2. Реализованная функциональность
 
 - ✅ Electron-окно с безрамочное прозрачное окно 920x600 (размеры/заголовок из `config.json`)
-- ✅ Поле ввода никнейма (по умолчанию `bodayan`, значение из `config.json`)
+- ✅ Вход по никнейму: поле пустое при первом запуске; пустой ник и стандартный `bodayan` запрещены; после входа выбранный ник сохраняется локально и автоматически восстанавливается при следующем запуске.
 - ✅ Кнопка «Играть» запускает Minecraft 1.16.5 Forge и доходит до **главного меню** (без автоподключения к серверу)
 - ✅ Передача параметров памяти из `config.json`: `-Xms2048M -Xmx4096M`
 - ✅ Чтение `config/config.json` в `main.js` (окно, память, сервер, версия, ник, путь игры, фоны); при ошибке — фолбэк на значения по умолчанию
@@ -53,13 +55,23 @@
 
 | Файл | Назначение |
 |------|-----------|
-| [main.js](file:///C:/Users/LEO/AppleLauncher/main.js) | Главный процесс Electron. Создаёт окно, обрабатывает IPC, запускает игру через `minecraft-launcher-core`. |
-| [index.html](file:///C:/Users/LEO/AppleLauncher/index.html) | Разметка UI. Поле ника, meta-row, кнопка запуска, прогресс-бар, статус-бар. |
-| [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) | Мост между renderer и main через `contextBridge`. Экспонирует `electronAPI`. |
-| [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) | UI-логика. Тема/meta из конфига, случайный фон, прогресс-бар (игра + обновление), статус. |
+| [main.js](file:///C:/Users/LEO/AppleLauncher/main.js) | Главный процесс Electron. Создаёт окно с платформенной иконкой, обрабатывает IPC, проверяет никнейм и запускает игру через `minecraft-launcher-core`. |
+| [index.html](file:///C:/Users/LEO/AppleLauncher/index.html) | Разметка UI. Пустое поле ника при первом запуске, вход по никнейму, meta-row, кнопка запуска, прогресс-бар, статус-бар. |
+| [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) | Мост между renderer и main через `contextBridge`; IPC `auth:login` и запуск игры без передачи произвольного ника. |
+| [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) | UI-логика. Проверка/сохранение никнейма, автологин из `localStorage`, тема/meta, фон, прогресс-бар игры и self-update. |
 | [src/updater.js](file:///C:/Users/LEO/AppleLauncher/src/updater.js) | Проверка целостности и дозагрузка файлов по манифесту (Google Drive / прямой URL). |
 | [src/servers.js](file:///C:/Users/LEO/AppleLauncher/src/servers.js) | Запись `servers.dat` (NBT) — список серверов только из `config.json`. |
-| [src/selfUpdate.js](file:///C:/Users/LEO/AppleLauncher/src/selfUpdate.js) | Автообновление лаунчера: проверка версии, загрузка нового EXE, подмена и перезапуск. |
+| [src/selfUpdate.js](file:///C:/Users/LEO/AppleLauncher/src/selfUpdate.js) | Автообновление лаунчера: проверка версии, загрузка EXE с проверкой SHA1/размера, подмена и перезапуск. |
+| [src/nicknameSession.js](file:///C:/Users/LEO/AppleLauncher/src/nicknameSession.js) | Никнейм-only сессия main-процесса: отклоняет пустой/стандартный `bodayan` и запрещает запуск игры до входа. |
+| [scripts/build-icons.js](file:///C:/Users/LEO/AppleLauncher/scripts/build-icons.js) | Пересборка PNG/ICO/ICNS из `assets/icon-source.jpg` через FFmpeg; задаются ICO 16–256, ICNS 16–1024, PNG 512 px. |
+| [scripts/test-nickname-session.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-nickname-session.js) | Тесты main-проверки никнейма и блокировки запуска до успешного входа. |
+| [scripts/test-renderer-auth.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-renderer-auth.js) | Тесты UI: пустое поле, запрет `bodayan`, отображение ошибки, сохранение и автоматический вход из localStorage. |
+| [scripts/test-self-update.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-self-update.js) | Локальный HTTP integration test проверки новой версии, прогресса, SHA1 и размера EXE. |
+| [assets/icon-source.jpg](file:///C:/Users/LEO/AppleLauncher/assets/icon-source.jpg) | Изображение красного блочного яблока, предоставленное пользователем; исходник генератора платформенных иконок. |
+| [assets/icon.ico](file:///C:/Users/LEO/AppleLauncher/assets/icon.ico) | Windows EXE/Explorer icon (встроенная multi-size ICO, 16–256 px). |
+| [assets/icon.icns](file:///C:/Users/LEO/AppleLauncher/assets/icon.icns) | macOS icon resource (ICNS, 16–1024 px; macOS-сборка в текущем проекте не включена). |
+| [assets/icon.png](file:///C:/Users/LEO/AppleLauncher/assets/icon.png) | Linux icon resource (PNG 512 px; Linux-сборка в текущем проекте не включена). |
+| [CHANGELOG.md](file:///C:/Users/LEO/AppleLauncher/CHANGELOG.md) | Краткие заметки релизов, включая v1.0.13. |
 | [src/logger.js](file:///C:/Users/LEO/AppleLauncher/src/logger.js) | Лёгкое логирование (`log/warn/error` + `setLogDir`); запись в `debug.log` только при `process.env.DEBUG`. Хранит кольцевой буфер последних 300 строк в памяти (`getRecent()`) для диагностических отчётов. |
 | [src/diagnostic.js](file:///C:/Users/LEO/AppleLauncher/src/diagnostic.js) | ✅ Автосбор диагностики при ошибках: `configure/captureError/buildReport/writeReport/handleError/reportDir`. Пишет читаемый отчёт `bodaYan-error-<дата>_<время>.log` на Рабочий стол (с fallback). |
 | [src/netsel.js](file:///C:/Users/LEO/AppleLauncher/src/netsel.js) | ✅ Сетевые помощники (v1.0.12): `probeTcp` (TCP-проба порта), `parseAddr`, `buildCandidates` (дедупликация с сохранением порядка), `pickAddress` (первый доступный адрес с фолбэком). Используется в `main.js` для автоподбора адреса сервера. |
@@ -77,7 +89,8 @@
 
 ```
 renderer.js (клик "Играть")
-  → electronAPI.launchGame(username)
+  → main auth:login(username), с сохранением успешного ника в localStorage
+  → electronAPI.launchGame()
     → ipcMain.handle("game:launch")
       → new Client() (minecraft-launcher-core 3.x)
         → client.launch(opts)
@@ -89,15 +102,16 @@ renderer.js (клик "Играть")
 - `GAME_DIR` ← `launcher.gameDirectory` = `C:\Users\LEO\AppleLauncher\minecraft\game`
 - `VERSION_CUSTOM` ← `launcher.version.custom` = `"Forge 1.16.5"`
 - `VERSION_NUMBER` = `"1.16.5"`, `VERSION_TYPE` = `"release"`
-- `DEFAULT_USERNAME` ← `launcher.defaultUsername` = `"bodayan"`
+- `USERNAME_RE` = `/^[A-Za-z0-9_]{3,16}$/`; стандартное значение `bodayan` дополнительно запрещено для входа
 - `SERVER_HOST` = `"127.0.0.1"`, `SERVER_PORT` = `25565`
 - `CONFIG` — снимок `config/config.json` (фолбэк `DEFAULT_CONFIG` при ошибке чтения)
 
 ### IPC-каналы (main.js ↔ preload.js ↔ renderer.js)
 - `window:minimize` / `window:close` — управление окном
 - `config:get` → `CONFIG` — renderer получает тему/ник/сервер
+- `auth:login(username)` — проверка никнейма и создание текущей сессии main-процесса; renderer хранит успешный ник в localStorage
 - `backgrounds:random` → `file://` URL случайного изображения или `null`
-- `game:launch` (invoke, аргумент `username`) + `game:data` / `game:progress` / `game:close` / `game:error` (send) — запуск и статус игры
+- `game:launch` (invoke без ника; использует только прошедшую `auth:login` сессию) + `game:data` / `game:progress` / `game:close` / `game:error` (send) — запуск и статус игры
 - `game:stop` (invoke) — принудительная остановка запущенной игры (`taskkill /T /F`)
 - `updater:check` (invoke) + `updater:progress` (send) — проверка/дозагрузка файлов игры (см. раздел 10)
 - `launcher:checkUpdate` (invoke) + `launcher:update` (send) — автообновление самого лаунчера (см. раздел 12.6)

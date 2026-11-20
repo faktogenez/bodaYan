@@ -1,11 +1,15 @@
 {
   "name": "apple-launcher",
-  "version": "1.0.12",
+  "version": "1.0.14",
   "description": "SkyBlock Launcher",
   "author": "AppleLauncher",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "icons": "node scripts/build-icons.js",
+    "test": "node scripts/test-nickname-session.js && node scripts/test-renderer-auth.js && node scripts/test-self-update.js && node scripts/test-netsel.js",
+    "test:nickname-session": "node scripts/test-nickname-session.js",
+    "test:self-update": "node scripts/test-self-update.js",
     "build:jre": "node scripts/build-jre.js",
     "manifest": "node scripts/gen-manifest.js",
     "publish:modpack": "node scripts/publish-modpack.js",
@@ -46,6 +50,12 @@
           ]
         }
       ]
+    },
+    "mac": {
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "icon": "assets/icon.png"
     },
     "portable": {
       "artifactName": "AppleLauncher.exe"

@@ -29,9 +29,11 @@
       <section class="card">
         <div class="input-group">
           <label for="username">Никнейм</label>
-          <input type="text" id="username" placeholder="Введите ник" value="bodayan" maxlength="16" autocomplete="off">
+          <input type="text" id="username" placeholder="Введите ник" maxlength="16" autocomplete="username">
           <div class="input-error" id="usernameError" hidden></div>
         </div>
+
+        <button class="login-btn" id="loginBtn" type="button">Войти по никнейму</button>
 
         <div class="meta-row">
           <span id="metaVersion">Forge 1.16.5</span>
@@ -39,7 +41,7 @@
           <span id="metaServer">127.0.0.1:25565</span>
         </div>
 
-        <button class="play-btn" id="playBtn">Играть</button>
+        <button class="play-btn" id="playBtn" disabled>Играть</button>
         <button class="stop-btn" id="stopBtn" hidden>Остановить</button>
 
         <div class="progress-wrap" id="progressWrap" hidden>

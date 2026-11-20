@@ -187,6 +187,29 @@ input[type="text"].invalid:focus {
   letter-spacing: 0.2px;
 }
 
+.login-btn {
+  width: 100%;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--surface-border);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.login-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .meta-row {
   display: flex;
   justify-content: space-between;

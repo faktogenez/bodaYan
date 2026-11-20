@@ -1,6 +1,7 @@
 const elements = {
   username: document.getElementById("username"),
   usernameError: document.getElementById("usernameError"),
+  loginBtn: document.getElementById("loginBtn"),
   playBtn: document.getElementById("playBtn"),
   stopBtn: document.getElementById("stopBtn"),
   reportBtn: document.getElementById("reportBtn"),
@@ -17,10 +18,16 @@ const elements = {
 
 // Никнейм Minecraft: 3–16 символов, латиница/цифры/«_» (совпадает с проверкой в main.js).
 const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
+const STANDARD_USERNAME = "bodayan";
+const SAVED_USERNAME_KEY = "appleLauncher.username";
+let isAuthenticated = false;
 
 function usernameError(value) {
   const name = (value || "").trim();
   if (!name) return "Введите никнейм";
+  if (name.toLowerCase() === STANDARD_USERNAME) {
+    return "«bodayan» — стандартный ник. Введите собственный уникальный никнейм.";
+  }
   if (name.length < 3) return "Слишком короткий ник (минимум 3 символа)";
   if (!USERNAME_RE.test(name)) return "Только латиница, цифры и «_» (3–16 символов)";
   return "";
@@ -33,8 +40,53 @@ function validateUsername() {
   elements.username.classList.toggle("invalid", !valid);
   elements.usernameError.textContent = error;
   elements.usernameError.hidden = valid;
-  elements.playBtn.disabled = !valid;
+  elements.playBtn.disabled = !valid || !isAuthenticated;
   return valid;
+}
+
+async function authenticate() {
+  if (!validateUsername()) {
+    setStatus(elements.usernameError.textContent, "error");
+    elements.username.focus();
+    return false;
+  }
+
+  elements.loginBtn.disabled = true;
+  setStatus("Выполняется вход…", "loading");
+  try {
+    const result = await window.electronAPI.loginByNickname(elements.username.value.trim());
+    if (!result || !result.ok) {
+      setStatus((result && result.message) || "Не удалось выполнить вход.", "error");
+      elements.loginBtn.disabled = false;
+      return false;
+    }
+
+    isAuthenticated = true;
+    elements.username.value = result.username;
+    elements.username.disabled = true;
+    elements.loginBtn.hidden = true;
+    try { localStorage.setItem(SAVED_USERNAME_KEY, result.username); } catch (_) {}
+    validateUsername();
+    setStatus(`Вход выполнен: ${result.username}`, "success");
+    return true;
+  } catch (err) {
+    setStatus("Ошибка входа: " + err.message, "error");
+    elements.loginBtn.disabled = false;
+    return false;
+  }
+}
+
+async function restoreNicknameSession() {
+  let saved = "";
+  try { saved = localStorage.getItem(SAVED_USERNAME_KEY) || ""; } catch (_) {}
+  if (!saved) return;
+
+  elements.username.value = saved;
+  if (!validateUsername()) {
+    setStatus(elements.usernameError.textContent, "error");
+    return;
+  }
+  await authenticate();
 }
 
 function formatMemory(value) {
@@ -208,6 +260,20 @@ window.electronAPI.onGameProgress((p) => {
 
 window.electronAPI.onLauncherUpdate((u) => {
   if (!u) return;
+  if (u.phase === "checking") {
+    showProgress(`Проверка обновлений лаунчера (установлена версия ${u.currentVersion})…`);
+    setStatus("Проверяем новую версию лаунчера…", "loading");
+    return;
+  }
+  if (u.phase === "up-to-date") {
+    const message = `Лаунчер обновлён до версии ${u.currentVersion}`;
+    showProgress(message, 100);
+    setStatus("Установлена последняя версия лаунчера.", "success");
+    setTimeout(() => {
+      if (elements.progressLabel.textContent === message) resetProgress();
+    }, 1800);
+    return;
+  }
   if (u.phase === "start") {
     showProgress(`Обновление лаунчера до ${u.version}…`);
     setStatus(`Найдено обновление лаунчера ${u.version}`, "loading");
@@ -221,8 +287,8 @@ window.electronAPI.onLauncherUpdate((u) => {
     return;
   }
   if (u.phase === "applying") {
-    showProgress("Установка обновления, перезапуск…", 100);
-    setStatus("Установка обновления лаунчера...", "loading");
+    showProgress(`Обновление ${u.version} загружено. Перезапуск для применения…`, 100);
+    setStatus("Лаунчер перезапустится автоматически, чтобы применить обновление.", "loading");
     return;
   }
   if (u.phase === "ready") {
@@ -230,6 +296,7 @@ window.electronAPI.onLauncherUpdate((u) => {
     return;
   }
   if (u.phase === "error") {
+    resetProgress();
     setStatus("Ошибка обновления лаунчера: " + u.message, "error");
   }
 });
@@ -251,20 +318,24 @@ window.electronAPI.onGameError((err) => {
 });
 
 async function launchGame() {
+  if (!isAuthenticated) {
+    setStatus("Сначала войдите под собственным никнеймом.", "error");
+    elements.username.focus();
+    return;
+  }
   if (!validateUsername()) {
     setStatus(elements.usernameError.textContent, "error");
     elements.username.focus();
     return;
   }
 
-  const username = elements.username.value.trim();
   elements.playBtn.disabled = true;
   elements.stopBtn.hidden = false;
   elements.stopBtn.disabled = false;
   showProgress("Подготовка к запуску…");
   setStatus("Подготовка к запуску...", "loading");
 
-  const result = await window.electronAPI.launchGame(username);
+  const result = await window.electronAPI.launchGame();
   if (!result.ok) {
     elements.stopBtn.hidden = true;
     resetProgress();
@@ -284,7 +355,9 @@ async function stopGame() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  setStatus("Готов к запуску", "info");
   elements.playBtn.addEventListener("click", launchGame);
+  elements.loginBtn.addEventListener("click", authenticate);
   elements.stopBtn.addEventListener("click", stopGame);
   elements.reportBtn.addEventListener("click", sendReport);
   elements.username.addEventListener("input", validateUsername);
@@ -294,11 +367,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const config = await window.electronAPI.getConfig();
   applyTheme(config && config.theme);
   applyMeta(config);
-  if (config && config.launcher && config.launcher.defaultUsername) {
-    elements.username.value = config.launcher.defaultUsername;
-  }
+  await restoreNicknameSession();
   validateUsername();
   await applyBackground();
-
-  setStatus("Готов к запуску", "info");
 });

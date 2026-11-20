@@ -8,6 +8,7 @@ const { Client } = require("minecraft-launcher-core");
 const updater = require("./src/updater");
 const servers = require("./src/servers");
 const selfUpdate = require("./src/selfUpdate");
+const nicknameSession = require("./src/nicknameSession");
 const logger = require("./src/logger");
 const diagnostic = require("./src/diagnostic");
 
@@ -81,7 +82,6 @@ const DEFAULT_CONFIG = {
     width: 920,
     height: 600,
     offline: true,
-    defaultUsername: "bodayan",
     server: { host: "127.0.0.1", port: 25565 },
     memory: { min: "2048", max: "4096" },
     version: { number: "1.16.5", type: "release", custom: "Forge 1.16.5" },
@@ -140,7 +140,6 @@ const GAME_DIR = CONFIG.launcher.gameDirectory;
 const VERSION_CUSTOM = CONFIG.launcher.version.custom;
 const VERSION_NUMBER = CONFIG.launcher.version.number;
 const VERSION_TYPE = CONFIG.launcher.version.type;
-const DEFAULT_USERNAME = CONFIG.launcher.defaultUsername;
 const SERVER_HOST = CONFIG.launcher.server.host;
 const SERVER_PORT = CONFIG.launcher.server.port;
 
@@ -177,9 +176,14 @@ let gameStarted = false;
 let gameProcess = null;
 
 function createWindow() {
+  const iconPath = process.platform === "win32"
+    ? path.join(ROOT, "assets", "icon.ico")
+    : (process.platform === "darwin"
+        ? path.join(ROOT, "assets", "icon.icns")
+        : path.join(ROOT, "assets", "icon.png"));
   mainWindow = new BrowserWindow({
     title: CONFIG.launcher.title,
-    icon: path.join(ROOT, "assets", "icon.ico"),
+    icon: iconPath,
     width: CONFIG.launcher.width,
     height: CONFIG.launcher.height,
     minWidth: 640,
@@ -197,10 +201,13 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(ROOT, "index.html"));
 
-  // Автопроверка при запуске: сначала самообновление лаунчера, затем целостность файлов игры.
-  // Проверка файлов идёт ВСЕГДА при старте (если задан манифест), без участия пользователя.
-  mainWindow.webContents.on("did-finish-load", () => {
-    if (CONFIG.selfUpdate && CONFIG.selfUpdate.enabled) runSelfUpdate();
+  // Сначала проверяем self-update; при обновлении не запускаем фоновую загрузку модпака.
+  // Проверка файлов игры начинается после self-update, если перезапуск не потребовался.
+  mainWindow.webContents.on("did-finish-load", async () => {
+    if (CONFIG.selfUpdate && CONFIG.selfUpdate.enabled) {
+      const update = await runSelfUpdate();
+      if (update && update.applied) return;
+    }
     ensureGameFiles("startup");
   });
 
@@ -227,6 +234,7 @@ async function runSelfUpdate() {
     // внешний конфиг обновляется вручную и легко «застревает» на старой версии, из-за чего
     // self-update срабатывал при каждом запуске (в т.ч. бесконечным циклом).
     const current = app.getVersion();
+    send({ phase: "checking", currentVersion: current });
     const check = await selfUpdate.checkForUpdate({
       manifestUrl: s.manifestUrl,
       manifestPath: s.manifestPath,
@@ -235,6 +243,7 @@ async function runSelfUpdate() {
 
     if (!check.hasUpdate) {
       logger.log(`[selfupdate] обновлений нет (текущая ${current}, удалённая ${check.remote.version})`);
+      send({ phase: "up-to-date", currentVersion: current });
       return { ok: true, hasUpdate: false, version: current };
     }
 
@@ -247,6 +256,7 @@ async function runSelfUpdate() {
       url: remote.url,
       destFile: dest,
       sha1: remote.sha1,
+      size: remote.size,
       onProgress: (received, total) => send({ phase: "downloading", version: remote.version, bytes: received, bytesTotal: total || remote.size || 0 })
     });
 
@@ -258,7 +268,7 @@ async function runSelfUpdate() {
     // В portable-сборке electron-builder process.execPath указывает на распакованную
     // копию в %TEMP%, а исходный EXE пользователя задаётся переменной PORTABLE_EXECUTABLE_FILE.
     const targetExePath = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
-    send({ phase: "applying", version: remote.version });
+    send({ phase: "applying", version: remote.version, restartRequired: true });
     selfUpdate.applyUpdateAndRestart({ newExePath: dest, targetExePath, pid: process.pid });
     setTimeout(() => app.quit(), 500);
     return { ok: true, hasUpdate: true, applied: true, version: remote.version };
@@ -470,6 +480,7 @@ ipcMain.handle("game:stop", () => {
 });
 
 ipcMain.handle("config:get", () => CONFIG);
+ipcMain.handle("auth:login", (_event, username) => nicknameSession.login(username));
 
 // Ручная/автоматическая отправка отчёта из renderer (кнопка «Сообщить об ошибке»,
 // window.onerror, неудачный вызов API). Возвращает путь к созданному файлу.
@@ -498,10 +509,12 @@ ipcMain.handle("backgrounds:random", () => {
   return pathToFileURL(picked).href;
 });
 
-ipcMain.handle("game:launch", async (event, username) => {
+ipcMain.handle("game:launch", async () => {
   if (launching) return { ok: false, message: "Игра уже запускается" };
 
-  const name = (username || "").trim() || DEFAULT_USERNAME;
+  const session = nicknameSession.requireAuthenticatedUser();
+  if (!session.ok) return session;
+  const name = session.username;
   if (!USERNAME_RE.test(name)) {
     return { ok: false, message: "Никнейм: 3–16 символов, только латиница, цифры и «_»" };
   }
