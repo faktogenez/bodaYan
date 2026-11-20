@@ -1,7 +1,7 @@
 {
-  "version": "1.0.6",
-  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.6/AppleLauncher-1.0.6.exe",
-  "sha1": "b076900d396d2814bc06d9052248f981bf240f1b",
-  "size": 111695804,
-  "notes": "Окончательный фикс краша 'spawn cmd.exe ENOENT': (1) текущая версия берётся из app.getVersion(), а не из устаревшего внешнего config.json — устранён ложный/бесконечный self-update; (2) cmd.exe запускается по абсолютному пути (%ComSpec%) с гарантией %SystemRoot%\\System32 в PATH и обработчиком ошибки — uncaught-краш невозможен. Плюс v1.0.4/1.0.5: валидация никнейма, стоп-кнопка, лог debug.log, докачка HTTP Range, встроенная JRE 17."
+  "version": "1.0.7",
+  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.7/AppleLauncher.exe",
+  "sha1": "ea1beb8218f9d7846c3e908523cdc8273eef2c3f",
+  "size": 111695691,
+  "notes": "Постоянный каталог данных: игровые файлы больше не создаются рядом с EXE (в т.ч. на рабочем столе) — используется %APPDATA%\\AppleLauncher, старые данные переносятся автоматически. Встроенная проверка целостности при каждом запуске: сверка SHA1/размер с манифестом и автодокачка отсутствующих/повреждённых файлов. Исправлена ошибка 'файл не найден' на чистой системе: в манифест добавлен versions/Forge 1.16.5/Forge 1.16.5.json; модпак переведён на релиз modpack-v2."
 }
