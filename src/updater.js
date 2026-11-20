@@ -7,6 +7,7 @@ const { URL } = require("url");
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleLauncher";
 const MAX_REDIRECTS = 5;
+const INACTIVITY_TIMEOUT_MS = 15000; // 15с без данных → обрыв запроса и retry
 
 // SHA1 файла (потоково, без загрузки целиком в память).
 function sha1File(filePath) {
@@ -35,6 +36,7 @@ function fetchBuffer(urlStr, redirects = 0) {
       res.on("data", (c) => chunks.push(c));
       res.on("end", () => resolve({ statusCode, headers, buffer: Buffer.concat(chunks) }));
     });
+    req.setTimeout(INACTIVITY_TIMEOUT_MS, () => { req.destroy(); });
     req.on("error", reject);
   });
 }
@@ -167,6 +169,7 @@ function streamDownload(urlStr, destPath, onBytes, opts, redirects) {
       }
     });
 
+    req.setTimeout(INACTIVITY_TIMEOUT_MS, () => { req.destroy(); });
     req.on("error", reject);
   });
 }
