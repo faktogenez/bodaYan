@@ -530,6 +530,62 @@ Google Drive/
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
 
+### Сессия 2026-11-21 — Перенос модов с CubixWorld: Ex Nihilo + Create + Mekanism + AE2
+
+**Запрос пользователя:** перенести моды с сервера Cubix (OceanBlock_1165) на `C:\Server_Skyblock`, выделив только необходимые для минимального выживания и базовой автоматизации. После копирования — полная проверка работоспособности.
+
+**Анализ:** из ~150 модов CubixWorld (`C:\Users\LEO\cubixworld\updates\OceanBlock_1165\mods\`) отобраны 18 под концепцию «СкайБлок Деревня». Все клиентские моды (`*-client.jar`, Jade, JEI, Neat и т.д.) и весь контент Cubix (CubixCore/Quiz/Tops/Trade и т.д.) исключены.
+
+**Рекомендованный и согласованный перечень (18 модов):**
+
+| Категория | Мод | Файл |
+|---|---|---|
+| **Ядро SkyBlock** | Ex Nihilo: Sequentia | `exnihilosequentia-1.16-20220530-185402.jar` |
+| | Ex Compressum | `ExCompressum_1.16.5-4.0.5.jar` |
+| | Cucumber (зависимость) | `Cucumber-1.16.4-4.1.10.jar` |
+| | ObserverLib (зависимость) | `observerlib-1.16.5-1.5.3.jar` |
+| **Кинетика** | Create | `create-mc1.16.5_v0.3.2g.jar` |
+| | Flywheel (зависимость) | `flywheel-1.16-0.2.3.jar` |
+| **Техно** | Mekanism | `Mekanism-1.16.5-10.0.21.448.jar` |
+| | Mekanism Generators | `MekanismGenerators-1.16.5-10.0.21.448.jar` |
+| | Mekanism Tools | `MekanismTools-1.16.5-10.0.21.448.jar` |
+| **Хранение** | Applied Energistics 2 | `appliedenergistics2-8.4.2.jar` |
+| **Интеграции** | Ex Nihilo: Mekanism | `exnihilomekanism-1.16-1.0.0.1.jar` |
+| | Ex Nihilo: AE2 | `exnihiloae-1.16-1.0.0.2.jar` |
+| **Инфраструктура** | Iron Chests | `ironchest-1.16.5-11.2.21.jar` |
+| | Iron Furnaces | `ironfurnaces-1.16.5-2.7.7.jar` |
+| | Pipez | `pipez-1.16.5-1.2.17.jar` |
+| | supermartijn642 corelib | `supermartijn642corelib-1.1.24a-forge-mc1.16.jar` |
+| | supermartijn642 configlib | `supermartijn642configlib-1.1.8-forge-mc1.16.jar` |
+| **Производительность** | FerriteCore | `ferritecore-2.1.1-forge.jar` |
+
+**Действия:**
+1. Из `C:\Users\LEO\cubixworld\updates\OceanBlock_1165\mods\` скопированы 18 jar в `C:\Server_Skyblock\mods\` (поверх существующих `CustomNPCs` и `worldedit-mod-7.2.5`).
+2. Контрольный запуск: `java -Xms2G -Xmx6G -XX:+UseG1GC -jar mohist-1.16.5-754b578e-server.jar nogui`.
+3. Устранена блокировка файла `mohist-universal.jar` (завершён зависший Java-процесс PID 3740 от предыдущей сессии).
+
+**Результаты проверки:**
+- **`Done (5.313s)!`** — сервер поднялся без крашей.
+- **Все 20 модов загружены** (строка 65 лога): CustomNPCs, WorldEdit, supermartijn642configlib, Cucumber, MekanismTools, ExCompressum, ironfurnaces, ferritecore, observerlib, MekanismGenerators, supermartijn642corelib, Mekanism, exnihilomekanism, exnihilosequentia, pipez, flywheel, create, ironchest, appliedenergistics2, exnihiloae.
+- **1866 рецептов** зарегистрировано (моды внесли свои рецепты).
+- **ERROR: 1** — `Essentials: server does not properly support Bukkit plugins` (известная косметика Mohist).
+- **WARN: 12** — все ожидаемые: deprecated `GlobalEntityTypeAttributes` (ExCompressum/Mekanism, работает), offline-mode (намеренно), Vault cosmetic, BentoBox compatibility (работает).
+- **FATAL/Crash/Exception — отсутствуют.**
+- **Missing dependencies/unresolved — отсутствуют.**
+- Сервер остановлен после проверки.
+
+**Статус:** ✅ 18 модов скопированы и протестированы. Сервер стабилен. WorldEdit сохранён и работает. Концепция «СкайБлок Деревня» обеспечена модами Ex Nihilo (ядро SkyBlock), Create (кинетика), Mekanism (техно), AE2 (хранение/автоматизация).
+
+**Проблемы:** зависший Java-процесс от предыдущей сессии блокировал `mohist-universal.jar` — устранён принудительным завершением.
+
+**Открытые вопросы:**
+- Конфиги модов используют значения по умолчанию (Cubix-настройки не копировались). При необходимости можно скопировать специфичные конфиги из `C:\Users\LEO\cubixworld\updates\OceanBlock_1165\config\`.
+- Create-аддоны (createaddition, createdeco, createplus, create-stuff-additions) не включены — могут быть добавлены отдельно.
+- Необходима настройка баланса Ex Nihilo (вероятности выпадения руд из сита) под концепцию сервера.
+- Клиент лаунчера (`minecraft/game/mods/`) требует обновления — нужно добавить те же моды для клиентской стороны.
+
+---
+
 ### Сессия 2026-11-21 — Реорганизация сервера «СкайБлок Деревня»: нормализация конфигов, очистка, контрольный запуск
 
 **Запрос пользователя:** (1) сервер выключен — работать; (2) WorldEdit обязательно остаётся установленным и рабочим (для вставки карт); (3) выполнять по плану последовательно, детально записывая каждый шаг в SESSION_HANDOFF.md; (4) полная реорганизация и нормализация структуры файлов сервера и лаунчера, устранение несовместимостей/ошибок конфигов/конфликтов → стабильная работа без крашей.
