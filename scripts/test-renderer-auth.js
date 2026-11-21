@@ -8,7 +8,7 @@ const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "u
 
 const rendererSource = fs.readFileSync(path.join(__dirname, "..", "src", "renderer.js"), "utf8");
 const elementIds = [
-  "username", "usernameError", "playBtn", "stopBtn", "reportBtn", "splash",
+  "username", "usernameError", "playBtn", "reportBtn", "accountSlot", "splash",
   "statusText", "bgLayer", "progressWrap", "progressTrack", "progressBar",
   "progressLabel", "metaVersion", "metaMemory", "metaServer", "minimizeBtn", "closeBtn"
 ];
@@ -58,7 +58,6 @@ function makeRenderer(storage, options = {}) {
       if (options.launchError) throw options.launchError;
       return { ok: true };
     },
-    stopGame: async () => ({ ok: true }),
     minimize() {},
     close() {}
   };
@@ -160,7 +159,7 @@ async function main() {
   launchFailure.elements.username.value = "Player_2";
   await launchFailure.elements.playBtn.listeners.click();
   assert.strictEqual(launchFailure.elements.playBtn.disabled, false);
-  assert.strictEqual(launchFailure.elements.stopBtn.hidden, true);
+  assert.strictEqual(launchFailure.elements.progressWrap.hidden, true);
   assert.match(launchFailure.elements.statusText.textContent, /IPC offline/);
   console.log("  PASS ошибка IPC запуска снимает блокировку интерфейса");
 

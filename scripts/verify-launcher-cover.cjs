@@ -153,6 +153,40 @@ async function main() {
 
     await cdp.send("Emulation.clearDeviceMetricsOverride");
 
+    // Состояние загрузки: индикатор занимает место ссылки «Создать аккаунт», форма статична,
+    // отдельной кнопки отмены/остановки нет (закрытие — только иконкой-крестиком).
+    const ready = await evaluate(cdp, `(() => {
+      const card = document.querySelector('.login-card').getBoundingClientRect();
+      return { top: Math.round(card.top), height: Math.round(card.height) };
+    })()`);
+    const loading = await evaluate(cdp, `(() => {
+      if (typeof window.showProgress !== 'function') return null;
+      window.showProgress('Проверка файлов…', 42);
+      const card = document.querySelector('.login-card').getBoundingClientRect();
+      const slot = document.getElementById('accountSlot').getBoundingClientRect();
+      const wrap = document.getElementById('progressWrap').getBoundingClientRect();
+      return {
+        cardTop: Math.round(card.top),
+        cardHeight: Math.round(card.height),
+        progressVisible: wrap.width > 0 && wrap.height > 0,
+        progressInsideSlot: wrap.top >= slot.top - 1 && wrap.bottom <= slot.bottom + 1 &&
+          wrap.left >= slot.left - 1 && wrap.right <= slot.right + 1,
+        accountHidden: getComputedStyle(document.getElementById('accountBtn')).visibility === 'hidden',
+        cancelButtons: Array.from(document.querySelectorAll('button')).filter((button) =>
+          !button.hidden && button.offsetParent !== null &&
+          /Остановить|Отмена/.test(button.textContent)).length
+      };
+    })()`);
+    assert.ok(loading, "Функция showProgress недоступна в renderer");
+    assert.ok(loading.progressVisible, "Индикатор загрузки не отображается");
+    assert.ok(loading.progressInsideSlot, "Индикатор загрузки вышел за пределы места «Создать аккаунт»");
+    assert.ok(loading.accountHidden, "Ссылка «Создать аккаунт» не скрыта в состоянии загрузки");
+    assert.strictEqual(loading.cancelButtons, 0, "В состоянии загрузки появилась кнопка отмены/остановки");
+    assert.strictEqual(loading.cardTop, ready.top, "Карточка сместилась по вертикали в состоянии загрузки");
+    assert.strictEqual(loading.cardHeight, ready.height, "Высота карточки изменилась в состоянии загрузки");
+    console.log("PASS состояние загрузки: индикатор на месте «Создать аккаунт», форма статична");
+    await evaluate(cdp, "window.resetProgress && window.resetProgress();");
+
     assert.strictEqual(cdp.errors.length, 0, "В консоли лаунчера есть ошибки");
     console.log("PASS ошибок renderer-консоли нет");
   } finally {

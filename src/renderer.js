@@ -2,9 +2,9 @@ const elements = {
   username: document.getElementById("username"),
   usernameError: document.getElementById("usernameError"),
   playBtn: document.getElementById("playBtn"),
-  stopBtn: document.getElementById("stopBtn"),
   reportBtn: document.getElementById("reportBtn"),
   accountBtn: document.getElementById("accountBtn"),
+  accountSlot: document.getElementById("accountSlot"),
   status: document.getElementById("statusText"),
   bgLayer: document.getElementById("bgLayer"),
   brandLogo: document.getElementById("brandLogo"),
@@ -189,8 +189,10 @@ async function sendReport() {
 }
 
 // Определённый прогресс: label + процент. Если percent не задан — «бегущая» полоса.
+// Индикатор показывается на месте ссылки «Создать аккаунт», поэтому карточка не смещается.
 function showProgress(label, percent) {
   elements.progressWrap.hidden = false;
+  elements.accountSlot.classList.add("is-loading");
   if (typeof percent === "number") {
     elements.progressTrack.classList.remove("indeterminate");
     elements.progressBar.style.width = Math.max(0, Math.min(100, percent)) + "%";
@@ -202,6 +204,7 @@ function showProgress(label, percent) {
 
 function resetProgress() {
   elements.progressWrap.hidden = true;
+  elements.accountSlot.classList.remove("is-loading");
   elements.progressTrack.classList.remove("indeterminate");
   elements.progressBar.style.width = "0%";
   elements.progressLabel.textContent = "";
@@ -305,16 +308,12 @@ window.electronAPI.onLauncherUpdate((u) => {
 });
 
 window.electronAPI.onGameClose((code) => {
-  elements.stopBtn.hidden = true;
-  elements.stopBtn.disabled = false;
   elements.playBtn.disabled = false;
   resetProgress();
   setStatus(code === 0 ? "Игра закрыта" : `Игра закрыта с кодом ${code}`, code === 0 ? "info" : "error");
 });
 
 window.electronAPI.onGameError((err) => {
-  elements.stopBtn.hidden = true;
-  elements.stopBtn.disabled = false;
   elements.playBtn.disabled = false;
   resetProgress();
   setStatus("Ошибка: " + err + " — отчёт сохранён на Рабочем столе", "error");
@@ -332,8 +331,6 @@ async function launchGame() {
 
   const username = validation.username;
   elements.playBtn.disabled = true;
-  elements.stopBtn.hidden = false;
-  elements.stopBtn.disabled = false;
   showProgress("Подготовка к запуску…");
   setStatus("Выполняется вход…", "loading");
 
@@ -348,8 +345,6 @@ async function launchGame() {
     ? nicknameValidation.validate(login.username)
     : { ok: false };
   if (!login || !login.ok || !loggedInName.ok || loggedInName.username !== username) {
-    elements.stopBtn.hidden = true;
-    elements.stopBtn.disabled = false;
     elements.playBtn.disabled = false;
     resetProgress();
     setStatus((login && login.message) || "Не удалось выполнить вход.", "error");
@@ -363,27 +358,13 @@ async function launchGame() {
   try {
     const result = await window.electronAPI.launchGame();
     if (result && result.ok) return;
-    elements.stopBtn.hidden = true;
-    elements.stopBtn.disabled = false;
     elements.playBtn.disabled = false;
     resetProgress();
     setStatus((result && result.message) || "Ошибка запуска", "error");
   } catch (err) {
-    elements.stopBtn.hidden = true;
-    elements.stopBtn.disabled = false;
     elements.playBtn.disabled = false;
     resetProgress();
     setStatus("Ошибка запуска: " + err.message, "error");
-  }
-}
-
-async function stopGame() {
-  elements.stopBtn.disabled = true;
-  setStatus("Остановка игры...", "loading");
-  const result = await window.electronAPI.stopGame();
-  if (!result.ok) {
-    elements.stopBtn.disabled = false;
-    setStatus(result.message || "Не удалось остановить игру", "error");
   }
 }
 
@@ -397,7 +378,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   clearNicknameState();
   setStatus("Готов к запуску", "info");
   elements.playBtn.addEventListener("click", launchGame);
-  elements.stopBtn.addEventListener("click", stopGame);
   elements.reportBtn.addEventListener("click", sendReport);
   elements.accountBtn.addEventListener("click", () => {
     setStatus("Создание аккаунта — заглушка, действие пока не подключено", "info");

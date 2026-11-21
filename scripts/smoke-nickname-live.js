@@ -147,7 +147,7 @@ async function main() {
         return result;
       }, "Minecraft не запустился, остановка по IPC не подтвердилась", 90000);
       await waitFor(
-        () => evaluate("document.getElementById('stopBtn').hidden && !document.getElementById('playBtn').disabled"),
+        () => evaluate("document.getElementById('progressWrap').hidden && !document.getElementById('playBtn').disabled"),
         "интерфейс не восстановился после остановки игры"
       );
       console.log("PASS: smoke-игра остановлена через штатный IPC, UI восстановлен");
