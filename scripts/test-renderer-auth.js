@@ -144,15 +144,18 @@ async function main() {
   assert.deepStrictEqual(first.loginCalls, ["Player_2026"]);
   assert.strictEqual(first.launchCalls.length, 1);
   assert.strictEqual(first.elements.username.value, "Player_2026");
+  assert.strictEqual(values.get("launcher.username"), "Player_2026");
   assert.strictEqual(values.has("appleLauncher.username"), false);
   assert.strictEqual(values.has("minecraft_username"), false);
-  console.log("  PASS кнопка «Играть» нормализует, отображает ник и запускает игру без сохранения");
+  assert.strictEqual(first.elements.statusText.style.visibility, "hidden");
+  console.log("  PASS кнопка «Играть» нормализует ник, сохраняет его и скрывает строку статуса");
 
   const second = makeRenderer(storage);
   await initialize(second);
-  assert.strictEqual(second.elements.username.value, "");
+  assert.strictEqual(second.elements.username.value, "Player_2026");
   assert.strictEqual(second.loginCalls.length, 0);
-  console.log("  PASS повторный запуск оставляет поле пустым");
+  assert.notStrictEqual(second.elements.statusText.style.visibility, "hidden");
+  console.log("  PASS повторный запуск подставляет сохранённый ник");
 
   const launchFailure = makeRenderer(storage, { launchError: new Error("IPC offline") });
   await initialize(launchFailure);
@@ -160,8 +163,9 @@ async function main() {
   await launchFailure.elements.playBtn.listeners.click();
   assert.strictEqual(launchFailure.elements.playBtn.disabled, false);
   assert.strictEqual(launchFailure.elements.progressWrap.hidden, true);
+  assert.strictEqual(launchFailure.elements.statusText.style.visibility, "");
   assert.match(launchFailure.elements.statusText.textContent, /IPC offline/);
-  console.log("  PASS ошибка IPC запуска снимает блокировку интерфейса");
+  console.log("  PASS ошибка IPC запуска снимает блокировку интерфейса и показывает статус");
 
   second.emitUpdate({ phase: "checking", currentVersion: "1.0.12" });
   assert.match(second.elements.progressLabel.textContent, /Проверка обновлений/);

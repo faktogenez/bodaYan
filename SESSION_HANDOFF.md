@@ -8,13 +8,13 @@
 
 ## 1. Текущий прогресс проекта
 
-**Актуальный релиз: v1.0.19 (публикуется)** — исправлен баг вёрстки формы авторизации: индикатор загрузки вынесен в отдельный слот на месте «Создать аккаунт» (`#accountSlot`, absolute-оверлей), кнопка «Остановить» удалена из UI (закрытие — крестиком окна); высота карточки постоянна, форма не смещается и не перекрывает логотип. Изменены [index.html](file:///C:/Users/LEO/AppleLauncher/index.html), [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css), [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js), тесты `scripts/test-renderer-auth.js`, `scripts/smoke-nickname-live.js`, `scripts/verify-launcher-cover.cjs`. Проверки: `npm test` 49/49 PASS, CDP `verify-launcher-cover.cjs` PASS (кейс «состояние загрузки»). Предыдущий релиз — **v1.0.18** (интеграция обложки `launcher-visuals`, SHA1 `368c38c8…`, размер 125 458 560 Б). Подробности — раздел 11.
+**Актуальный релиз: v1.0.20** — **сохранение никнейма между сессиями** (введённый ник пишется в `localStorage` под ключом `launcher.username` после успешного входа и автоматически подставляется в поле при следующем запуске; невалидный сохранённый ник отбрасывается) и **устранение дублирования текста загрузки в нижней строке интерфейса** (во время индикатора загрузки строка скрывается через `visibility: hidden` и возвращается в итоговых состояниях). Изменены [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js), тесты `scripts/test-renderer-auth.js`, `scripts/smoke-nickname-live.js`, `scripts/verify-launcher-cover.cjs`. Проверки: `npm test` 49/49 PASS, live-smoke никнейма PASS, CDP `verify-launcher-cover.cjs` PASS ×3. Предыдущий релиз — **v1.0.19** (фикс вёрстки формы авторизации: индикатор загрузки в слоте `#accountSlot`, кнопка «Остановить» удалена; SHA1 `0b8da443…`, размер 125 462 546 Б). Подробности — раздел 11.
 
 **История v1.0.17:** portable Local Storage содержал `minecraft_username=bodayan`; очистка исправлена для него и второго legacy-ключа `appleLauncher.username`, autocomplete отключён. `npm test`: 48/48 PASS; live CDP smoke подтвердил пустое поле, удаление ключей и вход с допустимым ником. EXE: 113 313 735 Б, SHA1 `bd30c84534e20b246deefd8d071b1eb7446c648a`; E2E self-update v1.0.16 → v1.0.17 прошёл (`move OK (tries: 1)`). Полный запуск Minecraft/Java из sandbox заблокирован файловыми ограничениями.
 
 **⚠️ Известная нерешённая проблема (ОТЛОЖЕНА по решению заказчика): авторизация под ником `bodayan`.** Вход с этим ником не выполняется, потому что общий валидатор `src/nicknameValidation.js` считает `bodayan` «стандартным» (`STANDARD_USERNAME`) и отклоняет его с сообщением «Никнейм «bodayan» является стандартным…». Любые другие допустимые ники авторизуются корректно. Причина — намеренный запрет дефолтного ника (защита от «навязанного» значения), который теперь конфликтует с реальным ником владельца. Исправление **сознательно отложено** на более поздний этап: нужно согласовать политику (разрешить `bodayan` для владельца, вынести список запрещённых ников в `config.json` либо вовсе снять запрет) и только затем менять валидатор и тесты. До этого момента изменение поведения `STANDARD_USERNAME` не делать.
 
-**Текущая работа (выпуск v1.0.19): исправлена композиция формы при загрузке.** Кнопка «Остановить» удалена из формы; индикатор загрузки заменяет блок «Создать аккаунт» (`#accountSlot`) по расположению и размерам, не увеличивая высоту карточки → форма и логотип остаются статичными на всех поддерживаемых разрешениях. Версия поднята до **1.0.19**, релиз готовится к публикации (см. раздел 11).
+**Текущая работа (выпуск v1.0.20): сохранение ника + скрытие нижней строки при загрузке.** Ник запоминается между сессиями и подставляется при запуске; во время индикатора загрузки нижняя строка статуса скрыта и не дублирует подпись прогресса. Версия поднята до **1.0.20**, релиз публикуется (см. раздел 11).
 
 **✅ Интеграция утверждённой обложки (2026-11-21):** согласованный визуальный шаблон из `launcher-visuals/` перенесён в production-лаунчер. Структура окна переведена на классы `.cover-*` ([index.html](file:///C:/Users/LEO/AppleLauncher/index.html)); общие стили раскладки, компонентов и обложки вынесены в единый [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css), shared-файл используется и лаунчером, и превью. В main-процессе добавлен визуальный слой: чтение `launcher-visuals/config/visual-layout.json` (`schemaVersion:1`), защита от выхода путей за пределы каталога, подбор фонов (приоритет `optimized` → `source`, только числовые имена, сортировка по номеру) и IPC-канал `visual:model` ([main.js](file:///C:/Users/LEO/AppleLauncher/main.js)). [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) предоставляет `getVisualModel()`; [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) переносит координаты/читаемость из JSON в CSS-переменные, переключает `compact-layout` по ширине окна, выбирает случайный фон без немедленного повтора и сохраняет всю прежнюю функциональность (валидация/вход/запуск/прогресс/diagnostic). Ресурсы обложки (`launcher-visuals`) добавлены в `extraResources` (только `config`, `backgrounds/optimized`, `logo/optimized`; исходники и превью в сборку не входят). Проверки: `npm test` 49/49 PASS (включая новый тест применения визуального слоя), `node launcher-visuals/preview/verify-preview.cjs` PASS, новый `node scripts/verify-launcher-cover.cjs` PASS (логотип/фон/центрирование ника/цвета кнопок/`compact-layout` 640×460/нет ошибок консоли). Версия **1.0.18** опубликована.
 
@@ -33,7 +33,7 @@
 ## 2. Реализованная функциональность
 
 - ✅ Electron-окно с безрамочное прозрачное окно 920x600 (размеры/заголовок из `config.json`)
-- ✅ Вход по никнейму: поле **всегда пустое** при запуске (ник не сохраняется и не подставляется автоматически); пустой ник и стандартный `bodayan` запрещены. Кнопка **«Войти по никнейму» удалена** — вход выполняется единственным путём при нажатии «Играть» (сначала вход, затем запуск).
+- ✅ Вход по никнейму: пустой ник и стандартный `bodayan` запрещены. Кнопка **«Войти по никнейму» удалена** — вход выполняется единственным путём при нажатии «Играть» (сначала вход, затем запуск). **Ник сохраняется между сессиями**: после успешного входа пишется в `localStorage` (`launcher.username`) и автоматически подставляется в поле при следующем запуске (невалидное сохранённое значение отбрасывается); legacy-ключи прошлых версий (`appleLauncher.username`, `minecraft_username`) очищаются при старте.
 - ✅ **Экран-заглушка при старте лаунчера** (`#splash` в [index.html](file:///C:/Users/LEO/AppleLauncher/index.html)): мгновенно показывает логотип приложения и надпись «Загрузка» (с анимированными точками); держит до завершения инициализации (конфиг → тема → визуальный слой → фон), затем плавно скрывается (`.splash-hidden`).
 - ✅ Кнопка «Играть» запускает Minecraft 1.16.5 Forge и доходит до **главного меню** (без автоподключения к серверу)
 - ✅ Передача параметров памяти из `config.json`: `-Xms2048M -Xmx4096M`
@@ -87,7 +87,7 @@
 | [assets/icon.ico](file:///C:/Users/LEO/AppleLauncher/assets/icon.ico) | Windows EXE/Explorer icon (встроенная multi-size ICO, 16–256 px). |
 | [assets/icon.icns](file:///C:/Users/LEO/AppleLauncher/assets/icon.icns) | macOS icon resource (ICNS, 16–1024 px; macOS-сборка в текущем проекте не включена). |
 | [assets/icon.png](file:///C:/Users/LEO/AppleLauncher/assets/icon.png) | Linux icon resource (PNG 512 px; Linux-сборка в текущем проекте не включена). |
-| [CHANGELOG.md](file:///C:/Users/LEO/AppleLauncher/CHANGELOG.md) | Краткие заметки опубликованных релизов, включая v1.0.19. |
+| [CHANGELOG.md](file:///C:/Users/LEO/AppleLauncher/CHANGELOG.md) | Краткие заметки опубликованных релизов, включая v1.0.20. |
 | [src/logger.js](file:///C:/Users/LEO/AppleLauncher/src/logger.js) | Лёгкое логирование (`log/warn/error` + `setLogDir`); запись в `debug.log` только при `process.env.DEBUG`. Хранит кольцевой буфер последних 300 строк в памяти (`getRecent()`) для диагностических отчётов. |
 | [src/diagnostic.js](file:///C:/Users/LEO/AppleLauncher/src/diagnostic.js) | ✅ Автосбор диагностики при ошибках: `configure/captureError/buildReport/writeReport/handleError/reportDir`. Пишет читаемый отчёт `bodaYan-error-<дата>_<время>.log` на Рабочий стол (с fallback). |
 | [src/netsel.js](file:///C:/Users/LEO/AppleLauncher/src/netsel.js) | ✅ Сетевые помощники (v1.0.12): `probeTcp` (TCP-проба порта), `parseAddr`, `buildCandidates` (дедупликация с сохранением порядка), `pickAddress` (первый доступный адрес с фолбэком). Используется в `main.js` для автоподбора адреса сервера. |
@@ -108,7 +108,7 @@
 ```
 renderer.js (клик "Играть")
   → общая валидация ника; при пустом/некорректном — блокировка с сообщением (без входа)
-  → main auth:login(username) — вход под введённым ником (ник нигде не сохраняется)
+  → main auth:login(username) — вход под введённым ником (ник не уходит из main; в renderer запоминается в localStorage только после успешного входа)
   → electronAPI.launchGame()
     → ipcMain.handle("game:launch")
       → new Client() (minecraft-launcher-core 3.x)
@@ -128,7 +128,7 @@ renderer.js (клик "Играть")
 ### IPC-каналы (main.js ↔ preload.js ↔ renderer.js)
 - `window:minimize` / `window:close` — управление окном
 - `config:get` → `CONFIG` — renderer получает тему/ник/сервер
-- `auth:login(username)` — общая проверка никнейма и создание текущей сессии main-процесса; ник не сохраняется между запусками
+- `auth:login(username)` — общая проверка никнейма и создание текущей сессии main-процесса; сохранение ника между запусками выполняется в renderer (`localStorage` → `launcher.username`)
 - `visual:model` → модель визуального слоя `{ config, logo, backgrounds }` из `launcher-visuals` (или `null`, если конфиг недоступен — renderer откатывается на базовую раскладку)
 - `game:launch` (invoke без ника; использует только прошедшую `auth:login` сессию) + `game:data` / `game:progress` / `game:close` / `game:error` (send) — запуск и статус игры
 - `game:stop` (invoke) — принудительная остановка запущенной игры (`taskkill /T /F`)

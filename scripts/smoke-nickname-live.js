@@ -72,16 +72,23 @@ async function main() {
       const input = document.getElementById("username");
       return {
         value: input.value,
+        saved: localStorage.getItem("launcher.username"),
         autocomplete: input.autocomplete,
         nickname: localStorage.getItem("minecraft_username"),
         previousKey: localStorage.getItem("appleLauncher.username")
       };
     })()`);
-    assert.strictEqual(initial.value, "", "Поле никнейма должно быть пустым");
     assert.strictEqual(initial.autocomplete, "off");
     assert.strictEqual(initial.nickname, null, "minecraft_username должен быть удалён");
     assert.strictEqual(initial.previousKey, null, "appleLauncher.username должен быть удалён");
-    console.log("PASS: окно стартовало пустым, autofill отключён, legacy-ключи удалены");
+    if (initial.saved === null) {
+      assert.strictEqual(initial.value, "", "Без сохранённого ника поле должно быть пустым");
+      console.log("PASS: окно стартовало без сохранённого ника, autofill отключён, legacy-ключи удалены");
+    } else {
+      assert.strictEqual(initial.value, initial.saved, "Сохранённый ник должен подставляться автоматически");
+      assert.match(initial.saved, /^[A-Za-z0-9_]{3,16}$/, "Сохранённый ник должен быть валидным");
+      console.log("PASS: сохранённый ник подставлен автоматически, legacy-ключи удалены");
+    }
 
     const empty = await evaluate(`(async () => {
       const input = document.getElementById("username");

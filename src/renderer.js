@@ -18,6 +18,8 @@ const elements = {
 const nicknameValidation = window.NicknameValidation;
 const LEGACY_USERNAME_KEYS = ["appleLauncher.username", "minecraft_username"];
 const LAST_BACKGROUND_KEY = "launcher.lastBackground";
+// Собственный ключ для сохранения ника между сессиями (отдельно от legacy-ключей).
+const SAVED_USERNAME_KEY = "launcher.username";
 
 function clearNicknameState() {
   elements.username.value = "";
@@ -26,7 +28,29 @@ function clearNicknameState() {
   } catch (_) {}
 }
 
-// Clear both browser autofill and nickname data saved by older launcher versions.
+// Подставляет ник прошлой сессии, если он сохранён и проходит валидацию.
+function restoreSavedNickname() {
+  let saved = "";
+  try {
+    saved = localStorage.getItem(SAVED_USERNAME_KEY) || "";
+  } catch (_) {}
+  if (!saved) return;
+  const validation = nicknameValidation.validate(saved);
+  if (!validation.ok) {
+    try { localStorage.removeItem(SAVED_USERNAME_KEY); } catch (_) {}
+    return;
+  }
+  elements.username.value = validation.username;
+  validateUsername();
+}
+
+// Запоминает ник для следующего запуска (только после успешного входа).
+function saveNickname(username) {
+  try { localStorage.setItem(SAVED_USERNAME_KEY, username); } catch (_) {}
+}
+
+// При старте очищаем browser autofill и legacy-ключи старых версий;
+// сохранённый ник восстанавливается отдельно после инициализации.
 clearNicknameState();
 
 function usernameError(value) {
@@ -193,6 +217,9 @@ async function sendReport() {
 function showProgress(label, percent) {
   elements.progressWrap.hidden = false;
   elements.accountSlot.classList.add("is-loading");
+  // Пока виден индикатор загрузки, нижняя строка статуса скрыта, чтобы её текст
+  // не дублировал подпись прогресса (пространство сохраняется — карточка не смещается).
+  elements.status.style.visibility = "hidden";
   if (typeof percent === "number") {
     elements.progressTrack.classList.remove("indeterminate");
     elements.progressBar.style.width = Math.max(0, Math.min(100, percent)) + "%";
@@ -205,6 +232,7 @@ function showProgress(label, percent) {
 function resetProgress() {
   elements.progressWrap.hidden = true;
   elements.accountSlot.classList.remove("is-loading");
+  elements.status.style.visibility = "";
   elements.progressTrack.classList.remove("indeterminate");
   elements.progressBar.style.width = "0%";
   elements.progressLabel.textContent = "";
@@ -298,6 +326,7 @@ window.electronAPI.onLauncherUpdate((u) => {
     return;
   }
   if (u.phase === "ready") {
+    resetProgress();
     setStatus(`Обновление ${u.version} загружено. Перезапустите лаунчер.`, "info");
     return;
   }
@@ -353,6 +382,7 @@ async function launchGame() {
   }
 
   elements.username.value = loggedInName.username;
+  saveNickname(loggedInName.username);
   setStatus("Подготовка к запуску...", "loading");
 
   try {
@@ -376,6 +406,7 @@ function hideSplash() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   clearNicknameState();
+  restoreSavedNickname();
   setStatus("Готов к запуску", "info");
   elements.playBtn.addEventListener("click", launchGame);
   elements.reportBtn.addEventListener("click", sendReport);

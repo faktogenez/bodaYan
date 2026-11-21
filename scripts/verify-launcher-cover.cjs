@@ -80,8 +80,14 @@ async function waitFor(cdp, expression, timeoutMs = 20000) {
 }
 
 async function main() {
+  // Гарантируем dev-режим: если в окружении случайно выставлен ELECTRON_FORCE_IS_PACKAGED,
+  // Electron «притворится» собранным приложением и визуальный слой ищется в resources —
+  // проверка обложки тогда ложно падает. Для чистоты прогона переменную убираем.
+  const childEnv = { ...process.env };
+  delete childEnv.ELECTRON_FORCE_IS_PACKAGED;
   const child = spawn(ELECTRON, [`--remote-debugging-port=${PORT}`, PROJECT_ROOT], {
     cwd: PROJECT_ROOT,
+    env: childEnv,
     stdio: "ignore",
     windowsHide: true
   });
@@ -118,7 +124,11 @@ async function main() {
         closeIconColor: getComputedStyle(document.getElementById('closeBtn'), '::before').backgroundColor,
         minimizeIconColor: getComputedStyle(document.getElementById('minimizeBtn'), '::before').backgroundColor,
         controlShape: getComputedStyle(document.getElementById('closeBtn')).borderRadius,
-        statusText: document.getElementById('statusText').textContent.trim()
+        statusText: document.getElementById('statusText').textContent.trim(),
+        savedNickname: localStorage.getItem('launcher.username'),
+        nicknameValue: document.getElementById('username').value,
+        legacyNickname: localStorage.getItem('appleLauncher.username'),
+        legacyNickname2: localStorage.getItem('minecraft_username')
       };
     })()`);
     assert.ok(initial.logoLoaded, "Оптимизированный логотип не загрузился");
@@ -132,6 +142,14 @@ async function main() {
     assert.strictEqual(initial.closeIconColor, "rgb(255, 95, 86)", "Крестик закрытия не красный");
     assert.strictEqual(initial.minimizeIconColor, "rgb(255, 189, 46)", "Минус сворачивания не жёлтый");
     assert.notStrictEqual(initial.controlShape, "50%", "Остались круглые кнопки управления");
+    assert.strictEqual(initial.legacyNickname, null, "Legacy-ключ appleLauncher.username не удалён");
+    assert.strictEqual(initial.legacyNickname2, null, "Legacy-ключ minecraft_username не удалён");
+    if (initial.savedNickname === null) {
+      assert.strictEqual(initial.nicknameValue, "", "Без сохранённого ника поле должно быть пустым");
+    } else {
+      assert.strictEqual(initial.nicknameValue, initial.savedNickname, "Сохранённый ник не подставлен в поле");
+      assert.match(initial.savedNickname, /^[A-Za-z0-9_]{3,16}$/, "Сохранённый ник невалиден");
+    }
     console.log("PASS загрузка UI и визуального слоя:", JSON.stringify(initial));
 
     await cdp.send("Emulation.setDeviceMetricsOverride", {
@@ -152,26 +170,32 @@ async function main() {
     console.log("PASS минимальный размер и адаптивная раскладка:", JSON.stringify(compact));
 
     await cdp.send("Emulation.clearDeviceMetricsOverride");
+    // После снятия эмуляции размера ждём возврат раскладки к исходному окну, иначе замер
+    // карточки может попасть на промежуточный кадр.
+    await waitFor(cdp, "!document.body.classList.contains('compact-layout')");
 
     // Состояние загрузки: индикатор занимает место ссылки «Создать аккаунт», форма статична,
     // отдельной кнопки отмены/остановки нет (закрытие — только иконкой-крестиком).
-    const ready = await evaluate(cdp, `(() => {
-      const card = document.querySelector('.login-card').getBoundingClientRect();
-      return { top: Math.round(card.top), height: Math.round(card.height) };
-    })()`);
+    // Замеры «до» и «после» showProgress делаем в одном кадре — это исключает гонку с фоновым
+    // обновлением и пересчётом раскладки, из-за которой карточка ложно «смещалась».
     const loading = await evaluate(cdp, `(() => {
       if (typeof window.showProgress !== 'function') return null;
+      const card = document.querySelector('.login-card');
+      const before = card.getBoundingClientRect();
       window.showProgress('Проверка файлов…', 42);
-      const card = document.querySelector('.login-card').getBoundingClientRect();
+      const after = card.getBoundingClientRect();
       const slot = document.getElementById('accountSlot').getBoundingClientRect();
       const wrap = document.getElementById('progressWrap').getBoundingClientRect();
       return {
-        cardTop: Math.round(card.top),
-        cardHeight: Math.round(card.height),
+        readyTop: Math.round(before.top),
+        readyHeight: Math.round(before.height),
+        cardTop: Math.round(after.top),
+        cardHeight: Math.round(after.height),
         progressVisible: wrap.width > 0 && wrap.height > 0,
         progressInsideSlot: wrap.top >= slot.top - 1 && wrap.bottom <= slot.bottom + 1 &&
           wrap.left >= slot.left - 1 && wrap.right <= slot.right + 1,
         accountHidden: getComputedStyle(document.getElementById('accountBtn')).visibility === 'hidden',
+        statusHidden: getComputedStyle(document.getElementById('statusText')).visibility === 'hidden',
         cancelButtons: Array.from(document.querySelectorAll('button')).filter((button) =>
           !button.hidden && button.offsetParent !== null &&
           /Остановить|Отмена/.test(button.textContent)).length
@@ -181,11 +205,18 @@ async function main() {
     assert.ok(loading.progressVisible, "Индикатор загрузки не отображается");
     assert.ok(loading.progressInsideSlot, "Индикатор загрузки вышел за пределы места «Создать аккаунт»");
     assert.ok(loading.accountHidden, "Ссылка «Создать аккаунт» не скрыта в состоянии загрузки");
+    assert.ok(loading.statusHidden, "Нижняя строка статуса не скрыта во время загрузки");
     assert.strictEqual(loading.cancelButtons, 0, "В состоянии загрузки появилась кнопка отмены/остановки");
-    assert.strictEqual(loading.cardTop, ready.top, "Карточка сместилась по вертикали в состоянии загрузки");
-    assert.strictEqual(loading.cardHeight, ready.height, "Высота карточки изменилась в состоянии загрузки");
-    console.log("PASS состояние загрузки: индикатор на месте «Создать аккаунт», форма статична");
-    await evaluate(cdp, "window.resetProgress && window.resetProgress();");
+    assert.strictEqual(loading.cardTop, loading.readyTop, "Карточка сместилась по вертикали в состоянии загрузки");
+    assert.strictEqual(loading.cardHeight, loading.readyHeight, "Высота карточки изменилась в состоянии загрузки");
+    console.log("PASS состояние загрузки: индикатор на месте «Создать аккаунт», форма статична, статус скрыт");
+    // Сброс и чтение выполняем одним выражением: между двумя отдельными evaluate в renderer
+    // могут прийти фоновые события обновления, которые снова вызовут showProgress и скроют строку.
+    const statusAfterReset = await evaluate(cdp, `(() => {
+      if (typeof window.resetProgress === 'function') window.resetProgress();
+      return getComputedStyle(document.getElementById('statusText')).visibility;
+    })()`);
+    assert.strictEqual(statusAfterReset, "visible", "Строка статуса не вернулась после завершения загрузки");
 
     assert.strictEqual(cdp.errors.length, 0, "В консоли лаунчера есть ошибки");
     console.log("PASS ошибок renderer-консоли нет");
