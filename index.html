@@ -35,7 +35,7 @@
       <section class="card">
         <div class="input-group">
           <label for="username">Никнейм</label>
-          <input type="text" id="username" placeholder="Введите ник" maxlength="16" autocomplete="username">
+          <input type="text" id="username" name="minecraftNickname" placeholder="Введите ник" maxlength="16" autocomplete="off">
           <div class="input-error" id="usernameError" hidden></div>
         </div>
 
@@ -60,6 +60,7 @@
     <footer class="status-bar" id="statusText">Готов к запуску</footer>
   </div>
 
+  <script src="src/nicknameValidation.js"></script>
   <script src="src/renderer.js"></script>
 </body>
 </html>

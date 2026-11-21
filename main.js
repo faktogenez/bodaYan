@@ -9,6 +9,7 @@ const updater = require("./src/updater");
 const servers = require("./src/servers");
 const selfUpdate = require("./src/selfUpdate");
 const nicknameSession = require("./src/nicknameSession");
+const nicknameValidation = require("./src/nicknameValidation");
 const logger = require("./src/logger");
 const diagnostic = require("./src/diagnostic");
 
@@ -162,10 +163,6 @@ process.on("unhandledRejection", (reason) => {
 });
 
 const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
-
-// Допустимый никнейм Minecraft: 3–16 символов, только латиница, цифры и «_».
-// Важно для оффлайн-UUID: никнейм напрямую попадает в MD5("OfflinePlayer:" + name).
-const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
 
 // Маркеры в логе игры, означающие, что клиент загрузился и отрисовал окно.
 const GAME_START_MARKERS = ["Backend library:", "OpenAL initialized", "Sound engine started"];
@@ -514,10 +511,9 @@ ipcMain.handle("game:launch", async () => {
 
   const session = nicknameSession.requireAuthenticatedUser();
   if (!session.ok) return session;
-  const name = session.username;
-  if (!USERNAME_RE.test(name)) {
-    return { ok: false, message: "Никнейм: 3–16 символов, только латиница, цифры и «_»" };
-  }
+  const validNickname = nicknameValidation.validate(session.username);
+  if (!validNickname.ok) return { ok: false, message: validNickname.message };
+  const name = validNickname.username;
 
   launching = true;
 

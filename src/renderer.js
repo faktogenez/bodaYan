@@ -16,19 +16,21 @@ const elements = {
   splash: document.getElementById("splash")
 };
 
-// Никнейм Minecraft: 3–16 символов, латиница/цифры/«_» (совпадает с проверкой в main.js).
-const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
-const STANDARD_USERNAME = "bodayan";
+const nicknameValidation = window.NicknameValidation;
+const LEGACY_USERNAME_KEYS = ["appleLauncher.username", "minecraft_username"];
+
+function clearNicknameState() {
+  elements.username.value = "";
+  try {
+    for (const key of LEGACY_USERNAME_KEYS) localStorage.removeItem(key);
+  } catch (_) {}
+}
+
+// Clear both browser autofill and nickname data saved by older launcher versions.
+clearNicknameState();
 
 function usernameError(value) {
-  const name = (value || "").trim();
-  if (!name) return "Введите никнейм";
-  if (name.toLowerCase() === STANDARD_USERNAME) {
-    return "«bodayan» — стандартный ник. Введите собственный уникальный никнейм.";
-  }
-  if (name.length < 3) return "Слишком короткий ник (минимум 3 символа)";
-  if (!USERNAME_RE.test(name)) return "Только латиница, цифры и «_» (3–16 символов)";
-  return "";
+  return nicknameValidation.validate(value).message;
 }
 
 // Обновляет индикацию ошибки поля никнейма. Возвращает true, если ник валиден.
@@ -271,13 +273,15 @@ window.electronAPI.onGameError((err) => {
 
 async function launchGame() {
   // Обязательная валидация: пустое или некорректное поле блокирует запуск игры.
-  if (!validateUsername()) {
+  const validation = nicknameValidation.validate(elements.username.value);
+  if (!validation.ok) {
+    validateUsername();
     setStatus(elements.usernameError.textContent || "Введите никнейм", "error");
     elements.username.focus();
     return;
   }
 
-  const username = elements.username.value.trim();
+  const username = validation.username;
   elements.playBtn.disabled = true;
   elements.stopBtn.hidden = false;
   elements.stopBtn.disabled = false;
@@ -291,8 +295,12 @@ async function launchGame() {
   } catch (err) {
     login = { ok: false, message: "Ошибка входа: " + err.message };
   }
-  if (!login || !login.ok) {
+  const loggedInName = login && login.ok
+    ? nicknameValidation.validate(login.username)
+    : { ok: false };
+  if (!login || !login.ok || !loggedInName.ok || loggedInName.username !== username) {
     elements.stopBtn.hidden = true;
+    elements.stopBtn.disabled = false;
     elements.playBtn.disabled = false;
     resetProgress();
     setStatus((login && login.message) || "Не удалось выполнить вход.", "error");
@@ -300,15 +308,23 @@ async function launchGame() {
     return;
   }
 
-  elements.username.value = login.username;
+  elements.username.value = loggedInName.username;
   setStatus("Подготовка к запуску...", "loading");
 
-  const result = await window.electronAPI.launchGame();
-  if (!result.ok) {
+  try {
+    const result = await window.electronAPI.launchGame();
+    if (result && result.ok) return;
     elements.stopBtn.hidden = true;
+    elements.stopBtn.disabled = false;
     elements.playBtn.disabled = false;
     resetProgress();
-    setStatus(result.message || "Ошибка запуска", "error");
+    setStatus((result && result.message) || "Ошибка запуска", "error");
+  } catch (err) {
+    elements.stopBtn.hidden = true;
+    elements.stopBtn.disabled = false;
+    elements.playBtn.disabled = false;
+    resetProgress();
+    setStatus("Ошибка запуска: " + err.message, "error");
   }
 }
 
@@ -329,6 +345,7 @@ function hideSplash() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  clearNicknameState();
   setStatus("Готов к запуску", "info");
   elements.playBtn.addEventListener("click", launchGame);
   elements.stopBtn.addEventListener("click", stopGame);

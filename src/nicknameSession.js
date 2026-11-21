@@ -1,22 +1,16 @@
-const STANDARD_USERNAME = "bodayan";
-const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,16}$/;
+const nicknameValidation = require("./nicknameValidation");
+const { STANDARD_USERNAME } = nicknameValidation;
 
 let authenticatedUsername = null;
 
 function login(username) {
-  const value = String(username || "").trim();
-  if (!value) {
-    return { ok: false, message: "Введите собственный никнейм для входа." };
-  }
-  if (value.toLowerCase() === STANDARD_USERNAME) {
-    return { ok: false, message: "Никнейм «bodayan» является стандартным. Введите собственный уникальный никнейм." };
-  }
-  if (!USERNAME_PATTERN.test(value)) {
-    return { ok: false, message: "Никнейм должен содержать 3–16 символов: латинские буквы, цифры или «_»." };
-  }
+  // A failed login must never leave an earlier user's session active.
+  authenticatedUsername = null;
+  const result = nicknameValidation.validate(username);
+  if (!result.ok) return { ok: false, message: result.message };
 
-  authenticatedUsername = value;
-  return { ok: true, username: value };
+  authenticatedUsername = result.username;
+  return { ok: true, username: result.username };
 }
 
 function clear() {
@@ -24,10 +18,12 @@ function clear() {
 }
 
 function requireAuthenticatedUser() {
-  if (!authenticatedUsername) {
+  const result = nicknameValidation.validate(authenticatedUsername);
+  if (!result.ok) {
+    authenticatedUsername = null;
     return { ok: false, message: "Сначала войдите по своему никнейму." };
   }
-  return { ok: true, username: authenticatedUsername };
+  return { ok: true, username: result.username };
 }
 
 module.exports = { STANDARD_USERNAME, login, clear, requireAuthenticatedUser };
