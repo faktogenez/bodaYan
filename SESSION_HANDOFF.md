@@ -604,9 +604,9 @@ Google Drive/
 - `npm test` — PASS (49 проверок).
 - Проверка кода/конфига: ссылки `visual-layout.json` (`../backgrounds/optimized`, `../logo/optimized/LOGO-optimized.webp`) сохраняют структуру при ограниченном `extraResources`; `source/` в рантайме не используется (приоритет всегда у `optimized`).
 
-**Статус:** изменения подготовлены, версия поднята до **1.0.18**, EXE собран и проверен, манифест самообновления заполнен. Осталось (требуется окружение пользователя с `gh`/сетью): commit + push в `origin/main` и публикация GitHub Release `v1.0.18` с ассетами `AppleLauncher.exe` + `launcher-version.json`.
+**Статус:** ✅ **РЕЛИЗ v1.0.18 ОПУБЛИКОВАН и является Latest** ([GitHub Release](https://github.com/faktogenez/bodaYan/releases/tag/v1.0.18)). Коммит `44d5a8b` отправлен в `origin/main`; ассеты релиза — `AppleLauncher.exe` (125 458 560 Б) и `launcher-version.json` (954 Б); `latest/.../launcher-version.json` подтверждённо указывает на 1.0.18 с совпадающими SHA1/размером. EXE собран и проверен (packaged smoke PASS).
 
-**Примечание:** до публикации актуальным Latest остаётся v1.0.17; `git`/`gh`-операции не выполнялись (требуют явного согласования заказчика).
+**Примечание:** для self-update у пользователей v1.0.17 → v1.0.18 сработает штатно (манифест latest выше установленной версии). Модпак остаётся в `modpack-v2` (prerelease), поэтому Latest не конфликтует.
 
 ---
 
