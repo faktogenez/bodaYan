@@ -5,7 +5,7 @@ const { spawnSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const assetsDir = path.join(root, "assets");
-const source = path.join(assetsDir, "icon-source.jpg");
+const source = path.join(assetsDir, "icon-source.png");
 const ffmpeg = process.env.FFMPEG_PATH || "ffmpeg";
 
 const pngSizes = [16, 32, 48, 64, 128, 256, 512, 1024];
@@ -26,7 +26,7 @@ function renderPng(tempDir, size) {
     "-loglevel", "error",
     "-y",
     "-i", source,
-    "-vf", `crop=720:720:152:152,scale=${size}:${size}:flags=lanczos`,
+    "-vf", `scale=${size}:${size}:flags=lanczos`,
     "-frames:v", "1",
     output
   ], { encoding: "utf8", windowsHide: true });

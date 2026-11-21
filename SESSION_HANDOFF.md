@@ -77,13 +77,13 @@
 | [src/servers.js](file:///C:/Users/LEO/AppleLauncher/src/servers.js) | Запись `servers.dat` (NBT) — список серверов только из `config.json`. |
 | [src/selfUpdate.js](file:///C:/Users/LEO/AppleLauncher/src/selfUpdate.js) | Автообновление лаунчера: проверка версии, загрузка EXE с проверкой SHA1/размера, подмена и перезапуск. |
 | [src/nicknameSession.js](file:///C:/Users/LEO/AppleLauncher/src/nicknameSession.js) | Никнейм-only сессия main-процесса: отклоняет пустой/стандартный `bodayan` и запрещает запуск игры до входа. |
-| [scripts/build-icons.js](file:///C:/Users/LEO/AppleLauncher/scripts/build-icons.js) | Пересборка PNG/ICO/ICNS из `assets/icon-source.jpg` через FFmpeg; задаются ICO 16–256, ICNS 16–1024, PNG 512 px. |
+| [scripts/build-icons.js](file:///C:/Users/LEO/AppleLauncher/scripts/build-icons.js) | Пересборка PNG/ICO/ICNS из `assets/icon-source.png` через FFmpeg; задаются ICO 16–256, ICNS 16–1024, PNG 512 px. |
 | [scripts/test-nickname-session.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-nickname-session.js) | Тесты main-проверки никнейма и блокировки запуска до успешного входа. |
 | [scripts/test-nickname-validation.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-nickname-validation.js) | 17 positive/negative/boundary проверок общего валидатора ника. |
 | [scripts/test-renderer-auth.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-renderer-auth.js) | Тесты UI, очистки browser autofill/legacy-хранилища, блокировки неверного ника, отображения нормализованного ника и IPC-ошибок. |
 | [scripts/smoke-nickname-live.js](file:///C:/Users/LEO/AppleLauncher/scripts/smoke-nickname-live.js) | Live CDP smoke-тест уже запущенного Electron UI: legacy Local Storage, пустой/стандартный ник и реальный auth IPC. Для запуска указать `LAUNCHER_CDP_PORT`; опциональный `LAUNCHER_SMOKE_START_GAME=1` запускает тестовую игру. |
 | [scripts/test-self-update.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-self-update.js) | Локальный HTTP integration test проверки новой версии, прогресса, SHA1 и размера EXE. |
-| [assets/icon-source.jpg](file:///C:/Users/LEO/AppleLauncher/assets/icon-source.jpg) | Изображение красного блочного яблока, предоставленное пользователем; исходник генератора платформенных иконок. |
+| [assets/icon-source.png](file:///C:/Users/LEO/AppleLauncher/assets/icon-source.png) | Изображение логотипа-яблока (1024×1024, RGBA), предоставленное пользователем; исходник генератора платформенных иконок. |
 | [assets/icon.ico](file:///C:/Users/LEO/AppleLauncher/assets/icon.ico) | Windows EXE/Explorer icon (встроенная multi-size ICO, 16–256 px). |
 | [assets/icon.icns](file:///C:/Users/LEO/AppleLauncher/assets/icon.icns) | macOS icon resource (ICNS, 16–1024 px; macOS-сборка в текущем проекте не включена). |
 | [assets/icon.png](file:///C:/Users/LEO/AppleLauncher/assets/icon.png) | Linux icon resource (PNG 512 px; Linux-сборка в текущем проекте не включена). |
