@@ -248,27 +248,35 @@ async function runSelfUpdate() {
     logger.log(`[selfupdate] доступно обновление ${remote.version} (текущая ${current})`);
     send({ phase: "start", version: remote.version, currentVersion: current });
 
-    const dest = path.join(app.getPath("temp"), "AppleLauncher-update.exe");
+    const isPortable = Boolean(process.env.PORTABLE_EXECUTABLE_FILE);
+    const artifact = selfUpdate.resolveUpdateArtifact(remote, isPortable);
+    const dest = path.join(app.getPath("temp"), artifact.fileName);
     await selfUpdate.downloadUpdate({
-      url: remote.url,
+      url: artifact.url,
       destFile: dest,
-      sha1: remote.sha1,
-      size: remote.size,
-      onProgress: (received, total) => send({ phase: "downloading", version: remote.version, bytes: received, bytesTotal: total || remote.size || 0 })
+      sha1: artifact.sha1,
+      size: artifact.size,
+      onProgress: (received, total) => send({ phase: "downloading", version: remote.version, bytes: received, bytesTotal: total || artifact.size || 0 })
     });
 
     if (s.autoApply === false) {
-      send({ phase: "ready", version: remote.version, path: dest });
-      return { ok: true, hasUpdate: true, downloaded: true, version: remote.version, path: dest };
+      send({ phase: "ready", version: remote.version, path: dest, artifactType: artifact.type });
+      return { ok: true, hasUpdate: true, downloaded: true, version: remote.version, path: dest, artifactType: artifact.type };
     }
 
-    // В portable-сборке electron-builder process.execPath указывает на распакованную
-    // копию в %TEMP%, а исходный EXE пользователя задаётся переменной PORTABLE_EXECUTABLE_FILE.
-    const targetExePath = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
     send({ phase: "applying", version: remote.version, restartRequired: true });
-    selfUpdate.applyUpdateAndRestart({ newExePath: dest, targetExePath, pid: process.pid });
+    if (artifact.type === "portable") {
+      // В portable-сборке electron-builder process.execPath указывает на распакованную
+      // копию в %TEMP%, а исходный EXE пользователя задаётся PORTABLE_EXECUTABLE_FILE.
+      const targetExePath = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+      selfUpdate.applyUpdateAndRestart({ newExePath: dest, targetExePath, pid: process.pid });
+    } else {
+      // NSIS устанавливается per-user в каталог с правом записи; apply-скрипт ждёт
+      // освобождения EXE, запускает Setup /S и возвращает лаунчер после обновления.
+      selfUpdate.applyInstallerUpdateAndRestart({ installerPath: dest, targetExePath: process.execPath });
+    }
     setTimeout(() => app.quit(), 500);
-    return { ok: true, hasUpdate: true, applied: true, version: remote.version };
+    return { ok: true, hasUpdate: true, applied: true, version: remote.version, artifactType: artifact.type };
   } catch (err) {
     logger.error("[selfupdate] ошибка:", err.message);
     diagnostic.handleError("Ошибка автообновления лаунчера", err, { scope: "selfupdate" });

@@ -47,6 +47,30 @@ async function checkForUpdate({ manifestUrl, manifestPath, currentVersion }) {
   return { hasUpdate: isNewer(remote.version, currentVersion), remote, currentVersion };
 }
 
+function resolveUpdateArtifact(remote, isPortable) {
+  if (isPortable) {
+    return {
+      type: "portable",
+      fileName: "AppleLauncher-update.exe",
+      url: remote.url,
+      sha1: remote.sha1,
+      size: remote.size
+    };
+  }
+
+  if (!remote.installerUrl) {
+    throw new Error("В манифесте отсутствует installerUrl для установленной версии лаунчера");
+  }
+
+  return {
+    type: "installer",
+    fileName: "AppleLauncher-Setup.exe",
+    url: remote.installerUrl,
+    sha1: remote.installerSha1,
+    size: remote.installerSize
+  };
+}
+
 async function downloadUpdate({ url, destFile, sha1, size, onProgress }) {
   fs.mkdirSync(path.dirname(destFile), { recursive: true });
   if (fs.existsSync(destFile)) fs.unlinkSync(destFile);
@@ -146,6 +170,55 @@ function buildApplyScript({ newExePath, targetExePath, pid }) {
   return { batPath, logPath, content };
 }
 
+function buildInstallerApplyScript({ installerPath, targetExePath }) {
+  const dir = path.dirname(installerPath);
+  const batPath = path.join(dir, "apply-launcher-installer-update.bat");
+  const logPath = path.join(dir, "apply-launcher-installer-update.log");
+  const backupPath = path.join(dir, path.basename(targetExePath) + ".update-backup");
+  const content = [
+    "@echo off",
+    "setlocal",
+    `set "TARGET=${targetExePath}"`,
+    `set "BACKUP=${backupPath}"`,
+    `set "SETUP=${installerPath}"`,
+    `set "LOG=${logPath}"`,
+    `echo [%date% %time%] installer update start TARGET=%TARGET%>>"%LOG%"`,
+    `if not exist "%SETUP%" goto noinstaller`,
+    "set /a r=0",
+    ":replace",
+    `move /Y "%TARGET%" "%BACKUP%" >>"%LOG%" 2>&1`,
+    "if not errorlevel 1 goto install",
+    "set /a r+=1",
+    "if %r% GEQ 90 goto giveup",
+    "ping -n 2 127.0.0.1 >nul",
+    "goto replace",
+    ":install",
+    `echo [%date% %time%] target unlocked after %r% retries>>"%LOG%"`,
+    `start /wait "" "%SETUP%" /S >>"%LOG%" 2>&1`,
+    "if errorlevel 1 goto rollback",
+    `if not exist "%TARGET%" goto rollback`,
+    `del /F /Q "%BACKUP%" >>"%LOG%" 2>&1`,
+    `echo [%date% %time%] installer update OK>>"%LOG%"`,
+    `start "" "%TARGET%"`,
+    "goto end",
+    ":rollback",
+    `echo [%date% %time%] installer failed; restoring previous EXE>>"%LOG%"`,
+    `if exist "%BACKUP%" move /Y "%BACKUP%" "%TARGET%" >>"%LOG%" 2>&1`,
+    `if exist "%TARGET%" start "" "%TARGET%"`,
+    "goto end",
+    ":noinstaller",
+    `echo [%date% %time%] installer missing>>"%LOG%"`,
+    `if exist "%TARGET%" start "" "%TARGET%"`,
+    "goto end",
+    ":giveup",
+    `echo [%date% %time%] target EXE remained locked after %r% retries>>"%LOG%"`,
+    `if exist "%TARGET%" start "" "%TARGET%"`,
+    ":end",
+    "(goto) 2>nul & del \"%~f0\""
+  ].join("\r\n");
+  return { batPath, logPath, content };
+}
+
 // Запускает отсоединённый .bat, который дождётся выхода текущего процесса,
 // подменит exe и перезапустит его. На Windows работает, т.к. сам Electron уже завершится.
 function applyUpdateAndRestart({ newExePath, targetExePath, pid }) {
@@ -175,4 +248,38 @@ function applyUpdateAndRestart({ newExePath, targetExePath, pid }) {
   return batPath;
 }
 
-module.exports = { parseVersion, isNewer, checkForUpdate, downloadUpdate, buildApplyScript, applyUpdateAndRestart, loadVersionInfo };
+function applyInstallerUpdateAndRestart({ installerPath, targetExePath }) {
+  const { batPath, content } = buildInstallerApplyScript({ installerPath, targetExePath });
+  fs.writeFileSync(batPath, content, "utf8");
+
+  let child;
+  try {
+    child = spawn(resolveCmdExe(), ["/c", batPath], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      cwd: path.dirname(targetExePath),
+      env: winEnv()
+    });
+  } catch (err) {
+    throw new Error("не удалось запустить NSIS apply-скрипт: " + err.message);
+  }
+  child.on("error", (err) => {
+    logger.error("[selfupdate] NSIS apply-скрипт не запущен:", err.message);
+  });
+  child.unref();
+  return batPath;
+}
+
+module.exports = {
+  parseVersion,
+  isNewer,
+  checkForUpdate,
+  resolveUpdateArtifact,
+  downloadUpdate,
+  buildApplyScript,
+  applyUpdateAndRestart,
+  buildInstallerApplyScript,
+  applyInstallerUpdateAndRestart,
+  loadVersionInfo
+};

@@ -13,6 +13,9 @@ async function main() {
     url: "",
     sha1: crypto.createHash("sha1").update(payload).digest("hex"),
     size: payload.length,
+    installerUrl: "",
+    installerSha1: crypto.createHash("sha1").update(payload).digest("hex"),
+    installerSize: payload.length,
     notes: "fixture"
   };
   const server = http.createServer((req, res) => {
@@ -21,7 +24,7 @@ async function main() {
       res.end(JSON.stringify(manifest));
       return;
     }
-    if (req.url === "/launcher.exe") {
+    if (req.url === "/launcher.exe" || req.url === "/setup.exe") {
       res.writeHead(200, { "Content-Length": payload.length, "Content-Type": "application/octet-stream" });
       res.end(payload);
       return;
@@ -34,6 +37,7 @@ async function main() {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
   manifest.url = `${baseUrl}/launcher.exe`;
+  manifest.installerUrl = `${baseUrl}/setup.exe`;
   let passed = 0;
 
   async function check(name, test) {
@@ -58,6 +62,27 @@ async function main() {
       assert.strictEqual(checkResult.hasUpdate, true);
       assert.strictEqual(checkResult.remote.version, "1.0.14");
       assert.strictEqual(checkResult.remote.url, manifest.url);
+    });
+
+    await check("манифест выбирает portable EXE или NSIS Setup для нужного типа установки", async () => {
+      assert.deepStrictEqual(selfUpdate.resolveUpdateArtifact(manifest, true), {
+        type: "portable",
+        fileName: "AppleLauncher-update.exe",
+        url: manifest.url,
+        sha1: manifest.sha1,
+        size: manifest.size
+      });
+      assert.deepStrictEqual(selfUpdate.resolveUpdateArtifact(manifest, false), {
+        type: "installer",
+        fileName: "AppleLauncher-Setup.exe",
+        url: manifest.installerUrl,
+        sha1: manifest.installerSha1,
+        size: manifest.installerSize
+      });
+      assert.throws(
+        () => selfUpdate.resolveUpdateArtifact({ ...manifest, installerUrl: "" }, false),
+        /installerUrl/
+      );
     });
 
     await check("загрузка передаёт прогресс и проверяет SHA1/размер", async () => {
@@ -114,6 +139,23 @@ async function main() {
       assert.ok(content.includes('copy /Y "%SOURCE%" "%TARGET%"'));
       assert.ok(content.includes(":giveup"));
       assert.ok(content.includes('start "" "%TARGET%"'));
+    });
+
+    await check("NSIS apply-скрипт ждёт разблокировки EXE, запускает тихий Setup и умеет откатить", async () => {
+      const targetExePath = path.join(tempDir, "installed", "AppleLauncher.exe");
+      const installerPath = path.join(tempDir, "AppleLauncher-Setup.exe");
+      const { batPath, content } = selfUpdate.buildInstallerApplyScript({ installerPath, targetExePath });
+      assert.strictEqual(batPath, path.join(tempDir, "apply-launcher-installer-update.bat"));
+      assert.ok(content.includes(`set "TARGET=${targetExePath}"`));
+      assert.ok(content.includes(`set "SETUP=${installerPath}"`));
+      assert.ok(content.includes(`set "BACKUP=${path.join(tempDir, "AppleLauncher.exe.update-backup")}"`));
+      assert.ok(content.includes(`move /Y "%TARGET%" "%BACKUP%"`));
+      assert.ok(content.includes(`start /wait "" "%SETUP%" /S`));
+      assert.ok(content.includes(":rollback"));
+      assert.ok(content.includes(`move /Y "%BACKUP%" "%TARGET%"`));
+      assert.ok(content.includes('start "" "%TARGET%"'));
+      assert.ok(!content.includes("|"), "конвейер в NSIS apply-скрипте недопустим");
+      assert.ok(!/tasklist|findstr/i.test(content), "apply-скрипт не должен опрашивать внешние процессы");
     });
 
     console.log(`\n${passed} тестов пройдено.`);

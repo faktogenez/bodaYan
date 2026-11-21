@@ -1,6 +1,6 @@
 {
   "name": "apple-launcher",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "SkyBlock Launcher",
   "author": "AppleLauncher",
   "main": "main.js",
@@ -63,6 +63,16 @@
           ]
         }
       ]
+    },
+    "nsis": {
+      "artifactName": "AppleLauncher-Setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false,
+      "shortcutName": "AppleLauncher"
     },
     "mac": {
       "icon": "assets/icon.icns"
