@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' file: data:; script-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file: data:; style-src 'self' 'unsafe-inline'; script-src 'self';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AppleLauncher</title>
   <link rel="stylesheet" href="assets/styles/app.css">
 </head>
@@ -13,37 +14,28 @@
     <div class="splash-dots"><span></span><span></span><span></span></div>
   </div>
 
-  <div id="bgLayer" class="bg-layer"></div>
-  <div class="bg-overlay"></div>
+  <div class="cover-bg" id="bgLayer"></div>
+  <div class="cover-tint"></div>
 
-  <div class="app">
-    <header class="titlebar">
-      <div class="window-controls">
-        <button class="control-btn close-btn" id="closeBtn" title="Закрыть"></button>
-        <button class="control-btn minimize-btn" id="minimizeBtn" title="Свернуть"></button>
+  <div class="cover-shell">
+    <header class="cover-titlebar" aria-label="Управление окном">
+      <div class="cover-controls">
+        <button class="control-btn minimize-btn" id="minimizeBtn" title="Свернуть" aria-label="Свернуть"></button>
+        <button class="control-btn close-btn" id="closeBtn" title="Закрыть" aria-label="Закрыть"></button>
       </div>
-      <span class="brand">AppleLauncher</span>
-      <div style="width: 54px;"></div>
     </header>
 
-    <main class="content">
-      <div class="hero">
-        <h1>SkyBlock</h1>
-        <p>Minecraft 1.16.5 с Forge</p>
-      </div>
+    <img class="brand-logo" id="brandLogo" alt="Логотип bodaYan">
 
-      <section class="card">
+    <main class="cover-main">
+      <section class="card login-card" aria-label="Форма входа">
         <div class="input-group">
           <label for="username">Никнейм</label>
-          <input type="text" id="username" name="minecraftNickname" placeholder="Введите ник" maxlength="16" autocomplete="off">
-          <div class="input-error" id="usernameError" hidden></div>
+          <input type="text" id="username" name="minecraftNickname" placeholder="Введите никнейм" maxlength="16" autocomplete="off">
+          <div class="input-error" id="usernameError" role="alert" hidden></div>
         </div>
 
-        <div class="meta-row">
-          <span id="metaVersion">Forge 1.16.5</span>
-          <span id="metaMemory">2G / 4G</span>
-          <span id="metaServer">127.0.0.1:25565</span>
-        </div>
+        <div class="cover-online" id="onlineStatus">Онлайн: 4/100</div>
 
         <button class="play-btn" id="playBtn">Играть</button>
         <button class="stop-btn" id="stopBtn" hidden>Остановить</button>
@@ -53,12 +45,13 @@
           <div class="progress-label" id="progressLabel"></div>
         </div>
 
-        <button class="report-btn" id="reportBtn">Сообщить об ошибке</button>
+        <button class="cover-account" id="accountBtn" type="button">Создать аккаунт</button>
+        <div class="status-bar info" id="statusText" role="status" aria-live="polite">Готов к запуску</div>
       </section>
     </main>
-
-    <footer class="status-bar" id="statusText">Готов к запуску</footer>
   </div>
+
+  <button class="cover-report" id="reportBtn" type="button">Сообщить об ошибке</button>
 
   <script src="src/nicknameValidation.js"></script>
   <script src="src/renderer.js"></script>

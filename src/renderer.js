@@ -4,20 +4,20 @@ const elements = {
   playBtn: document.getElementById("playBtn"),
   stopBtn: document.getElementById("stopBtn"),
   reportBtn: document.getElementById("reportBtn"),
+  accountBtn: document.getElementById("accountBtn"),
   status: document.getElementById("statusText"),
   bgLayer: document.getElementById("bgLayer"),
+  brandLogo: document.getElementById("brandLogo"),
   progressWrap: document.getElementById("progressWrap"),
   progressTrack: document.getElementById("progressTrack"),
   progressBar: document.getElementById("progressBar"),
   progressLabel: document.getElementById("progressLabel"),
-  metaVersion: document.getElementById("metaVersion"),
-  metaMemory: document.getElementById("metaMemory"),
-  metaServer: document.getElementById("metaServer"),
   splash: document.getElementById("splash")
 };
 
 const nicknameValidation = window.NicknameValidation;
 const LEGACY_USERNAME_KEYS = ["appleLauncher.username", "minecraft_username"];
+const LAST_BACKGROUND_KEY = "launcher.lastBackground";
 
 function clearNicknameState() {
   elements.username.value = "";
@@ -43,32 +43,13 @@ function validateUsername() {
   return valid;
 }
 
-function formatMemory(value) {
-  const num = parseInt(value, 10);
-  if (!Number.isFinite(num)) return String(value);
-  return num % 1024 === 0 ? `${num / 1024}G` : `${num}M`;
+function formatBytes(bytes) {
+  if (!bytes) return "0 Б";
+  const units = ["Б", "КБ", "МБ", "ГБ"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const value = bytes / Math.pow(1024, i);
+  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
-
-function applyMeta(config) {
-  const launcher = (config && config.launcher) || {};
-  const version = launcher.version || {};
-  const server = launcher.server || {};
-  const memory = launcher.memory || {};
-
-  if (version.custom) elements.metaVersion.textContent = version.custom;
-  if (memory.min || memory.max) {
-    elements.metaMemory.textContent = `${formatMemory(memory.min)} / ${formatMemory(memory.max)}`;
-  }
-  if (server.host) elements.metaServer.textContent = `${server.host}:${server.port}`;
-}
-
-const PROGRESS_LABELS = {
-  assets: "Загрузка ассетов",
-  "assets-copy": "Копирование ассетов",
-  natives: "Загрузка нативных библиотек",
-  classes: "Загрузка библиотек",
-  forge: "Подготовка Forge"
-};
 
 const THEME_VARS = {
   accent: "--accent",
@@ -92,9 +73,77 @@ function applyTheme(theme) {
   }
 }
 
-async function applyBackground() {
-  const url = await window.electronAPI.getRandomBackground();
-  if (url) elements.bgLayer.style.backgroundImage = `url("${url}")`;
+// ---------- Визуальный слой (обложка) ----------
+
+let visualConfig = null;
+let backgrounds = [];
+
+// Переносит координаты и параметры читаемости из visual-layout.json в CSS-переменные.
+function applyLayout(config) {
+  const root = document.documentElement.style;
+  const { logo, loginForm, windowControls } = config.elements;
+  root.setProperty("--logo-x", `${logo.x}vw`);
+  root.setProperty("--logo-y", `${logo.y}vh`);
+  root.setProperty("--logo-width", `${logo.width}vw`);
+  root.setProperty("--form-x", `${loginForm.x}vw`);
+  root.setProperty("--form-bottom", `${loginForm.bottom}vh`);
+  root.setProperty("--form-width", `${loginForm.width}vw`);
+  root.setProperty("--form-max-width", `${loginForm.maxWidth}px`);
+  root.setProperty("--controls-right", `${windowControls.right}vw`);
+  root.setProperty("--controls-top", `${windowControls.top}vh`);
+  root.setProperty("--card-opacity", String(config.readability.cardOpacity / 100));
+  root.setProperty("--blur", `${config.readability.cardBlur}px`);
+  const tint = config.readability.leftGradientEnabled
+    ? config.readability.leftGradientStrength / 100
+    : 0;
+  root.setProperty("--left-tint", String(tint));
+  root.setProperty("--left-tint-soft", String(tint * 0.5));
+
+  document.body.classList.toggle(
+    "compact-layout",
+    window.innerWidth < config.responsive.compactBelowWidth
+  );
+}
+
+// Случайный фон при запуске с защитой от немедленного повтора (как в утверждённом макете).
+function applyBackground() {
+  if (!backgrounds.length) return;
+  let previousId = "";
+  try {
+    previousId = localStorage.getItem(LAST_BACKGROUND_KEY) || "";
+  } catch (_) {}
+
+  const candidates = backgrounds.filter((item) => item.id !== previousId);
+  const pool = candidates.length ? candidates : backgrounds;
+  const picked = pool[Math.floor(Math.random() * pool.length)];
+
+  elements.bgLayer.style.backgroundImage = `url("${picked.url}")`;
+  const backgroundsConfig = (visualConfig && visualConfig.backgrounds) || {};
+  elements.bgLayer.style.backgroundSize = backgroundsConfig.fit || "cover";
+  const focal = backgroundsConfig.defaultFocalPoint || { x: 50, y: 50 };
+  elements.bgLayer.style.backgroundPosition = `${focal.x}% ${focal.y}%`;
+
+  try {
+    localStorage.setItem(LAST_BACKGROUND_KEY, picked.id);
+  } catch (_) {}
+}
+
+async function applyVisualLayer() {
+  const model = await window.electronAPI.getVisualModel();
+  if (!model) return;
+
+  visualConfig = model.config;
+  applyLayout(model.config);
+
+  if (model.logo) {
+    elements.brandLogo.src = model.logo;
+    elements.brandLogo.addEventListener("error", () => { elements.brandLogo.hidden = true; });
+  } else {
+    elements.brandLogo.hidden = true;
+  }
+
+  backgrounds = model.backgrounds || [];
+  applyBackground();
 }
 
 function setStatus(text, type = "info") {
@@ -139,14 +188,6 @@ async function sendReport() {
   }
 }
 
-function formatBytes(bytes) {
-  if (!bytes) return "0 Б";
-  const units = ["Б", "КБ", "МБ", "ГБ"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-}
-
 // Определённый прогресс: label + процент. Если percent не задан — «бегущая» полоса.
 function showProgress(label, percent) {
   elements.progressWrap.hidden = false;
@@ -175,6 +216,14 @@ const UPDATE_LABELS = {
   check: "Проверка файлов",
   download: "Загрузка файлов",
   done: "Проверка завершена"
+};
+
+const PROGRESS_LABELS = {
+  assets: "Загрузка ассетов",
+  "assets-copy": "Копирование ассетов",
+  natives: "Загрузка нативных библиотек",
+  classes: "Загрузка библиотек",
+  forge: "Подготовка Forge"
 };
 
 window.electronAPI.onUpdateProgress((p) => {
@@ -350,15 +399,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   elements.playBtn.addEventListener("click", launchGame);
   elements.stopBtn.addEventListener("click", stopGame);
   elements.reportBtn.addEventListener("click", sendReport);
+  elements.accountBtn.addEventListener("click", () => {
+    setStatus("Создание аккаунта — заглушка, действие пока не подключено", "info");
+  });
   elements.username.addEventListener("input", validateUsername);
   document.getElementById("minimizeBtn").addEventListener("click", () => window.electronAPI.minimize());
   document.getElementById("closeBtn").addEventListener("click", () => window.electronAPI.close());
+  window.addEventListener("resize", () => {
+    if (visualConfig) applyLayout(visualConfig);
+  });
 
   try {
     const config = await window.electronAPI.getConfig();
     applyTheme(config && config.theme);
-    applyMeta(config);
-    await applyBackground();
+    await applyVisualLayer();
   } finally {
     // Заглушка держится на экране до полной инициализации и загрузки ресурсов.
     hideSplash();

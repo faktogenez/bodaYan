@@ -370,6 +370,90 @@ function collectBackgrounds() {
   return files;
 }
 
+// ---------- Визуальный слой (обложка) ----------
+// Единый источник визуальных ресурсов — каталог launcher-visuals: в dev он лежит в проекте,
+// в сборке — в resources (см. extraResources в package.json). Конфиг раскладки — visual-layout.json.
+const VISUAL_ROOT = app.isPackaged
+  ? path.join(process.resourcesPath, "launcher-visuals")
+  : path.join(ROOT, "launcher-visuals");
+const VISUAL_CONFIG_DIR = path.join(VISUAL_ROOT, "config");
+const VISUAL_CONFIG_PATH = path.join(VISUAL_CONFIG_DIR, "visual-layout.json");
+const VISUAL_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".avif"];
+
+function readVisualConfig() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(VISUAL_CONFIG_PATH, "utf8"));
+    if (parsed.schemaVersion !== 1) {
+      logger.warn("[visual] неподдерживаемая схема visual-layout.json:", parsed.schemaVersion);
+      return null;
+    }
+    return parsed;
+  } catch (err) {
+    logger.error("[visual] не удалось прочитать visual-layout.json:", err.message);
+    return null;
+  }
+}
+
+// Путь ресурса относительно каталога конфигурации; выход за пределы launcher-visuals запрещён.
+function resolveVisualPath(relativePath) {
+  const resolved = path.resolve(VISUAL_CONFIG_DIR, relativePath);
+  if (!resolved.startsWith(VISUAL_ROOT + path.sep)) {
+    logger.warn("[visual] путь ресурса вне launcher-visuals:", relativePath);
+    return null;
+  }
+  return resolved;
+}
+
+function listVisualImages(directory) {
+  if (!directory || !fs.existsSync(directory)) return [];
+  return fs.readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() &&
+      VISUAL_IMAGE_EXTS.includes(path.extname(entry.name).toLowerCase()))
+    .map((entry) => entry.name);
+}
+
+// Фоны из launcher-visuals: приоритет — optimized, иначе source; берутся только числовые имена,
+// поэтому новые фоны подхватываются автоматически без правок кода.
+function listVisualBackgrounds(config) {
+  const optimized = resolveVisualPath(config.backgrounds.optimizedDirectory);
+  const source = resolveVisualPath(config.backgrounds.sourceDirectory);
+  const directory = listVisualImages(optimized).length ? optimized : source;
+
+  const numeric = listVisualImages(directory)
+    .filter((name) => /^\d+$/.test(path.parse(name).name))
+    .sort((a, b) => Number(path.parse(a).name) - Number(path.parse(b).name));
+
+  return numeric.map((name) => ({
+    id: name,
+    name: path.parse(name).name,
+    url: pathToFileURL(path.join(directory, name)).href
+  }));
+}
+
+// Модель визуального слоя для renderer: конфиг раскладки, логотип и список фонов.
+// Если каталог launcher-visuals недоступен — откатываемся на прежний набор assets/backgrounds.
+function getVisualModel() {
+  const config = readVisualConfig();
+  if (!config) return null;
+
+  const logoPath = resolveVisualPath(config.elements.logo.asset);
+  let backgrounds = listVisualBackgrounds(config);
+
+  if (!backgrounds.length) {
+    backgrounds = collectBackgrounds().map((file) => ({
+      id: path.basename(file),
+      name: path.parse(file).name,
+      url: pathToFileURL(file).href
+    }));
+  }
+
+  return {
+    config,
+    logo: logoPath && fs.existsSync(logoPath) ? pathToFileURL(logoPath).href : null,
+    backgrounds
+  };
+}
+
 // Оффлайн-UUID (пиратский режим): MD5 от "OfflinePlayer:<ник>" с битами version 3 / RFC 4122.
 // Тот же алгоритм, что используют Spigot/Paper при online-mode=false.
 function offlineUUID(name) {
@@ -499,12 +583,8 @@ ipcMain.handle("updater:check", () => ensureGameFiles("manual"));
 
 ipcMain.handle("launcher:checkUpdate", () => runSelfUpdate());
 
-ipcMain.handle("backgrounds:random", () => {
-  const files = collectBackgrounds();
-  if (!files.length) return null;
-  const picked = files[Math.floor(Math.random() * files.length)];
-  return pathToFileURL(picked).href;
-});
+// Единая модель визуального слоя (обложка): конфиг раскладки, логотип, список фонов.
+ipcMain.handle("visual:model", () => getVisualModel());
 
 ipcMain.handle("game:launch", async () => {
   if (launching) return { ok: false, message: "Игра уже запускается" };

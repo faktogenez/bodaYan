@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; img-src 'self' file: data:; style-src 'self' 'unsafe-inline'; script-src 'self';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>bodaYan — предпросмотр</title>
+  <link rel="stylesheet" href="../../assets/styles/app.css">
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+  <div class="preview-background" id="previewBackground"></div>
+  <div class="preview-tint" id="previewTint"></div>
+
+  <div class="preview-shell">
+    <header class="preview-titlebar" aria-label="Управление окном">
+      <div class="preview-window-controls">
+        
+        <button class="control-btn minimize-btn" id="minimizeBtn" title="Свернуть предпросмотр" aria-label="Свернуть"></button>
+        <button class="control-btn close-btn" id="closeBtn" title="Закрыть предпросмотр" aria-label="Закрыть"></button>
+      </div>
+    </header>
+
+    <img class="preview-logo" id="brandLogo" alt="Логотип bodaYan">
+
+    <main class="preview-main">
+      <section class="card preview-card" aria-label="Форма входа">
+        <div class="input-group">
+          <label for="username">Никнейм</label>
+          <input type="text" id="username" name="previewNickname" placeholder="Введите никнейм" maxlength="16" autocomplete="off">
+          <div class="input-error" id="usernameError" role="alert" hidden></div>
+        </div>
+
+        <div class="preview-online" id="onlineStatus">Онлайн: 4/100</div>
+
+        <button class="play-btn" id="playBtn">Играть</button>
+        <button class="preview-account" id="accountBtn" type="button">Создать аккаунт</button>
+        <div class="preview-status status-bar info" id="previewStatus" role="status" aria-live="polite">
+          Предпросмотр: запуск игры отключён
+        </div>
+      </section>
+    </main>
+
+    <aside class="preview-toolbar" id="previewToolbar" aria-label="Инструменты предпросмотра">
+      <div class="preview-toolbar-heading">
+        <strong>Предпросмотр</strong>
+        <button class="toolbar-icon" id="hideToolbarBtn" type="button" title="Скрыть панель">Скрыть</button>
+      </div>
+
+      <label class="toolbar-label" for="backgroundSelect">Фоновое изображение</label>
+      <div class="toolbar-row">
+        <button class="toolbar-icon" id="previousBackgroundBtn" type="button" aria-label="Предыдущий фон">‹</button>
+        <select id="backgroundSelect" aria-label="Выбрать фон"></select>
+        <button class="toolbar-icon" id="nextBackgroundBtn" type="button" aria-label="Следующий фон">›</button>
+      </div>
+      <button class="toolbar-icon toolbar-wide" id="refreshBackgroundsBtn" type="button">Обновить список</button>
+
+      <span class="toolbar-label">Размер окна</span>
+      <div class="toolbar-row viewport-presets">
+        <button type="button" data-width="640" data-height="460">Минимум</button>
+        <button type="button" data-width="920" data-height="600">Обычный</button>
+        <button type="button" data-width="1200" data-height="700">Большой</button>
+      </div>
+
+      <label class="toolbar-label" for="stateSelect">Состояние формы</label>
+      <select id="stateSelect">
+        <option value="ready">Готово</option>
+        <option value="error">Ошибка ввода</option>
+        <option value="loading">Загрузка (демо)</option>
+      </select>
+      <p class="toolbar-hint" id="assetStatus">Загрузка визуальных ресурсов…</p>
+    </aside>
+
+    <button class="show-toolbar-btn" id="showToolbarBtn" type="button" hidden>
+      Панель предпросмотра
+    </button>
+  </div>
+
+  <script src="preview.js"></script>
+</body>
+</html>

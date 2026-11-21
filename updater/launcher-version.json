@@ -1,7 +1,7 @@
 {
-  "version": "1.0.17",
-  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.17/AppleLauncher.exe",
-  "sha1": "bd30c84534e20b246deefd8d071b1eb7446c648a",
-  "size": 113313735,
-  "notes": "Исправлена автоподстановка стандартного ника: отключено autocomplete username, при старте очищается поле и оба legacy localStorage ключа (appleLauncher.username, minecraft_username). Общий модуль нормализует и валидирует ник одинаково в UI и main; ошибки входа сбрасывают прежнюю сессию. Расширены тесты граничных случаев и сценариев."
+  "version": "1.0.18",
+  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.18/AppleLauncher.exe",
+  "sha1": "368c38c80baf28b657aa28caca9978b991c1c019",
+  "size": 125458560,
+  "notes": "Интегрирована утверждённая обложка: обновлённая раскладка окна с логотипом и формой входа, случайный фон без немедленного повтора, адаптивная компактная раскладка для узких окон. Параметры раскладки читаются из launcher-visuals/config/visual-layout.json; в сборку включены только оптимизированные ресурсы обложки. Вся прежняя функциональность (валидация ника, вход, запуск/остановка игры, прогресс, диагностика) сохранена."
 }

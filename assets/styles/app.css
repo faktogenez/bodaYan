@@ -1,4 +1,5 @@
 :root {
+  /* Палитра и параметры темы — могут переопределяться из config.json (см. THEME_VARS в renderer.js) */
   --accent: #0a84ff;
   --accent-hover: #0077ed;
   --text-primary: #f5f5f7;
@@ -10,13 +11,37 @@
   --blur: 30px;
   --saturate: 180%;
   --radius: 18px;
+
+  /* Единая шкала отступов, радиусов и типографики */
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space-md: 16px;
+  --space-lg: 22px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-md: 14px;
+  --font-lg: 15px;
+
+  --danger: #ff453a;
+  --success: #30d158;
+
+  /* Единое фокусное кольцо для всех интерактивных элементов */
+  --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Явное правило: скрытые элементы не должны перекрываться display-правилами компонентов */
+[hidden] {
+  display: none !important;
 }
 
 html, body {
@@ -26,63 +51,194 @@ html, body {
 }
 
 body {
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-primary);
+  background: #101014;
   user-select: none;
   -webkit-font-smoothing: antialiased;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  flex-direction: column;
 }
 
-.bg-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background-size: cover;
-  background-position: center;
-  transition: opacity 0.6s ease;
+button, input {
+  font-family: inherit;
 }
 
-.bg-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55));
-}
+/* ============================================================
+   Базовые компоненты (общие для обложки и предпросмотра)
+   ============================================================ */
 
-.app {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 22px 28px 24px;
-}
-
-.titlebar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  -webkit-app-region: drag;
-  height: 28px;
+/* ---------- Карточка ---------- */
+.card {
   flex-shrink: 0;
-}
-
-.titlebar .brand {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-}
-
-.window-controls {
+  background: var(--surface);
+  backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  padding: var(--space-lg) 20px;
   display: flex;
-  gap: 8px;
-  -webkit-app-region: no-drag;
+  flex-direction: column;
+  gap: var(--space-md);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
 }
 
+/* ---------- Поле ввода ---------- */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+}
+
+.input-group label {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--font-md);
+  outline: none;
+  user-select: text;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="text"]::placeholder {
+  color: rgba(245, 245, 247, 0.35);
+}
+
+input[type="text"]:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: var(--focus-ring);
+}
+
+input[type="text"].invalid,
+input[type="text"].invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.22);
+}
+
+.input-error {
+  font-size: var(--font-xs);
+  color: var(--danger);
+  letter-spacing: 0.2px;
+}
+
+/* ---------- Кнопки запуска ---------- */
+.play-btn,
+.stop-btn {
+  width: 100%;
+  padding: clamp(11px, 1.9vh, 13px) 24px;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.play-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 18px rgba(10, 132, 255, 0.35);
+}
+
+.play-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(10, 132, 255, 0.45);
+}
+
+.play-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.stop-btn {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(255, 69, 58, 0.5);
+  font-size: var(--font-md);
+}
+
+.stop-btn:hover:not(:disabled) {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: var(--danger);
+}
+
+.play-btn:disabled,
+.stop-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ---------- Прогресс ---------- */
+.progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.progress-label {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+.progress {
+  width: 100%;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(10, 132, 255, 0.5);
+  transition: width 0.25s ease;
+}
+
+/* Неопределённый прогресс (когда точный процент неизвестен) */
+.progress.indeterminate .progress-bar {
+  width: 35%;
+  transition: none;
+  animation: progress-indeterminate 1.1s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% { margin-left: -35%; }
+  100% { margin-left: 100%; }
+}
+
+/* ---------- Строка статуса ---------- */
+.status-bar {
+  text-align: center;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.status-bar.info { color: var(--text-secondary); }
+.status-bar.success { color: var(--success); }
+.status-bar.error { color: var(--danger); }
+.status-bar.loading { color: var(--accent); }
+
+/* ---------- Кнопки управления окном ---------- */
 .control-btn {
   width: 13px;
   height: 13px;
@@ -101,230 +257,281 @@ body {
   transform: scale(0.92);
 }
 
+.control-btn:focus-visible,
+.play-btn:focus-visible,
+.stop-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .close-btn { background-color: #ff5f56; }
 .minimize-btn { background-color: #ffbd2e; }
 
-.content {
-  flex: 1;
+/* ============================================================
+   Обложка (основная раскладка лаунчера и предпросмотра)
+   Значения позиций управляются CSS-переменными из visual-layout.json.
+   ============================================================ */
+
+/* ---------- Фон ---------- */
+.cover-bg,
+.cover-tint,
+.cover-shell {
+  position: fixed;
+  inset: 0;
+}
+
+.cover-bg {
+  z-index: 0;
+  background-color: #24313a;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transition: background-image 0.2s ease;
+}
+
+/* Левый градиент сохраняет читаемость логотипа и формы, не затемняя правую часть фона */
+.cover-tint {
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg,
+      rgba(7, 10, 15, var(--left-tint, 0.35)) 0%,
+      rgba(7, 10, 15, var(--left-tint-soft, 0.18)) 35%,
+      rgba(7, 10, 15, 0.04) 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.15), transparent 28%, rgba(0, 0, 0, 0.1));
+}
+
+.cover-shell {
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* ---------- Ярлык окна и кнопки управления ---------- */
+.cover-titlebar {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 42px;
   display: flex;
-  flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
-  gap: 26px;
+  padding: 0 18px;
+  -webkit-app-region: drag;
+}
+
+.cover-controls {
+  position: absolute;
+  top: var(--controls-top, 3vh);
+  right: var(--controls-right, 2.5vw);
+  display: flex;
+  gap: 9px;
+  -webkit-app-region: no-drag;
+}
+
+.cover-controls .control-btn {
+  position: relative;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: rgba(15, 18, 24, 0.62);
+}
+
+.cover-controls .close-btn::before,
+.cover-controls .close-btn::after {
+  position: absolute;
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: #ff5f56;
+  content: "";
+}
+
+.cover-controls .close-btn::before {
+  transform: rotate(45deg);
+}
+
+.cover-controls .close-btn::after {
+  transform: rotate(-45deg);
+}
+
+.cover-controls .minimize-btn::before {
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: #ffbd2e;
+  content: "";
+}
+
+.cover-controls .close-btn:hover {
+  background: rgba(255, 95, 86, 0.2);
+}
+
+.cover-controls .minimize-btn:hover {
+  background: rgba(255, 189, 46, 0.18);
+}
+
+/* ---------- Логотип бренда ---------- */
+.brand-logo {
+  position: absolute;
+  z-index: 3;
+  top: var(--logo-y, 4vh);
+  left: var(--logo-x, 3vw);
+  width: min(var(--logo-width, 30vw), 440px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.3));
+}
+
+/* ---------- Область контента и карточка входа ---------- */
+.cover-main {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.login-card {
+  position: absolute;
+  left: var(--form-x, 3vw);
+  bottom: var(--form-bottom, 4vh);
+  width: clamp(300px, var(--form-width, 30vw), var(--form-max-width, 440px));
+  max-width: calc(100vw - 48px);
+  padding: clamp(16px, 2.2vw, 24px);
+  gap: clamp(10px, 1.5vw, 16px);
+  background: rgba(20, 20, 22, var(--card-opacity, 0.78));
+  pointer-events: auto;
+}
+
+.login-card .input-group {
+  gap: 8px;
+}
+
+.login-card .input-group > label {
+  width: 100%;
   text-align: center;
 }
 
-.hero h1 {
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: -0.8px;
-  margin-bottom: 6px;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+.login-card input[type="text"] {
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #202126;
+  text-align: center !important;
+  font-size: clamp(16px, 1.5vw, 20px);
 }
 
-.hero p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  letter-spacing: 0.2px;
+.login-card input[type="text"]:focus {
+  background: rgba(255, 255, 255, 1);
 }
 
-.card {
-  width: 100%;
-  max-width: 320px;
-  background: var(--surface);
-  backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius);
-  padding: 22px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+.login-card input[type="text"]::placeholder {
+  color: #898b91;
 }
 
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  text-align: left;
+.login-card .play-btn {
+  min-height: 56px;
+  text-transform: uppercase;
+  font-size: clamp(18px, 2vw, 25px);
 }
 
-.input-group label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  letter-spacing: 0.3px;
+/* Статус остаётся видимым всегда: в нём отображается ход загрузки и запуска */
+.login-card .status-bar {
+  min-height: 14px;
+  font-size: var(--font-xs);
+  line-height: 1.35;
 }
 
-input[type="text"] {
-  width: 100%;
-  padding: 11px 14px;
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 10px;
+.cover-online {
   color: var(--text-primary);
-  font-size: 14px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-input[type="text"]:focus {
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.22);
-}
-
-input[type="text"].invalid,
-input[type="text"].invalid:focus {
-  border-color: #ff453a;
-  box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.22);
-}
-
-.input-error {
-  font-size: 11px;
-  color: #ff453a;
-  letter-spacing: 0.2px;
-}
-
-.meta-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.play-btn {
-  width: 100%;
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 13px 24px;
-  font-size: 15px;
+  text-align: center;
+  font-size: var(--font-md);
   font-weight: 600;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 6px 18px rgba(10, 132, 255, 0.35);
-  letter-spacing: 0.3px;
 }
 
-.play-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(10, 132, 255, 0.45);
-}
-
-.play-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.play-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.stop-btn {
-  width: 100%;
-  background: transparent;
-  color: #ff453a;
-  border: 1px solid rgba(255, 69, 58, 0.5);
-  padding: 11px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  letter-spacing: 0.3px;
-}
-
-.stop-btn:hover:not(:disabled) {
-  background: rgba(255, 69, 58, 0.12);
-  border-color: #ff453a;
-}
-
-.stop-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.report-btn {
+.cover-account {
   align-self: center;
-  margin-top: 2px;
+  padding: 2px 8px;
+  border: 0;
   background: transparent;
-  border: none;
+  color: #59baff;
+  font-size: var(--font-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.cover-account:hover {
+  color: #a4dcff;
+  text-decoration: underline;
+}
+
+.cover-account:focus-visible,
+.cover-report:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Служебная кнопка отчёта — вне макета карточки, намеренно малозаметная */
+.cover-report {
+  position: fixed;
+  right: 18px;
+  bottom: 16px;
+  z-index: 6;
+  padding: 2px 6px;
+  border: 0;
+  background: transparent;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--font-xs);
   letter-spacing: 0.2px;
   cursor: pointer;
-  padding: 2px 6px;
   transition: color 0.2s ease;
 }
 
-.report-btn:hover {
+.cover-report:hover:not(:disabled) {
   color: var(--text-primary);
   text-decoration: underline;
 }
 
-.progress-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+.cover-report:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
-.progress-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-align: center;
-  letter-spacing: 0.2px;
+/* ---------- Компактная раскладка (узкие окна) ---------- */
+.compact-layout .brand-logo {
+  top: 5vh;
+  left: 50%;
+  width: min(40vw, 230px);
+  transform: translateX(-50%);
 }
 
-.status-bar {
-  flex-shrink: 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-secondary);
-  padding-top: 10px;
-  min-height: 18px;
-  transition: color 0.2s ease;
+.compact-layout .login-card {
+  left: 50%;
+  bottom: 3vh;
+  width: min(420px, calc(100vw - 40px));
+  padding: 14px 18px;
+  gap: 9px;
+  transform: translateX(-50%);
 }
 
-.status-bar.info { color: var(--text-secondary); }
-.status-bar.success { color: #30d158; }
-.status-bar.error { color: #ff453a; }
-.status-bar.loading { color: var(--accent); }
-
-.progress {
-  width: 100%;
-  height: 5px;
-  border-radius: 999px;
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
-  overflow: hidden;
+.compact-layout .login-card input[type="text"] {
+  min-height: 38px;
+  padding: 7px 12px;
 }
 
-.progress-bar {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 0 10px rgba(10, 132, 255, 0.5);
-  transition: width 0.25s ease;
+.compact-layout .login-card .play-btn {
+  min-height: 44px;
+  padding-block: 8px;
 }
 
-/* Неопределённый прогресс (когда точный процент неизвестен) */
-.progress.indeterminate .progress-bar {
-  width: 35%;
-  transition: none;
-  animation: progress-indeterminate 1.1s ease-in-out infinite;
+.compact-layout .cover-account {
+  font-size: var(--font-sm);
 }
 
-@keyframes progress-indeterminate {
-  0% { margin-left: -35%; }
-  100% { margin-left: 100%; }
-}
-
-/* Экран-заглушка при старте лаунчера */
+/* ---------- Экран-заглушка при старте лаунчера ---------- */
 .splash {
   position: fixed;
   inset: 0;
@@ -341,8 +548,8 @@ input[type="text"].invalid:focus {
 }
 
 .splash-logo {
-  width: 96px;
-  height: 96px;
+  width: clamp(72px, 12vh, 96px);
+  height: clamp(72px, 12vh, 96px);
   border-radius: 22px;
   object-fit: cover;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
@@ -350,7 +557,7 @@ input[type="text"].invalid:focus {
 }
 
 .splash-text {
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 500;
   letter-spacing: 0.6px;
   color: var(--text-secondary);
@@ -387,3 +594,21 @@ input[type="text"].invalid:focus {
   50% { transform: scale(1.05); }
 }
 
+/* ---------- Невысокие окна ---------- */
+@media (max-height: 520px) {
+  .login-card {
+    padding: var(--space-md) 18px;
+    gap: 12px;
+  }
+}
+
+/* Пользователь предпочитает меньше движения — отключаем анимации и переходы */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "apple-launcher",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "SkyBlock Launcher",
   "author": "AppleLauncher",
   "main": "main.js",
@@ -39,7 +39,19 @@
     ],
     "extraResources": [
       "config/config.json",
-      "jre"
+      "jre",
+      {
+        "from": "launcher-visuals/config",
+        "to": "launcher-visuals/config"
+      },
+      {
+        "from": "launcher-visuals/backgrounds/optimized",
+        "to": "launcher-visuals/backgrounds/optimized"
+      },
+      {
+        "from": "launcher-visuals/logo/optimized",
+        "to": "launcher-visuals/logo/optimized"
+      }
     ],
     "win": {
       "icon": "assets/icon.ico",

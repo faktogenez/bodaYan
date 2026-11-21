@@ -21,6 +21,7 @@ class FakeElement {
     this.hidden = false;
     this.disabled = false;
     this.className = "";
+    this.src = "";
     this.style = {};
     this.listeners = {};
     this.classList = { toggle() {}, add() {}, remove() {} };
@@ -39,7 +40,7 @@ function makeRenderer(storage, options = {}) {
   const launchCalls = [];
   const electronAPI = {
     getConfig: async () => ({}),
-    getRandomBackground: async () => null,
+    getVisualModel: async () => options.visualModel || null,
     loginByNickname: async (username) => {
       loginCalls.push(username);
       return nicknameSession.login(username);
@@ -64,6 +65,7 @@ function makeRenderer(storage, options = {}) {
   const document = {
     getElementById: (id) => elements[id] || (elements[id] = new FakeElement(id)),
     documentElement: { style: { setProperty() {} } },
+    body: { classList: { toggle() {}, add() {}, remove() {} } },
     addEventListener: (type, callback) => { if (type === "DOMContentLoaded") domReady = callback; }
   };
   const window = {
@@ -169,7 +171,29 @@ async function main() {
   second.emitUpdate({ phase: "applying", version: "1.0.13", restartRequired: true });
   assert.match(second.elements.statusText.textContent, /перезапустится автоматически/);
   console.log("  PASS проверка/загрузка обновления показывает прогресс и предупреждает о перезапуске");
-  console.log("\n8 проверок пройдено.");
+
+  // Визуальный слой: модель обложки применяет логотип и случайный фон из launcher-visuals.
+  const visualModel = {
+    config: {
+      elements: {
+        logo: { x: 5, y: 7, width: 40 },
+        loginForm: { x: 9, bottom: 7, width: 30, maxWidth: 440 },
+        windowControls: { right: 5, top: 6 }
+      },
+      readability: { leftGradientEnabled: true, leftGradientStrength: 35, cardOpacity: 78, cardBlur: 24 },
+      responsive: { compactBelowWidth: 720 },
+      backgrounds: { fit: "cover", defaultFocalPoint: { x: 50, y: 50 } }
+    },
+    logo: "file:///launcher-visuals/logo/optimized/LOGO-optimized.webp",
+    backgrounds: [{ id: "1.webp", name: "1", url: "file:///launcher-visuals/backgrounds/optimized/1.webp" }]
+  };
+  const visual = makeRenderer(storage, { visualModel });
+  await initialize(visual);
+  assert.strictEqual(visual.elements.brandLogo.src, visualModel.logo);
+  assert.strictEqual(visual.elements.brandLogo.hidden, false);
+  assert.match(visual.elements.bgLayer.style.backgroundImage, /backgrounds\/optimized\/1\.webp/);
+  console.log("  PASS визуальный слой применяет логотип и фон из launcher-visuals");
+  console.log("\n9 проверок пройдено.");
 }
 
 main().catch((err) => {

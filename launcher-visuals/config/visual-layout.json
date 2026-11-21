@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 1376,
+    "height": 768,
+    "coordinateUnit": "percent",
+    "leftContentFraction": 33
+  },
+  "backgrounds": {
+    "sourceDirectory": "../backgrounds/source",
+    "optimizedDirectory": "../backgrounds/optimized",
+    "naming": "sequential-numeric",
+    "watchForChanges": true,
+    "selection": "shuffle-cycle",
+    "avoidImmediateRepeat": true,
+    "fit": "cover",
+    "defaultFocalPoint": {
+      "x": 50,
+      "y": 50
+    }
+  },
+  "elements": {
+    "logo": {
+      "asset": "../logo/optimized/LOGO-optimized.webp",
+      "anchor": "top-left",
+      "x": 5,
+      "y": 7,
+      "width": 40,
+      "preserveAspectRatio": true
+    },
+    "loginForm": {
+      "anchor": "bottom-left",
+      "x": 9,
+      "bottom": 7,
+      "width": 30,
+      "maxWidth": 440
+    },
+    "windowControls": {
+      "anchor": "top-right",
+      "right": 5,
+      "top": 6
+    }
+  },
+  "readability": {
+    "leftGradientEnabled": true,
+    "leftGradientStrength": 35,
+    "cardOpacity": 78,
+    "cardBlur": 24
+  },
+  "responsive": {
+    "compactBelowWidth": 720,
+    "compactLayout": "centered-column"
+  },
+  "placeholders": {
+    "accountActionsAreNonFunctional": true
+  }
+}

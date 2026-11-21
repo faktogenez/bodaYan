@@ -10,6 +10,14 @@
 
 **Актуальный релиз: v1.0.17 опубликован и является Latest** ([GitHub Release](https://github.com/faktogenez/bodaYan/releases/tag/v1.0.17)); коммит кода `ee924ea` отправлен в `origin/main`. В portable Local Storage реально найдено `minecraft_username=bodayan`; очистка исправлена для этого и второго legacy-ключа `appleLauncher.username`, autocomplete отключён. Общая валидация renderer/main/session. `npm test`: 48/48 PASS; live CDP smoke на клоне профиля подтвердил пустое поле, удаление ключей, ошибки пустого/стандартного ника и вход с допустимым ником. EXE: **113 313 735 Б, SHA1 `bd30c84534e20b246deefd8d071b1eb7446c648a`**; удалённый `latest`-манифест совпадает. Изолированный E2E self-update v1.0.16 → v1.0.17 прошёл: apply-лог `move OK (tries: 1)`, размер/SHA1 совпали, обновлённая копия запустилась. Полный запуск Minecraft/Java из sandbox заблокирован файловыми ограничениями и остаётся единственной проверкой этого плана на обычной Windows-системе.
 
+**⚠️ Известная нерешённая проблема (ОТЛОЖЕНА по решению заказчика): авторизация под ником `bodayan`.** Вход с этим ником не выполняется, потому что общий валидатор `src/nicknameValidation.js` считает `bodayan` «стандартным» (`STANDARD_USERNAME`) и отклоняет его с сообщением «Никнейм «bodayan» является стандартным…». Любые другие допустимые ники авторизуются корректно. Причина — намеренный запрет дефолтного ника (защита от «навязанного» значения), который теперь конфликтует с реальным ником владельца. Исправление **сознательно отложено** на более поздний этап: нужно согласовать политику (разрешить `bodayan` для владельца, вынести список запрещённых ников в `config.json` либо вовсе снять запрет) и только затем менять валидатор и тесты. До этого момента изменение поведения `STANDARD_USERNAME` не делать.
+
+**Текущая работа (подготовка релиза v1.0.18): доработка UI/UX завершена.** Интерфейс приведён к единой стилевой шкале, исправлен баг вёрстки с постоянно видимым пустым прогресс-баром (`[hidden]` перекрывался `display:flex`), добавлена адаптивность под разные разрешения окна и единые состояния интерактивных элементов (hover/focus-visible/disabled). Версия поднята до **1.0.18**, релиз готовится к публикации (см. раздел 11 и раздел 6).
+
+**✅ Интеграция утверждённой обложки (2026-11-21):** согласованный визуальный шаблон из `launcher-visuals/` перенесён в production-лаунчер. Структура окна переведена на классы `.cover-*` ([index.html](file:///C:/Users/LEO/AppleLauncher/index.html)); общие стили раскладки, компонентов и обложки вынесены в единый [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css), shared-файл используется и лаунчером, и превью. В main-процессе добавлен визуальный слой: чтение `launcher-visuals/config/visual-layout.json` (`schemaVersion:1`), защита от выхода путей за пределы каталога, подбор фонов (приоритет `optimized` → `source`, только числовые имена, сортировка по номеру) и IPC-канал `visual:model` ([main.js](file:///C:/Users/LEO/AppleLauncher/main.js)). [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) предоставляет `getVisualModel()`; [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) переносит координаты/читаемость из JSON в CSS-переменные, переключает `compact-layout` по ширине окна, выбирает случайный фон без немедленного повтора и сохраняет всю прежнюю функциональность (валидация/вход/запуск/стоп/прогресс/diagnostic). Ресурсы обложки (`launcher-visuals`) добавлены в `extraResources` (только `config`, `backgrounds/optimized`, `logo/optimized`; исходники и превью в сборку не входят). Проверки: `npm test` 49/49 PASS (включая новый тест применения визуального слоя), `node launcher-visuals/preview/verify-preview.cjs` PASS, новый `node scripts/verify-launcher-cover.cjs` PASS (логотип/фон/центрирование ника/цвета кнопок/`compact-layout` 640×460/нет ошибок консоли). Версия поднята до **1.0.18**; релиз готовится к публикации.
+
+**Подготовка ресурсов интерфейса:** в `launcher-visuals/` перенесены 13 фонов и отдельный `logo/LOGO.png` (исходник сохранён). Создан lossless WebP `logo/optimized/LOGO-optimized.webp`: 1 578 481 → 766 792 Б, совпадают все видимые RGB-пиксели и альфа-канал; рядом сохранена точная lossless PNG-копия. **Фоны оптимизированы и переименованы:** скрипт `launcher-visuals/tools/optimize-backgrounds.cjs` (нужен `ffmpeg`) сжимает исходники в lossless-WebP с проверкой PSNR=`inf`; результат — `backgrounds/optimized/1.webp … 13.webp` (один исходный JPEG оставлен как `8.jpg`, т.к. lossless-перекодирование увеличивает размер). Итого 17 282 КБ → 9 975 КБ (экономия 42,3%). `config/visual-layout.json` задаёт холст 1376×768, левую зону 33%, относительные координаты, цикл фонов, `naming: "sequential-numeric"` и `watchForChanges`. Автономное Electron-превью в `launcher-visuals/preview/` использует эти настройки и `assets/styles/app.css`, позволяет смену фона/размера/состояния формы, **автоматически подхватывает новые числовые файлы без перезапуска** (`fs.watch` + IPC-канал `visual-preview:backgrounds-changed`, плюс кнопка «Обновить список») и не запускает основной `main.js` или Minecraft. На Рабочем столе создан `bodaYan-UI-Preview.lnk`, его цель — `launcher-visuals/preview/start-preview.cmd`, иконка — `assets/icon.ico`. Production-runtime **подключён** к новому конфигу (см. абзац об интеграции обложки выше).
+
 **Историческая сводка ниже** содержит статусы на даты прежних релизов; актуальные версия и состояние приведены выше.
 
 **Статус**: ✅ Базовый лаунчер работает. Minecraft 1.16.5 Forge успешно запускается и доходит до главного меню. ✅ Внешний `config/config.json` читается `main.js`; подключены случайный фон, тема из конфига, прогресс-бар загрузки и динамический meta-row. ✅ Работает **оффлайн-режим («пиратка»)** — вычисляется корректный оффлайн-UUID, аккаунт без токенов Mojang. ✅ **Кнопка «Сетевая игра» активна** — фикс authlib 2.1.28 → 2.3.31 (автопатч version JSON перед запуском). ✅ **Автоподключение к серверу без `quickPlay`**: игра всегда открывает главное меню Minecraft (логотип Mojang → меню), а подключение к серверу выполняет клиентский мод `appleautojoin` при открытии «Сетевой игры» (см. ниже). ✅ **Автообновление самого лаунчера** (`src/selfUpdate.js`) — проверка версии по манифесту, скачивание нового EXE, подмена и авто-перезапуск. ✅ **Автообновление файлов игры** (`src/updater.js`) — проверка SHA1/размера по манифесту, докачка по HTTP Range (до 3 попыток), включено (`updater.enabled = true`). ✅ **Валидация никнейма** (3–16, `[A-Za-z0-9_]`) в UI и в `main.js`. ✅ **Кнопка «Остановить»** — принудительное завершение процесса Java (`taskkill /T /F`). ✅ **Логирование в `debug.log`** (`src/logger.js`, только при `process.env.DEBUG`). ✅ Portable EXE **v1.0.5** содержит лаунчер и JRE 17; **игровые файлы Minecraft не входят в EXE** и должны быть отдельно в `minecraft/game` рядом с EXE (см. раздел 11). ✅ **v1.0.5 собрана и опубликована** в GitHub Releases (`faktogenez/bodaYan`): EXE (111 697 444 Б, SHA1 `fe315f5d…`) + `launcher-version.json`, тег `v1.0.5` = Latest. 🔧 **v1.0.5 — фикс краша** `spawn cmd.exe ENOENT` при автообновлении (путь к `cmd.exe` через `%ComSpec%` + обработчик `error`). ✅ **Модпак опубликован** — релиз `modpack-v1` (17 ассетов); smoke-тест лаунчера — PASS; live-запуск из папки `release` доходит до главного меню без крашей (см. раздел 11). ✅ **v1.0.6 собрана и опубликована** (Latest, SHA1 `b076900d…`) — **окончательный фикс** повторного краша `spawn cmd.exe ENOENT`: текущая версия берётся из `app.getVersion()` (внешний «застрявший» `config.json` больше не запускает ложный self-update), а `cmd.exe` запускается по абсолютному пути (`%ComSpec%`) с принудительным `%SystemRoot%\System32` в `PATH` и обработчиком ошибки. ✅ **Автоподключение к серверу ВКЛЮЧЕНО через собственный мод** `appleautojoin` (Forge 1.16.5): при клике «Сетевая игра» игра сразу подключается к серверу из `servers.dat` (лаунчер оставляет там только сервер из `config.json`) — экран выбора серверов не показывается (см. раздел 3 «Автоподключение» и раздел 11). ✅ **Права админа `bodayan` и `boris`** прописаны в `ops.json` сервера (`C:\Server_Skyblock`, level 4). ✅ **Git синхронизирован** — код v1.0.2–v1.0.6 закоммичен и запушен в `origin/main` (коммит `7a2a3f6`, 2026-11-21); ветка `main` = `origin/main`, рабочее дерево чистое (см. раздел 11, запись 2026-11-21). ✅ **v1.0.7 собрана и опубликована** (Latest, SHA1 `ea1beb82…`, размер 111 695 691 Б, ассет `AppleLauncher.exe`) — **постоянный каталог данных** (`%APPDATA%\AppleLauncher` вместо рабочего стола) + **встроенная проверка целостности** при каждом запуске (SHA1/размер по манифесту + автодокачка) + модпак переведён на `modpack-v2` (в манифест добавлен `versions/Forge 1.16.5/Forge 1.16.5.json` — устранена ошибка «файл не найден» на чистой системе). Заведён `latest` (modpack-v2 переведён в prerelease). Теги v1.0.1–v1.0.6 перепривязаны к корректным коммитам (см. раздел 11, запись v1.0.7). ⚠️ **v1.0.8 оказался НЕПОЛНЫМ фиксом** зависания на 77%: таймаут вызывал `req.destroy()` без аргумента, а такой вызов НЕ emit-ит `'error'` на запросе → promise не reject-ился → зависание сохранялось. ✅ **v1.0.9 собрана и опубликована** (Latest, SHA1 `76b8207a…`, размер 111 697 840 Б) — **настоящий фикс**: `req.destroy(new Error(...))` в `fetchBuffer`/`streamDownload` гарантирует reject и запуск retry; добавлены `res.on("error")` и закрытие файлового потока `.part` при обрыве; логирование неудачных попыток (см. раздел 11, запись v1.0.9). ✅ **v1.0.10 (текущая, в репозитории)** — реализована **автоматизированная система сбора и логирования ошибок** (`src/diagnostic.js`): при любых ошибках отчёт автоматически пишется на Рабочий стол (`bodaYan-error-<дата>_<время>.log`) и содержит ошибку/стек, версии компонентов, окружение, пути, сводку конфига и последние логи; в UI добавлена кнопка «Сообщить об ошибке». Протестировано 5 сценариев — все PASS (см. раздел 11, запись v1.0.10). ✅ **v1.0.10 собрана и опубликована** (Latest, SHA1 `7031b933…`, размер 111 702 389 Б, ассеты `AppleLauncher.exe` + `launcher-version.json`); `latest/.../launcher-version.json` → 1.0.10. ✅ **v1.0.11 (текущая) собрана и опубликована** (Latest, SHA1 `25d0a1ed…`, размер 111 706 179 Б) — фиксы по анализу лога: (B) 4 Forge-библиотеки с относительными URL добавлены в `updater/manifest.json` и выложены в `modpack-v2` (40 файлов) → чистые машины самовосстанавливаются; (C) проверка `client.launch()` на `null` в `main.js` (нет «тихого» зависания на 77%); (D) убрана ложная «Error: null» в ручных отчётах (см. раздел 11, запись v1.0.11). ✅ **v1.0.12 (актуальная) собрана и опубликована** (Latest, SHA1 `b56eaa52…`, размер 111 705 014 Б) — **фикс сетевого подключения со второго ноутбука**: `Connection refused` возникал, т.к. в `servers.dat` жёстко писался `127.0.0.1` (на втором ПК это «он сам»). Теперь лаунчер **автоматически подбирает рабочий адрес** (TCP-проба 25565 по кандидатам `127.0.0.1` → Wi-Fi `192.168.35.189` → Radmin VPN `26.178.173.72`) и пишет выбранный в `servers.dat`; список задаётся в `config.json` (`servers.candidates`). Логика вынесена в `src/netsel.js`, покрыта автотестом (10/10 PASS) (см. раздел 11, запись v1.0.12). ⚠️ **v1.0.14 (промежуточный) — «фикс» зависания self-update оказался нерабочим**: apply-скрипт использовал конвейер `tasklist … | find …`, который в отсоединённом `cmd.exe` **зависает навсегда** → замена файла не запускалась. ✅ **v1.0.15 (актуальная) собрана** (SHA1 `f4877a4d…`, размер 113 314 254 Б) — **настоящий фикс**: apply-скрипт переписан **без конвейеров и внешних `tasklist`/`find`** (чистый ретрай встроенной `move /Y` до разблокировки файла, лог `apply-launcher-update.log`, bounded-retry, fallback `copy`+`del`); исправление подтверждено **реальным E2E-прогоном** портативного self-update (`move OK (tries: 2)`, файл заменён). ⚠️ Фикс действует для self-update **от 1.0.15 и выше** (apply-скрипт генерирует уже запущенная версия) — переход со старых версий требует однократной ручной замены EXE (см. раздел 11, запись v1.0.14/v1.0.15).
@@ -24,14 +32,14 @@
 
 - ✅ Electron-окно с безрамочное прозрачное окно 920x600 (размеры/заголовок из `config.json`)
 - ✅ Вход по никнейму: поле **всегда пустое** при запуске (ник не сохраняется и не подставляется автоматически); пустой ник и стандартный `bodayan` запрещены. Кнопка **«Войти по никнейму» удалена** — вход выполняется единственным путём при нажатии «Играть» (сначала вход, затем запуск).
-- ✅ **Экран-заглушка при старте лаунчера** (`#splash` в [index.html](file:///C:/Users/LEO/AppleLauncher/index.html)): мгновенно показывает логотип приложения и надпись «Загрузка» (с анимированными точками); держится до завершения инициализации (конфиг → тема → meta → фон), затем плавно скрывается (`.splash-hidden`).
+- ✅ **Экран-заглушка при старте лаунчера** (`#splash` в [index.html](file:///C:/Users/LEO/AppleLauncher/index.html)): мгновенно показывает логотип приложения и надпись «Загрузка» (с анимированными точками); держит до завершения инициализации (конфиг → тема → визуальный слой → фон), затем плавно скрывается (`.splash-hidden`).
 - ✅ Кнопка «Играть» запускает Minecraft 1.16.5 Forge и доходит до **главного меню** (без автоподключения к серверу)
 - ✅ Передача параметров памяти из `config.json`: `-Xms2048M -Xmx4096M`
 - ✅ Чтение `config/config.json` в `main.js` (окно, память, сервер, версия, ник, путь игры, фоны); при ошибке — фолбэк на значения по умолчанию
-- ✅ Случайный фон из `assets/backgrounds/` при запуске (IPC `backgrounds:random` → `file://` URL)
+- ✅ Случайный фон при запуске из `launcher-visuals/backgrounds/optimized` (IPC `visual:model` → `file://` URL); запасной путь — `assets/backgrounds/`
 - ✅ Применение темы из `config.json` через CSS-переменные в `renderer.js`
 - ✅ Прогресс-бар загрузки (событие `client.on("progress")` → IPC `game:progress` → UI)
-- ✅ Динамический meta-row в UI (версия, память, сервер) из `config.json`
+- ❌ Динамический meta-row (версия, память, сервер) — удалён в v1.0.18 (в утверждённом макете обложки отсутствует)
 - ✅ Оффлайн-режим («пиратка»): корректный оффлайн-UUID (MD5 `OfflinePlayer:<ник>`), фиктивный `access_token`, без авторизации Mojang
 - ✅ Флаг `launcher.offline` в `config.json` (по умолчанию `true`)
 - ✅ Фикс «Сетевая игра отключена»: автопатч `authlib 2.1.28 → 2.3.31` в version JSON перед запуском
@@ -59,9 +67,9 @@
 | Файл | Назначение |
 |------|-----------|
 | [main.js](file:///C:/Users/LEO/AppleLauncher/main.js) | Главный процесс Electron. Создаёт окно с платформенной иконкой, обрабатывает IPC, проверяет никнейм и запускает игру через `minecraft-launcher-core`. |
-| [index.html](file:///C:/Users/LEO/AppleLauncher/index.html) | Разметка UI. Экран-заглушка `#splash` (лого + «Загрузка»), пустое поле ника, meta-row, кнопка «Играть», прогресс-бар, статус-бар. Кнопки «Войти по никнейму» нет. |
+| [index.html](file:///C:/Users/LEO/AppleLauncher/index.html) | Разметка UI обложки. Экран-заглушка `#splash` (лого + «Загрузка»), фон-слой, титлбар с кнопками окна, логотип, форма входа (пустое поле ника, «Играть», «Остановить», прогресс, статус), счётчик онлайна и кнопка «Создать аккаунт». Кнопки «Войти по никнейму» нет; meta-row отсутствует. |
 | [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) | Мост между renderer и main через `contextBridge`; IPC `auth:login` и запуск игры без передачи произвольного ника. |
-| [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) | UI-логика. Валидация ника (пустое поле блокирует запуск), вход при нажатии «Играть», скрытие заглушки после инициализации, тема/meta, фон, прогресс-бар игры и self-update. |
+| [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) | UI-логика. Валидация ника (пустое поле блокирует запуск), вход при нажатии «Играть», скрытие заглушки после инициализации, тема, визуальный слой обложки (раскладка/фон), прогресс-бар игры и self-update. |
 | [src/nicknameValidation.js](file:///C:/Users/LEO/AppleLauncher/src/nicknameValidation.js) | Общие нормализация/валидация ника для renderer, main и `nicknameSession`; единая политика и тексты ошибок. |
 | [src/updater.js](file:///C:/Users/LEO/AppleLauncher/src/updater.js) | Проверка целостности и дозагрузка файлов по манифесту (Google Drive / прямой URL). |
 | [src/servers.js](file:///C:/Users/LEO/AppleLauncher/src/servers.js) | Запись `servers.dat` (NBT) — список серверов только из `config.json`. |
@@ -84,7 +92,9 @@
 | [scripts/test-netsel.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-netsel.js) | ✅ Автотест `src/netsel.js` (10 проверок: разбор адресов, дедупликация, выбор/фолбэк, реальная TCP-проба). Запуск: `node scripts/test-netsel.js`. |
 | [scripts/firewall-server.ps1](file:///C:/Users/LEO/AppleLauncher/scripts/firewall-server.ps1) | ✅ Опциональный скрипт: идемпотентно создаёт входящее правило брандмауэра TCP 25565 (требует прав администратора). |
 | [scripts/test-diagnostic.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-diagnostic.js) | Тест системы сбора ошибок: 5 сценариев (try/catch, unhandledRejection, manual, non-error, проверка содержимого отчёта). |
-| [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css) | Стили (glassmorphism). |
+| [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css) | ✅ Единый shared-CSS обложки: базовые компоненты (`.card`, `.input-group`, `.play-btn`, `.progress`, `.splash`) + раскладка обложки (`.cover-bg/.cover-tint/.cover-shell/.cover-titlebar/.cover-controls/.brand-logo/.cover-main/.login-card/.cover-online/.cover-account/.cover-report`) и `compact-layout`. Раскладка управляется CSS-переменными из `visual-layout.json`. |
+| [launcher-visuals/](file:///C:/Users/LEO/AppleLauncher/launcher-visuals) | ✅ Каталог визуальных ресурсов обложки: `config/visual-layout.json` (схема v1), `backgrounds/optimized` (числовые фоны), `backgrounds/source`, `logo/optimized/LOGO-optimized.webp`, автономное `preview/` и `tools/`. Включается в сборку через `extraResources`. |
+| [scripts/verify-launcher-cover.cjs](file:///C:/Users/LEO/AppleLauncher/scripts/verify-launcher-cover.cjs) | ✅ CDP-верификация обложки в реальном лаунчере: логотип/фон применены, ник центрирован, цвета кнопок окна, `compact-layout` на 640×460, отсутствие ошибок консоли. Запуск: `node scripts/verify-launcher-cover.cjs`. |
 | [test-launch.js](file:///C:/Users/LEO/AppleLauncher/test-launch.js) | Отладочный скрипт прямого запуска игры без Electron (offline UUID, quickPlay, корректная авторизация). |
 | [config/config.json](file:///C:/Users/LEO/AppleLauncher/config/config.json) | ✅ Читается `main.js`. Настройки окна, памяти, сервера, версии, ника, флаг `offline`, пути к фонам и тема. |
 | [scripts/build-jre.js](file:///C:/Users/LEO/AppleLauncher/scripts/build-jre.js) | Сборка минимальной JRE 17 (jlink → `jre/`), упаковывается в EXE (`resources/jre`). |
@@ -117,7 +127,7 @@ renderer.js (клик "Играть")
 - `window:minimize` / `window:close` — управление окном
 - `config:get` → `CONFIG` — renderer получает тему/ник/сервер
 - `auth:login(username)` — общая проверка никнейма и создание текущей сессии main-процесса; ник не сохраняется между запусками
-- `backgrounds:random` → `file://` URL случайного изображения или `null`
+- `visual:model` → модель визуального слоя `{ config, logo, backgrounds }` из `launcher-visuals` (или `null`, если конфиг недоступен — renderer откатывается на базовую раскладку)
 - `game:launch` (invoke без ника; использует только прошедшую `auth:login` сессию) + `game:data` / `game:progress` / `game:close` / `game:error` (send) — запуск и статус игры
 - `game:stop` (invoke) — принудительная остановка запущенной игры (`taskkill /T /F`)
 - `updater:check` (invoke) + `updater:progress` (send) — проверка/дозагрузка файлов игры (см. раздел 10)
@@ -157,7 +167,7 @@ renderer.js (клик "Играть")
 
 **ВАЖНО (JAR недетерминирован):** пересборка JAR меняет SHA1 (в ZIP-записях сохраняется время). После `build.ps1` обязательно: `node scripts/gen-manifest.js` и повторная загрузка в релиз (`gh release upload modpack-v1 ... --clobber`) — иначе updater будет ругаться на несовпадение SHA1. Проверка: SHA1 локального JAR = `sha1` в `updater/manifest.json` = `sha1` ассета.
 
-Параметры сервера (`launcher.server` = `127.0.0.1:25565`) в `config.json` используются для `servers.dat` (источник правды для мода) и meta-row.
+Параметры сервера (`launcher.server` = `127.0.0.1:25565`) в `config.json` используются для `servers.dat` (источник правды для мода).
 
 ### Будущий хостинг сервера — корректировки и допущения (для потомков)
 
@@ -258,6 +268,8 @@ delete lib.downloads.artifact.size;
 
 ## 4. Выполненные задачи
 
+- [x] **[Интеграция утверждённой обложки]** Согласованный шаблон из `launcher-visuals/` перенесён в production-лаунчер без отклонений от макета. Разметка → `.cover-*` классы в [index.html](file:///C:/Users/LEO/AppleLauncher/index.html); общие стили обложки + компонентов вынесены в единый shared [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css). Основной процесс: визуальный слой `readVisualConfig`/`resolveVisualPath`/`listVisualBackgrounds`/`getVisualModel` и IPC `visual:model` ([main.js](file:///C:/Users/LEO/AppleLauncher/main.js)); preload `getVisualModel()`; renderer `applyLayout`/`applyBackground`/`applyVisualLayer` (JSON→CSS-переменные, случайный фон без немедленного повтора, `compact-layout`). `launcher-visuals` добавлен в `extraResources`. Вся прежняя функциональность сохранена (валидация/вход/запуск/стоп/прогресс/diagnostic).
+- [x] **[Верификация обложки]** `npm test` 49/49 PASS (добавлен тест применения визуального слоя в `test-renderer-auth.js`); `node launcher-visuals/preview/verify-preview.cjs` PASS (общий CSS, 920×600 и 640×460); новый `node scripts/verify-launcher-cover.cjs` PASS в реальном лаунчере (логотип/фон, центрирование ника, цвета и форма кнопок окна, `compact-layout`, отсутствие ошибок консоли). Версия не поднималась.
 - [x] **[v1.0.17 — фикс ника, публикация и автообновление]** В persistent Local Storage обнаружен `minecraft_username=bodayan`; renderer удаляет оба старых ключа, отключает autocomplete и очищает поле. Общий валидатор используется renderer/main/session. `npm test`: 48/48 PASS; CDP live smoke подтвердил очистку ключей и работу валидации. Релиз v1.0.17 — Latest, код в `origin/main` (`ee924ea`). Отдельная копия официального v1.0.16 обновилась до v1.0.17: apply-лог подтвердил `move OK (tries: 1)`, SHA1/размер совпали; обновлённая portable-копия запущена.
 - [x] Установлены зависимости: `electron@33`, `minecraft-launcher-core@3.18.2`
 - [x] Переписан `main.js` под API 3.x
@@ -271,7 +283,7 @@ delete lib.downloads.artifact.size;
 - [x] Случайный фон из `assets/backgrounds/` при запуске
 - [x] Применение темы из `config.json` через CSS-переменные
 - [x] Прогресс-бар загрузки (ассеты, нативы, библиотеки, Forge) через событие `progress`
-- [x] Динамический meta-row из `config.json` (версия / память / сервер)
+- [x] Динамический meta-row из `config.json` (версия / память / сервер) — удалён в v1.0.18 (в утверждённом макете обложки отсутствует)
 - [x] Оффлайн-режим («пиратка»): `offlineUUID()` (MD5 `OfflinePlayer:<ник>`), фиктивный `access_token`, `meta.type = "mojang"`
 - [x] Флаг `launcher.offline` в `config.json`; оффлайн-UUID проверен на эталоне (`Steve`)
 - [x] Исправлен неверный ключ `user_type` → `authorization.meta.type` (см. `handler.js`)
@@ -322,7 +334,12 @@ delete lib.downloads.artifact.size;
 
 ## 5. Оставшиеся задачи (приоритет)
 
+### ⏸️ Отложено по решению заказчика (НЕ решать до отдельного указания)
+- **Авторизация под ником `bodayan`** — не работает: `src/nicknameValidation.js` (`STANDARD_USERNAME = "bodayan"`) отклоняет этот ник как «стандартный», тогда как все остальные допустимые ники входят нормально. Требуется отдельное решение по политике (снять запрет / сделать список запрещённых ников конфигурируемым / исключить владельца), после чего править валидатор `src/nicknameValidation.js`, тексты и тесты (`test-nickname-validation`, `test-nickname-session`, `test-renderer-auth`). До согласования политики поведение `STANDARD_USERNAME` **не менять**.
+
 ### Высокий приоритет
+- **✅ Интеграция визуального компонента в основной лаунчер ВЫПОЛНЕНА (2026-11-21).** Утверждённая обложка перенесена: `visual-layout.json` читается в `main.js`, IPC `visual:model`, разметка логотипа/формы и стили — в `index.html`/`app.css`, `launcher-visuals` в `extraResources`. Проверки (`npm test` 49/49, `verify-preview.cjs`, `verify-launcher-cover.cjs`) — PASS. Осталось: **живая приёмка** обложки в окне лаунчера пользователем, затем — поднять версию и выпустить релиз (порядок: версия в `package.json` + `config.json selfUpdate.currentVersion` + `updater/launcher-version.json`, сборка `electron-builder --win portable`, публикация в GitHub Releases, Git-синхронизация). Компонент самодостаточен, без новых npm-зависимостей; `ffmpeg` нужен только скрипту оптимизации.
+
 0. **Живой тест сетевого подключения со второго ноутбука (v1.0.12)**: на втором ПК дождаться self-update до 1.0.12 (или переустановить EXE), убедиться, что он в **той же сети**, что и сервер (Wi-Fi `192.168.35.x` **или** общий Radmin VPN `26.178.x`), затем «Сетевая игра» → должно подключиться. Если сервер стоит, а соединения нет — проверить на втором ПК доступность `192.168.35.189:25565` / `26.178.173.72:25565`; при смене Wi-Fi-IP сервера (DHCP) обновить `servers.candidates` в `config.json`.
 
 1. **Хостинг сервера (в будущем)**: при переносе сервера на удалённый хостинг обновить `config.json` (`launcher.server.host`/`port` + `servers.list[0].ip`). Учесть `online-mode` (оффлайн-клиент требует `online-mode=false`) и перевыдать права `op` уже на сервере — подробности и оговорки в разделе 3 «Будущий хостинг сервера». Мод менять не нужно.
@@ -565,6 +582,142 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-21 — подготовка релиза v1.0.18 (обложка)
+
+**Задача:** подготовить релиз с интегрированной обложкой: поднять версию, ограничить состав сборки, обновить манифест самообновления и документацию, проверить сборку.
+
+**Изменения:**
+- [package.json](file:///C:/Users/LEO/AppleLauncher/package.json): версия `1.0.17` → **`1.0.18`**; `extraResources` сужен: вместо всего каталога `launcher-visuals` включаются только `launcher-visuals/config`, `launcher-visuals/backgrounds/optimized`, `launcher-visuals/logo/optimized` (исключены `source/`, `preview/`, `tools/`, корневой `logo/LOGO.png`). Это убирает ~17 МБ dev-ресурсов из EXE.
+- [config/config.json](file:///C:/Users/LEO/AppleLauncher/config/config.json): `selfUpdate.currentVersion` → `1.0.18`.
+- [updater/launcher-version.json](file:///C:/Users/LEO/AppleLauncher/updater/launcher-version.json): версия `1.0.18`, URL нового релиза, новые `notes`; `sha1`/`size` заполняются после сборки EXE.
+- [CHANGELOG.md](file:///C:/Users/LEO/AppleLauncher/CHANGELOG.md): добавлен раздел `[1.0.18]`.
+- [SESSION_HANDOFF.md](file:///C:/Users/LEO/AppleLauncher/SESSION_HANDOFF.md): обновлены разделы 1–6 (актуализированы сведения о meta-row, `backgrounds:random`, статус версии).
+
+**Решения (согласованы с заказчиком):** номер версии — **1.0.18** (обеспечивает работу self-update); `backgrounds/source` (16,9 МБ) **хранится в Git как мастер, но не попадает в сборку**.
+
+**Действия и результаты:**
+- `jre/` уже собран (47,8 МБ, `jre/bin/java.exe` на месте) → сборка выполнена командой `electron-builder --win portable` (кэш инструментов перенаправлен в `.cache/eb` через `ELECTRON_BUILDER_CACHE`, т.к. sandbox блокирует `%LOCALAPPDATA%\electron-builder`).
+- **EXE собран:** `dist/AppleLauncher.exe`, размер **125 458 560 Б** (119,65 МБ), SHA1 **`368c38c80baf28b657aa28caca9978b991c1c019`**. Значения записаны в `updater/launcher-version.json`.
+- **Состав ресурсов в сборке проверен:** `dist/win-unpacked/resources/launcher-visuals` содержит только `config`, `backgrounds/optimized`, `logo/optimized` (16 файлов, 11,6 МБ); `source/`, `preview/`, `tools/` исключены.
+- **Packaged smoke-тест PASS:** собранное приложение (`dist/win-unpacked/AppleLauncher.exe`) через CDP подтвердило, что фон и логотип резолвятся из `resources/launcher-visuals/...`, счётчик «Онлайн: 4/100», кнопка «Создать аккаунт», splash скрыт, ошибок консоли нет.
+- `npm test` — PASS (49 проверок).
+- Проверка кода/конфига: ссылки `visual-layout.json` (`../backgrounds/optimized`, `../logo/optimized/LOGO-optimized.webp`) сохраняют структуру при ограниченном `extraResources`; `source/` в рантайме не используется (приоритет всегда у `optimized`).
+
+**Статус:** изменения подготовлены, версия поднята до **1.0.18**, EXE собран и проверен, манифест самообновления заполнен. Осталось (требуется окружение пользователя с `gh`/сетью): commit + push в `origin/main` и публикация GitHub Release `v1.0.18` с ассетами `AppleLauncher.exe` + `launcher-version.json`.
+
+**Примечание:** до публикации актуальным Latest остаётся v1.0.17; `git`/`gh`-операции не выполнялись (требуют явного согласования заказчика).
+
+---
+
+### Сессия 2026-11-21 — полная интеграция утверждённой обложки в production-лаунчер
+
+**Задача:** утверждённый и согласованный шаблон обложки из `launcher-visuals/` полностью перенести в основной проект без искажений дизайна, обеспечить адаптивность на всех разрешениях, проверить совместимость с целевой платформой (Electron/Chromium), сохранить единый стиль архитектуры и кодирования проекта, протестировать функциональность/отображение/производительность и подготовить финальную версию к развёртыванию.
+
+**Изменения:**
+- [index.html](file:///C:/Users/LEO/AppleLauncher/index.html): разметка переведена на структуру утверждённого шаблона (`.cover-bg`/`.cover-tint`/`.cover-shell`/`.cover-titlebar`+`.cover-controls`/`.brand-logo`/`.cover-main`/`.card.login-card`/`.cover-online`/`.cover-account`/`.cover-report`) при сохранении экрана-заглушки `#splash` и всех функциональных элементов (поле ника, «Играть», «Остановить», прогресс-бар, статус, диагностика). CSP уточнён под локальные ресурсы.
+- [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css): единый shared-стиль обложки и компонентов; раскладка управляется CSS-переменными (`--logo-x/y/width`, `--form-x/bottom/width/max-width`, `--controls-right/top`, `--card-opacity`, `--blur`, `--left-tint`), добавлен `compact-layout`.
+- [main.js](file:///C:/Users/LEO/AppleLauncher/main.js): визуальный слой `VISUAL_ROOT`/`readVisualConfig`/`resolveVisualPath` (защита от traversal вне `launcher-visuals`)/`listVisualImages`/`listVisualBackgrounds` (приоритет `optimized`→`source`, только числовые имена, сортировка)/`getVisualModel` (фолбэк на `assets/backgrounds`); IPC-обработчик `backgrounds:random` заменён на `visual:model`.
+- [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js): `getRandomBackground` заменён на `getVisualModel()`.
+- [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js): добавлены `applyLayout` (JSON→CSS-переменные + `compact-layout`), `applyBackground` (случайный фон без немедленного повтора через `localStorage`), `applyVisualLayer`; обработчик `resize` пересчитывает раскладку; вся прежняя логика сохранена.
+- [package.json](file:///C:/Users/LEO/AppleLauncher/package.json): `launcher-visuals` добавлен в `extraResources`.
+- [scripts/test-renderer-auth.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-renderer-auth.js): мок обновлён под `getVisualModel`; добавлен тест применения визуального слоя (логотип + фон из `launcher-visuals`).
+- [scripts/verify-launcher-cover.cjs](file:///C:/Users/LEO/AppleLauncher/scripts/verify-launcher-cover.cjs) (новый): CDP-верификация обложки в реальном лаунчере.
+
+**Действия и результаты:**
+- `npm test`: 49/49 PASS (валидатор 17, сессия 7, renderer 9, selfUpdate 6, netsel 10).
+- `node launcher-visuals/preview/verify-preview.cjs`: PASS на 920×600 и 640×460 (общий `app.css`, центрирование ника, цвета/форма кнопок, `compact-layout`, без ошибок консоли).
+- `node scripts/verify-launcher-cover.cjs`: PASS — в реальном окне лаунчера логотип и фон применены, ник центрирован, кнопки окна красный/жёлтый и некруглые, `compact-layout` на 640×460, карточка в пределах вьюпорта, ошибок renderer-консоли нет.
+- Производительность: фоны отдаются как `file://` URL, применяется `background-size: cover`; новых npm-зависимостей нет, сборка ресурсов идёт через `extraResources`.
+
+**Статус:** интеграция завершена и верифицирована. Версия не поднималась, релиз не публиковался. Готово к живой приёмке пользователем, после чего — bump версии и публикация.
+
+**Проблемы:** новых нет. Авторизация под ником `bodayan` остаётся отложенной и не менялась.
+
+**Открытые вопросы:** финальная приёмка пользователем композиции (координаты логотипа/формы на разных фонах); нужно ли выносить список запрещённых ников в `config.json`; состав формы входа (только ник в офлайн-режиме vs логин/пароль).
+
+---
+
+### Сессия 2026-11-21 — числовые фоны, автообнаружение без перезапуска, подготовка к интеграции
+
+**Задача:** проверить конфигурацию визуального компонента, привести фоны к последовательным числовым именам, убедиться, что загрузка находит файлы без жёстко прописанных названий и подхватывает новые без перезапуска, протестировать смену фонов и подготовить компонент к интеграции в лаунчер.
+
+**Изменения:**
+- `launcher-visuals/tools/optimize-backgrounds.cjs` (новый): сжимает исходники из `backgrounds/source/` в lossless-WebP через `ffmpeg` (`-lossless 1 -compression_level 6`), проверяет идентичность пикселей по PSNR и пишет результат в `backgrounds/optimized/` последовательными номерами. Если lossless-WebP больше исходника — сохраняет исходный формат. Путь к `ffmpeg` можно задать через `FFMPEG_PATH`.
+- `launcher-visuals/backgrounds/optimized/`: вместо пустой папки — `1.webp … 13.webp` и `8.jpg` (исходный JPEG оставлен, т.к. lossless-перекодирование увеличивает размер). Исходники в `source/` не изменялись.
+- `launcher-visuals/preview/main.cjs`: `listBackgrounds()` теперь отбирает файлы с чисто числовыми именами (`/^\d+$/`), сортирует по номеру и не содержит конкретных имён; папка выбирается автоматически (`optimized`, при отсутствии изображений — `source`). Добавлено отслеживание каталогов фонов (`fs.watch`, debounce 250 мс) и push-событие `visual-preview:backgrounds-changed`; новый IPC `visual-preview:refresh` для ручного перечитывания. Наблюдатели закрываются на `will-quit`.
+- `launcher-visuals/preview/preload.cjs`: добавлены `refreshBackgrounds()` и `onBackgroundsChanged(callback)`.
+- `launcher-visuals/preview/preview.js`: логика списка вынесена в `buildOptions`/`applyBackgroundList` (с сохранением выбранного фона), добавлены `refreshBackgrounds()` и подписка на изменения; активный фон сохраняется при обновлении каталога.
+- `launcher-visuals/preview/preview.html` и `preview.css`: кнопка «Обновить список» (`.toolbar-wide`) в панели предпросмотра.
+- `launcher-visuals/config/visual-layout.json`: добавлены `backgrounds.naming: "sequential-numeric"` и `backgrounds.watchForChanges: true`.
+- `launcher-visuals/preview/verify-preview.cjs`: проверяет, что имена фонов числовые и упорядочены по возрастанию; добавлен hot-reload сценарий — копирование `999.webp`, ожидание появления в списке без перезапуска, удаление и ожидание возврата к исходному количеству (probe удаляется в `finally`).
+- `launcher-visuals/README.md` и `SESSION_HANDOFF.md`: обновлены под новое состояние (именование, оптимизация, автообновление, интеграция).
+
+**Действия и результаты:**
+- Оптимизация: 13 фонов, 17 282 КБ → 9 975 КБ (экономия 42,3%); на образце PSNR = `inf` (пиксели идентичны). Для исходного JPEG lossless-WebP оказался больше (944 736 > 589 827 Б), поэтому файл оставлен в исходном формате.
+- Проверка превью `node launcher-visuals/preview/verify-preview.cjs`: PASS на 920×600 и 640×460, список фонов `["1".."13"]` в правильном порядке, ресурсы «логотип OK, фонов 13/13», переключение фонов работает, новый `999.webp` появился автоматически (14), после удаления список вернулся к 13, ошибок в консоли renderer нет.
+- `npm test`: все наборы PASS (валидатор ника 17, сессия 7, renderer 8, selfUpdate 6, netsel 10; итого 48 проверок).
+
+**Статус:** визуальный компонент работоспособен и готов к интеграции; production-лаунчер пока не подключался к `visual-layout.json` — интеграция после утверждения дизайна. Версия не поднималась, релиз не публиковался. Основной лаунчер не изменялся.
+
+**Проблемы:** новых нет. Авторизация под ником `bodayan` остаётся отложенной и не изменялась.
+
+**Открытые вопросы:** состав формы входа для интеграции (только никнейм в офлайн-режиме или логин/пароль с реальным сервисом авторизации); финальные координаты логотипа и формы по каждому фону; нужна ли отдельная комплектация lossless-WebP для клиента (сейчас в Git хранятся и исходники, и оптимизированные копии).
+
+---
+
+### Сессия 2026-11-21 — подготовка отдельного каталога визуальных ресурсов
+
+**Задача:** подготовить отдельное место для фонов, отдельного логотипа и UI-настроек; базовый холст 1376×768, контент ориентирован на левую треть. На момент этой записи пользователь ещё не добавил изображения; это состояние актуализировано следующей записью.
+
+**Изменения:**
+- Создан `launcher-visuals/backgrounds/source/` для оригиналов и `launcher-visuals/backgrounds/optimized/` для оптимизированных копий.
+- Создан `launcher-visuals/logo/` для отдельного PNG-логотипа.
+- Создан `launcher-visuals/config/visual-layout.json`: размер опорного холста 1376×768, левая зона 33%, случайный цикл фонов без немедленного повтора, `cover` и фокусная точка; координаты логотипа (верх-слева), формы (низ-слева) и кнопок окна (верх-справа) задаются процентами; добавлены параметры контраста и компактной раскладки.
+- Создан `launcher-visuals/README.md` с инструкциями по размещению файлов и правилом не перезаписывать исходники при lossless-оптимизации. Добавлены `.gitkeep`, чтобы пустые папки сохранялись в Git.
+
+**Проверки:** JSON-конфигурация разобрана успешно; `git diff --check` не обнаружил ошибок форматирования. В `assets/backgrounds/` был только существующий `skyblock.png`; новые изображения не поступили, поэтому оптимизация ещё не выполнялась.
+
+**Ограничения и статус:** конфиг — шаблон для будущей интеграции, существующий runtime пока его не читает. Картинки и координаты по фактическим изображениям ещё не проверялись. Другие незакоммиченные изменения `SESSION_HANDOFF.md`, `assets/styles/app.css` и `index.html`, существовавшие до этой задачи, сохранены; не коммитить их вместе без отдельного согласования.
+
+**Открыто на момент записи:** после добавления ресурсов составить инвентаризацию, проверить кадрирование и сравнить lossless-варианты. Эти пункты выполнены в следующей записи; production-интеграция остаётся отдельным этапом. Проблема авторизации ника `bodayan` остаётся отложенной и не менялась.
+
+---
+
+### Сессия 2026-11-21 — lossless-логотип, автономный UI preview и ярлык
+
+**Задача:** оптимизировать перенесённый логотип без визуальной потери, создать быструю тестовую оболочку без запуска основного лаунчера и добавить ярлык на Рабочий стол.
+
+**Ресурсы и оптимизация:**
+- Обнаружено 13 фонов в `launcher-visuals/backgrounds/source/`; проверены локальные пути и форматы. Их бинарное содержимое не изменялось.
+- Исходный `launcher-visuals/logo/LOGO.png` (1376×768 RGBA, 1 578 481 Б) сохранён.
+- Создан выбранный lossless WebP `launcher-visuals/logo/optimized/LOGO-optimized.webp` (766 792 Б): экономия 811 689 Б (51,4%). Подтверждён чанк VP8L, альфа-канал без отличий и 0 отличающихся RGB-каналов у 818 411 видимых пикселей.
+- Сохранена альтернативная lossless PNG-копия `logo/optimized/LOGO-optimized.png` (1 184 672 Б); декодированные RGBA-данные совпадают с исходником побайтно. WebP выбран в `config/visual-layout.json`.
+- Lossy WebP-кандидаты проверку не прошли и не используются.
+
+**Автономный preview:**
+- Добавлено приложение в `launcher-visuals/preview/` (`main.cjs`, `preload.cjs`, `preview.html`, `preview.css`, `preview.js`, `package.json`) и команда запуска `start-preview.cmd`.
+- Preview читает отдельный `visual-layout.json`, общий `assets/styles/app.css`, оптимизированный логотип и фоны (при пустом `backgrounds/optimized/` использует `backgrounds/source/`). В оболочке есть выбор фона, пресеты размера окна, демонстрационные состояния формы, сворачивание панели и управление окном.
+- Действия входа и создания аккаунта обозначены как заглушки; IPC основного лаунчера, запуск Minecraft и авторизация не вызываются.
+  - Добавлен `verify-preview.cjs` для smoke-проверки загрузки ресурсов, переключения фонов, компактной раскладки и
+состояния ошибки; cleanup завершает дерево только своего тестового Electron-процесса.
+  - По запросу обновлён вид формы: круглые macOS-кнопки заменены классическими прямоугольными кнопками с красным
+крестиком закрытия и жёлтым минусом сворачивания; подпись и ввод никнейма центрированы; отображается `Онлайн: 4/100`,
+кнопка подписана `Создать аккаунт`, а демонстрационный статус отдельно предупреждает, что запуск отключён.
+- Добавлен `verify-preview.cjs` для smoke-проверки загрузки ресурсов, переключения фонов, компактной раскладки и состояния ошибки.
+- На Рабочем столе создан ярлык `bodaYan-UI-Preview.lnk`, цель напрямую указывает на `launcher-visuals/preview/start-preview.cmd`; иконка `assets/icon.ico`. Запуск через ярлык проверен, только тестовый процесс затем закрыт.
+- После первого запуска обнаружена ошибка Windows-кавычек из-за завершающего `\` у `%~dp0`; `start-preview.cmd` исправлен: путь приложения нормализуется без завершающего слэша, проверка `main.cjs` использует явный разделитель. Повторный запуск через ярлык показал окно `bodaYan — предпросмотр`; тестовое окно и дочерние процессы закрыты.
+
+**Проверки:** все JS-файлы прошли `node --check`; JSON-конфиг разобран; все пути ресурсов существуют; preview загрузил логотип и все 13 фонов (`13/13`). `verify-preview.cjs`: PASS на 920×600 и 640×460, переключение изображения и состояние ошибки работают, renderer-консоль без ошибок. `git diff --check` проверен после завершения изменений.
+
+состояние ошибки работают, никнейм центрирован, подписи кнопок и цвета controls сверены, renderer-консоль без ошибок.
+`git diff --check` проверен после завершения изменений.
+
+**Статус и ограничения:** это изолированный визуальный прототип, новый конфиг пока не подключён к production-runtime. Ярлык привязан к текущей локальной установке проекта и Electron в `node_modules`; для запуска на другом ПК потребуется та же структура репозитория и установленные зависимости. Не коммитить автоматически прежние незакоммиченные изменения `index.html` и `assets/styles/app.css`; они сохранены. Релиз не создавался.
+
+**Дальше:** пользователь проверяет макет через ярлык; после утверждения отдельно выполняется интеграция в основной UI. Фоны пока не оптимизировались. Проблема авторизации `bodayan` остаётся отложенной без изменений.
+
+---
 
 ### Сессия 2026-11-21 — v1.0.17: диагностика ника и публикация релиза
 
