@@ -14,6 +14,30 @@
       "size": 4817971
     },
     {
+      "path": "mods/Aquaculture-1.16.5-2.1.23.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Aquaculture-1.16.5-2.1.23.jar",
+      "sha1": "0ad71497b1aaa04f2f2610dc61233cbf7e4d14fd",
+      "size": 551038
+    },
+    {
+      "path": "mods/Bookshelf-Forge-1.16.5-10.4.33.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Bookshelf-Forge-1.16.5-10.4.33.jar",
+      "sha1": "9d8ae731be2dd554968213224a74ad58f2e5cad0",
+      "size": 317032
+    },
+    {
+      "path": "mods/Botania-1.16.5-419.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Botania-1.16.5-419.jar",
+      "sha1": "269b54c83c33c162bb85ff781f5febc890dafad4",
+      "size": 15009384
+    },
+    {
+      "path": "mods/BotanyPots-1.16.5-7.1.41.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__BotanyPots-1.16.5-7.1.41.jar",
+      "sha1": "c47e0bbfeb47cc2922e4dea7c41a71ddd7a70570",
+      "size": 556567
+    },
+    {
       "path": "mods/create-mc1.16.5_v0.3.2g.jar",
       "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__create-mc1.16.5_v0.3.2g.jar",
       "sha1": "5b32b0310d037deed14200e3b748bd02d46d9471",
@@ -24,6 +48,12 @@
       "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Cucumber-1.16.4-4.1.10.jar",
       "sha1": "bf01350ce62c90e3f32ed345b8c23d514002adb2",
       "size": 158783
+    },
+    {
+      "path": "mods/curios-forge-1.16.5-4.1.0.0.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__curios-forge-1.16.5-4.1.0.0.jar",
+      "sha1": "44cb4b783bf194b092e3986e40f9d78501f51ae2",
+      "size": 291897
     },
     {
       "path": "mods/CustomNPCs-1.16.5.20220515.jar",
@@ -80,6 +110,18 @@
       "size": 493742
     },
     {
+      "path": "mods/Jade-1.16.4-2.8.3.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Jade-1.16.4-2.8.3.jar",
+      "sha1": "a0ff82f4d3060ca5579bea4138bffffcba11173c",
+      "size": 260212
+    },
+    {
+      "path": "mods/jei-1.16.5-7.7.1.153.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__jei-1.16.5-7.7.1.153.jar",
+      "sha1": "cc0289c9b19a0971ba302d854ae409755a0a28fe",
+      "size": 828671
+    },
+    {
       "path": "mods/Mekanism-1.16.5-10.0.21.448.jar",
       "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Mekanism-1.16.5-10.0.21.448.jar",
       "sha1": "93117cc4bd81df2dde1ae5ec0aae429b60a19ec1",
@@ -102,6 +144,18 @@
       "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__observerlib-1.16.5-1.5.3.jar",
       "sha1": "a5136bf50a6dba827ceb0e80cd1118bcba193a27",
       "size": 150815
+    },
+    {
+      "path": "mods/OreExcavation-1.8.157.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__OreExcavation-1.8.157.jar",
+      "sha1": "1a930f10c5fdd32b75088d73c8dff21fe4a4bc6e",
+      "size": 281216
+    },
+    {
+      "path": "mods/Patchouli-1.16.4-53.3.jar",
+      "url": "https://github.com/faktogenez/bodaYan/releases/download/modpack-v2/mods__Patchouli-1.16.4-53.3.jar",
+      "sha1": "cf7c2efc013a0247be4c2ce3f3d6a553643e00f7",
+      "size": 593352
     },
     {
       "path": "mods/pipez-1.16.5-1.2.17.jar",

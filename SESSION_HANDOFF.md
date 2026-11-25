@@ -26,6 +26,8 @@
 
 **✅ Имя сборки без пробела (2026-11-25):** первопричина регрессии self-update устранена в `package.json`: `build.artifactName` → `bodaYan-Launcher.${ext}`, `build.portable.artifactName` → `bodaYan-Launcher.exe`, `build.nsis.artifactName` → `bodaYan-Launcher-Setup.${ext}` (без пробелов, без `${version}` — постоянное имя EXE). Реальная сборка (`electron-builder --win portable`) подтвердила артефакт `dist\bodaYan-Launcher.exe` (127 492 257 Б, SHA1 `ec081f13…`); `npm test` 51/51 PASS, CDP-проверка обложки и live-smoke никнейма — PASS. Отображаемое имя (`productName`), данные и пути не менялись; релиз не публиковался. Подробности — раздел 11.
 
+**✅ Моды сборки BoDaYan синхронизированы (сервер + клиент) (2026-11-25):** по финальному списку сборки (Forge 1.16.5) из источника `C:\Users\LEO\cubixworld\updates\OceanBlock_1165\mods` **скопированы** (не перемещены) 7 jar на сервер `C:\Server_Skyblock\mods` (20 → 27): Botania, Patchouli, Curios, Aquaculture 2, BotanyPots, Bookshelf, OreExcavation (Patchouli/Curios/Bookshelf — обязательные зависимости Botania/BotanyPots). В клиент `minecraft\game\mods` добавлены те же 7 + JEI + Jade (стало 31 jar). `updater/manifest.json` перегенерирован (**40 → 49 файлов**), релиз `modpack-v2` дополнен (**41 → 50 ассетов**) без пересоздания. Бэкап серверных модов — `C:\Server_Skyblock\_archive\mods-backup-20261125\`. В источнике **не оказалось** (по условию «без загрузок» пропущены): Productive Bees, Chisel, Super Sound Muffler, Building/Better Builders Wands. ⬜ Реальный запуск Mohist с новыми модами ещё не проверен. Подробности — раздел 11.
+
 **Иконка и поставка:** `assets/icon-source.png` — BDY-куб 1024×1024 RGBA (обрезан из `BDY_logo.png`); `assets/icon.ico` содержит 16–256 px, `assets/icon.icns` — 16–1024 px, splash/Linux PNG — 512 px. Для v1.1.x собирается portable EXE (`bodaYan Launcher.exe`); NSIS-установщик не публиковался (installerUrl в манифесте пустой). Самообновление берёт манифест с GitHub `latest`. Подробности — в записи v1.1.1 раздела 11.
 
 **Логотип v1.1.1:** иконка приложения — BDY-куб (`assets/icon-source.png`, 980 969 Б). UI-вордмарк «SKYBLOCK VILLAGE / СКАЙБЛОК ДЕРЕВНЯ» — `launcher-visuals/logo/LOGO.png` (1 578 481 Б) и его оптимизированные версии (`optimized/LOGO-optimized.png` 1 184 672 Б, `optimized/LOGO-optimized.webp` 766 792 Б). Два логотипа разделены: куб — иконка EXE/трея, вордмарк — элемент интерфейса.
@@ -288,6 +290,7 @@ delete lib.downloads.artifact.size;
 
 ## 4. Выполненные задачи
 
+- [x] **[Синхронизация модов BoDaYan на сервер + клиент]** Из источника `C:\Users\LEO\cubixworld\updates\OceanBlock_1165\mods` **скопированы** (не перемещены) на сервер `C:\Server_Skyblock\mods` 7 jar (Botania, Patchouli, Curios, Aquaculture 2, BotanyPots, Bookshelf, OreExcavation — 20 → 27) и в клиент `minecraft\game\mods` те же 7 + JEI + Jade (→ 31). Patchouli/Curios/Bookshelf добавлены как обязательные зависимости Botania/BotanyPots (выявлено по `mods.toml`). Бэкап серверных модов — `_archive\mods-backup-20261125\` (20 файлов). `updater\manifest.json` перегенерирован (40 → 49 файлов, чистый аддитив), релиз `modpack-v2` дополнен до 50 ассетов (`gh release upload`, без пересоздания); удалённый манифест проверен по HTTP (49 файлов, SHA1 совпал). ⬜ Не проверен реальный запуск Mohist. Пропущены (нет в источнике, условие «без загрузок»): Productive Bees, Chisel, Super Sound Muffler, Wands.
 - [x] **[Имя сборки без пробела — устранение первопричины регрессии self-update]** `package.json`: `build.artifactName` → `bodaYan-Launcher.${ext}`, `build.portable.artifactName` → `bodaYan-Launcher.exe`, `build.nsis.artifactName` → `bodaYan-Launcher-Setup.${ext}` (без пробелов; `${version}` не добавлен — постоянное имя EXE). Устранена первопричина рассинхрона URL в манифесте (GitHub заменял пробел на точку в имени ассета → 404). Проверки: `npm test` 51/51 PASS; CDP-обложка PASS; live-smoke никнейма PASS; реальная сборка `electron-builder --win portable` → артефакт `dist\bodaYan-Launcher.exe` (127 492 257 Б, SHA1 `ec081f13…`). Публикации не было.
 - [x] **[v1.1.1 — фикс сломанного автообновления (URL манифеста)]** Обнаружено: в релизе v1.1.1 URL в `updater/launcher-version.json` был `bodaYan%20Launcher.exe` (с пробелом), но GitHub хранит ассет как `bodaYan.Launcher.exe` (пробел → точка при загрузке) → URL давал **404**, self-update v1.1.0 → v1.1.1 был сломан. Исправлено: URL → фактическое имя ассета; ассет `launcher-version.json` перезалит в релиз v1.1.1 (`gh release upload --clobber`), SHA1/размер EXE не менялись. Проверено: `latest/download/launcher-version.json` → `…/bodaYan.Launcher.exe`, ответ **HTTP 200**.
 - [x] **[v1.0.22 — новый логотип и обновление]** PNG-источник уменьшен с 983 069 до 525 020 Б (−46,6%) без потери прозрачности; пересобраны PNG/ICO/ICNS. Подняты версии `package.json` и `config/config.json`, обновлены changelog и updater manifest. `npm test` — 51/51 PASS; portable EXE и NSIS Setup собраны, иконка проверена в EXE. Проверены SHA1/размеры и опубликованный latest manifest. GitHub Release v1.0.22 опубликован; незнакомая папка `.trae-html-share-packages/` не включалась.
@@ -408,6 +411,7 @@ delete lib.downloads.artifact.size;
 - **P1:** добавить Forge-ядро: **Ex Nihilo: Sequentia**, **Create + Flywheel**, **Mekanism + MekanismGenerators(+Tools)**, **AE2** (все — строго 1.16.5/Forge 36.2.x, на сервер И в лаунчер-клиент); вынести `WorldEdit-CUI` в клиент.
 - **P2:** BSkyBlock blueprint под «деревню» + спавн = личная карта; челленджи/уровень→награды; CustomNPCs-квесты; бэкапы, LuckPerms, `spark`.
 - ⚠️ Риск: тяжёлые Forge-моды под Mohist — следить за TPS/крашами (`logs/latest.log`); при несовместимости — рассмотреть Forge-only ядро (потеря BentoBox).
+- ✅ **Синхронизация модов BoDaYan (2026-11-25):** на сервер и в клиент добавлены Botania, Patchouli, Curios, Aquaculture 2, BotanyPots, Bookshelf, OreExcavation (+ JEI/Jade в клиент); релиз `modpack-v2` дополнен. ⬜ **Не проверено:** рестарт Mohist и анализ `logs/latest.log` на конфликты/краши (первый приоритет по серверу). В источнике не оказалось Productive Bees / Chisel / Super Sound Muffler / Wands — при необходимости потребуется загрузка из интернета.
 
 ---
 
@@ -612,6 +616,43 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-25 — Синхронизация модов BoDaYan (сервер `C:\Server_Skyblock` + клиент) по финальному списку сборки
+
+**Задача:** заказчик прислал финальный список модов сборки BoDaYan (Minecraft Forge 1.16.5, принцип «максимальный минимализм + максимальное удобство») и указал путь-источник `C:\Users\LEO\cubixworld\updates`. Требовалось **найти нужные моды** и **перенести их на сервер** `C:\Server_Skyblock`, предварительно согласовав подход.
+
+**Согласовано (AskUserQuestion):** (1) объём — **только из папки, без загрузок** из интернета; (2) способ — **копировать** (не перемещать); (3) **сервер и клиент синхронно**; (4) **добавить JEI**; (5) **The One Probe заменить на Jade**; (6) **опубликовать** в релиз (аддитивно, без пересоздания релиза).
+
+**Поиск:** 1.16.5-моды найдены в `C:\Users\LEO\cubixworld\updates\OceanBlock_1165\mods`. Из целевого списка в источнике присутствовали и были добавлены Botania, Aquaculture 2, OreExcavation, BotanyPots (Create и Iron Chests в сборке уже были). По условию «без загрузок» **пропущены** (в источнике отсутствуют): Productive Bees, Chisel, Super Sound Muffler, Building/Better Builders Wands.
+
+**Изменения в конфиге/файлах:**
+- Сервер `C:\Server_Skyblock\mods`: **+7 jar** — `Botania-1.16.5-419.jar`, `Patchouli-1.16.4-53.3.jar`, `curios-forge-1.16.5-4.1.0.0.jar`, `Aquaculture-1.16.5-2.1.23.jar`, `BotanyPots-1.16.5-7.1.41.jar`, `Bookshelf-Forge-1.16.5-10.4.33.jar`, `OreExcavation-1.8.157.jar` (итог **20 → 27**).
+- Бэкап перед изменениями: `C:\Server_Skyblock\_archive\mods-backup-20261125\` (20 файлов).
+- Клиент `c:\Users\LEO\AppleLauncher\minecraft\game\mods`: те же 7 + клиентские `jei-1.16.5-7.7.1.153.jar` и `Jade-1.16.4-2.8.3.jar` (**стало 31 jar**).
+- `updater/manifest.json`: перегенерирован `node scripts/gen-manifest.js` → **40 → 49 файлов** (чистый аддитив, +9 модов; локальный SHA1 манифеста `3044887e9ad7efdcf8386f9ec6465afc395b5618`).
+- GitHub Release `modpack-v2`: **+10 ассетов** (9 × `mods__*.jar` + `manifest.json`), итог **41 → 50**; пересоздание релиза не выполнялось (только `gh release upload`).
+
+**Зависимости (проверено по `mods.toml` внутри jar):**
+- **Botania** требует обязательные (`mandatory=true`) `patchouli` и `curios` → дополнительно скопированы **Patchouli** и **Curios** (в исходном списке их не было; без них сервер упал бы при старте).
+- **BotanyPots** требует `bookshelf` → добавлен **Bookshelf**.
+- **Aquaculture** — `biomesoplenty` опционально; **OreExcavation** — без жёстких зависимостей; **JEI** (`side=BOTH`, фактически клиентский), **Jade** (`modId=jade`+`waila`, клиентский) — на сервер не копировались.
+
+**Действия:**
+1. Поиск модов в `updates\OceanBlock_1165\mods`, сопоставление с целевым списком.
+2. Согласование объёма/способа/клиента/JEI/замены TOP/публикации (AskUserQuestion).
+3. Бэкап `C:\Server_Skyblock\mods` → `_archive\mods-backup-20261125`.
+4. Копирование 7 jar на сервер и 9 jar в клиент.
+5. Проверка `mods.toml` у всех добавленных jar → выявлены обязательные Patchouli/Curios/Bookshelf.
+6. Перегенерация `updater\manifest.json`; загрузка 9 jar + манифеста в релиз `modpack-v2`.
+7. Проверка удалённого манифеста по HTTP → `version=1`, `files=49`, SHA1 совпал с локальным; ассеты отвечают HTTP 200.
+
+**Результаты:** сервер и клиент синхронизированы по финальному списку BoDaYan; манифест и релиз обновлены. Клиентские моды (JEI, Jade) — только на клиенте, контентные (Botania/Aquaculture/BotanyPots + зависимости Patchouli/Curios/Bookshelf, OreExcavation) — синхронно на сервере и в клиенте (обязательное условие Forge-регистрации блоков/предметов).
+
+**Статус:** ✅ моды найдены, скопированы (сервер + клиент), опубликованы в `modpack-v2`. ⬜ **Реальный запуск Mohist с новыми модами не проверялся** (нужен рестарт сервера + анализ `logs/latest.log` на конфликты/краши).
+
+**Проблемы/ограничения:** для 4 модов из списка (Productive Bees, Chisel, Super Sound Muffler, Wands) в источнике jar нет — по условию «без загрузок» они пропущены, при необходимости потребуется скачивание. Отмечено расхождение версий Forge (в клиент-источнике — 36.2.34, серверный `.jar` — 36.2.39, манифест ссылается на 36.2.42) — потенциальный риск, загрузку модов не блокирует.
+
+**Открытые вопросы:** (1) перезапустить сервер и проверить `logs/latest.log`; (2) нужны ли отсутствующие моды из списка (потребуют загрузок); (3) выравнивать ли версии Forge.
 
 ### Сессия 2026-11-25 — Имя сборки без пробела (устранение первопричины регрессии self-update) + прогон ключевых сценариев
 
