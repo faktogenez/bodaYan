@@ -1,12 +1,16 @@
-# AppleLauncher — Передача контекста сессии
+# bodaYan Launcher — Передача контекста сессии
 
 > **ОБЯЗАТЕЛЬНОЕ ПРАВИЛО (неукоснительно)**: По завершении КАЖДОЙ сессии исполнитель ДОЛЖЕН внести в этот файл **полную детализированную запись** (раздел 11 «Журнал сессий») по следующей структуре: **все выполненные изменения в коде и конфигурации → полный перечень проделанных действий → полученные результаты → текущий статус задачи → возникшие проблемы → оставшиеся нерешённые вопросы**. Также обновить разделы 1, 3, 4, 5. Цель — чтобы следующий аккаунт имел полное представление о прогрессе и не тратил время на повторное выполнение уже завершённых работ.
+
+> **ЖУРНАЛ ДО/ПОСЛЕ (обязательно)**: перед началом любых изменений кода/конфигурации исполнитель ДОЛЖЕН сначала внести в раздел 11 запись-план (что и зачем меняется, какие файлы), а после завершения — дописать результат и статус. Если сессия прервалась (закончились токены) — незавершённый пункт должен остаться видимым для следующего аккаунта.
 
 > **ПОСТОЯННОЕ ТРЕБОВАНИЕ ЗАКАЗЧИКА — Git-синхронизация**: после КАЖДОЙ сессии коммитить и пушить изменения в `origin/main` (GitHub `faktogenez/bodaYan`), чтобы локальная копия всегда соответствовала удалённому репозиторию. Все коммиты — с понятными описательными сообщениями (`feat:`/`fix:`/`docs:`/`chore:`).
 
 ---
 
 ## 1. Текущий прогресс проекта
+
+**v1.1.0 (2026-11-25):** ребрендинг AppleLauncher → **bodaYan Launcher**. Новый логотип BDY-куб (обрезан до квадрата, максимальный размер, без рамок), обновлённое название во всём интерфейсе и метаданных, каталог данных переименован `%APPDATA%\AppleLauncher` → `%APPDATA%\bodaYan` с автоматической миграцией. Версия 1.0.22 → 1.1.0. Релиз опубликован на GitHub (latest), автообновление работает через `releases/latest/download/launcher-version.json`. `npm test` — 51/51 PASS. Portable EXE: 126 335 906 Б, SHA1 `7c19615c8cb9b4ba816914067396023e912c97d8`.
 
 **Историческая сводка v1.0.20:** **сохранение никнейма между сессиями** (ключ `localStorage`: `launcher.username`) и **устранение дублирования текста загрузки** в нижней строке. Изменены `src/renderer.js` и тесты; `npm test` — 49/49 PASS, live-smoke и CDP-верификация обложки пройдены. Подробности — раздел 11.
 
@@ -353,7 +357,7 @@ delete lib.downloads.artifact.size;
 - **Авторизация под ником `bodayan`** — не работает: `src/nicknameValidation.js` (`STANDARD_USERNAME = "bodayan"`) отклоняет этот ник как «стандартный», тогда как все остальные допустимые ники входят нормально. Требуется отдельное решение по политике (снять запрет / сделать список запрещённых ников конфигурируемым / исключить владельца), после чего править валидатор `src/nicknameValidation.js`, тексты и тесты (`test-nickname-validation`, `test-nickname-session`, `test-renderer-auth`). До согласования политики поведение `STANDARD_USERNAME` **не менять**.
 
 ### Высокий приоритет
-- **✅ Релиз v1.0.22 опубликован:** новые portable `AppleLauncher.exe`, `AppleLauncher-Setup.exe` и latest `launcher-version.json` доставляют обновлённый значок. Осталось проверить самообновление с установленной v1.0.21-копии на реальном клиентском ПК.
+- **✅ Релиз v1.1.0 опубликован:** portable `bodaYan-Launcher.exe` (126 335 906 Б, SHA1 `7c19615c8cb9b4ba816914067396023e912c97d8`) и latest `launcher-version.json` доставляют ребрендинг bodaYan Launcher (новый логотип BDY-куб, новое название, миграция каталога данных). Автообновление через `releases/latest/download/launcher-version.json` подтверждено.
 - **✅ Интеграция визуального компонента в основной лаунчер ВЫПОЛНЕНА (2026-11-21).** Утверждённая обложка перенесена: `visual-layout.json` читается в `main.js`, IPC `visual:model`, разметка логотипа/формы и стили — в `index.html`/`app.css`, `launcher-visuals` в `extraResources`. Проверки (`npm test` 49/49, `verify-preview.cjs`, `verify-launcher-cover.cjs`) — PASS. Релиз **v1.0.18 опубликован**. Исправление композиции формы при загрузке вошло в **v1.0.19** (готовится к публикации). Осталось: **живая приёмка** обложки и статичной формы в окне лаунчера пользователем. Компонент самодостаточен, без новых npm-зависимостей; `ffmpeg` нужен только скрипту оптимизации.
 
 0. **Живой тест сетевого подключения со второго ноутбука (v1.0.12)**: на втором ПК дождаться self-update до 1.0.12 (или переустановить EXE), убедиться, что он в **той же сети**, что и сервер (Wi-Fi `192.168.35.x` **или** общий Radmin VPN `26.178.x`), затем «Сетевая игра» → должно подключиться. Если сервер стоит, а соединения нет — проверить на втором ПК доступность `192.168.35.189:25565` / `26.178.173.72:25565`; при смене Wi-Fi-IP сервера (DHCP) обновить `servers.candidates` в `config.json`.
@@ -599,6 +603,44 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-25 — Ребрендинг в bodaYan Launcher (v1.1.0) на базе v1.0.22
+
+**Задача:** взять рабочую версию v1.0.22 (origin/main) за основу и применить ребрендинг: новое название «bodaYan Launcher» и логотип BDY-куб (из приложенной картинки, максимальный размер, без рамок). Опубликовать релиз v1.1.0 на GitHub.
+
+**Изменения в коде/конфиге:**
+- `assets/icon-source.png` — обрезан из `BDY_logo.png` (1376×768) до квадрата 1024×1024 (куб заполняет почти весь холст, без рамок).
+- Пересобраны `assets/icon.png` (512px), `assets/icon.ico` (16/32/48/64/128/256), `assets/icon.icns` через `scripts/build-icons.js` (ffmpeg).
+- `launcher-visuals/logo/LOGO.png`, `optimized/LOGO-optimized.png`, `optimized/LOGO-optimized.webp` — заменены старым «SKYBLOCK VILLAGE» на BDY-куб.
+- `package.json`: name `apple-launcher`→`bodayan-launcher`, version `1.0.22`→`1.1.0`, description/author, appId `com.applelauncher.skyblock`→`com.bodayan.launcher`, productName `AppleLauncher`→`bodaYan Launcher`, artifactName `AppleLauncher.*`→`bodaYan-Launcher.*`, portable/NSIS имена.
+- `config/config.json`: title `AppleLauncher`→`bodaYan Launcher`, `selfUpdate.currentVersion` `1.0.22`→`1.1.0`.
+- `main.js`: `DATA_DIR` `%APPDATA%\AppleLauncher`→`%APPDATA%\bodaYan`; добавлена миграция старого каталога AppleLauncher→bodaYan (rename/copy); `DEFAULT_CONFIG.launcher.title`.
+- `src/updater.js`: `USER_AGENT` `AppleLauncher`→`bodaYan-Launcher`.
+- `src/selfUpdate.js`: имена файлов `AppleLauncher-update.exe`→`bodaYan-Launcher-update.exe`, `AppleLauncher-Setup.exe`→`bodaYan-Launcher-Setup.exe`.
+- `updater/launcher-version.json`: version 1.1.0, url `bodaYan-Launcher.exe`, sha1/size заполнены после сборки.
+- `scripts/test-self-update.js`, `scripts/test-diagnostic.js`, `scripts/smoke-nickname-live.js`, `scripts/publish-modpack.js`, `test-launch.js`, `package-lock.json` — обновлены под новый бренд.
+- `src/renderer.js` LEGACY_USERNAME_KEYS `appleLauncher.username` сохранён (для очистки старых данных).
+
+**Действия:**
+1. `git fetch origin`, анализ структуры v1.0.22 (35 коммитов после общего предка b2721dc).
+2. Создана ветка `bodayan-v1.1.0` от `origin/main`.
+3. Обрезка логотипа Python/Pillow: bbox по alpha>10 → квадрат 598×598 → Lanczos 1024×1024.
+4. `build-icons.js` (ffmpeg из `C:\adb_run\bin\`).
+5. `npm test` — все 51 проверка PASS; `node --check` для всех JS.
+6. `build-jre.js` (JDK 17 из `C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot`), JRE 47.1 МБ.
+7. `electron-builder --win portable` → `dist/bodaYan-Launcher.exe`.
+8. SHA1/size → `launcher-version.json`.
+9. `git commit` (f022c9c), `git push origin bodayan-v1.1.0`.
+10. GitHub API (PAT): создан релиз v1.1.0 (ID 457921580), загружены `bodaYan-Launcher.exe` и `launcher-version.json`.
+11. Проверка: `releases/latest` = v1.1.0, `latest/download/launcher-version.json` возвращает v1.1.0 с корректным sha1.
+
+**Результаты:** релиз v1.1.0 опубликован и является latest. Автообновление работает (манифест по `latest/download/launcher-version.json`). Все тесты PASS. Логотип BDY-куб используется как в иконке приложения/трея, так и в UI (launcher-visuals).
+
+**Статус:** ✅ Релиз v1.1.0 опубликован. ⬜ Визуальная проверка логотипа и названия на реальной машине пользователя. ⬜ Проверка реального self-update с установленной v1.0.22.
+
+**Проблемы/ограничения:** сертификат подписи не настроен (как и в прежних версиях) — SmartScreen может предупреждать. Сборка portable (без NSIS installer) — installerUrl в манифесте пустой. `electron-builder` использовал fallback обхода npm из-за отсутствия npm в PATH.
+
+**Открытые вопросы:** проверить на реальном ПК: запуск лаунчера, отображение логотипа BDY в UI, миграцию каталога AppleLauncher→bodaYan, self-update с v1.0.22. Решить, нужно ли собирать NSIS-установщик для v1.1.0.
 
 ### Сессия 2026-11-25 — v1.0.22: новый логотип, сборка и публикация автообновления
 
