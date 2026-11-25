@@ -1,10 +1,10 @@
 {
-  "version": "1.0.21",
-  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.21/AppleLauncher.exe",
-  "sha1": "2e43c1a301cd6539fc8dea9b9ecd44bf9c764b72",
-  "size": 125701767,
-  "installerUrl": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.21/AppleLauncher-Setup.exe",
-  "installerSha1": "f640b51818c7a08d46209945a65b1ec08cd9eb26",
-  "installerSize": 134275755,
-  "notes": "Обновлена иконка приложения на логотип яблока. Добавлен per-user NSIS-установщик с ярлыками на рабочем столе и в меню «Пуск»; приложение появляется в списке установленных программ. Самообновление выбирает portable EXE или NSIS Setup в зависимости от типа установки. Сохранение никнейма, валидация, запуск игры, прогресс и диагностика сохранены."
+  "version": "1.0.22",
+  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.22/AppleLauncher.exe",
+  "sha1": "d600d2ddebb280ee57398f34ae11220020f4087e",
+  "size": 125379984,
+  "installerUrl": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.22/AppleLauncher-Setup.exe",
+  "installerSha1": "705b5544191463f6998f5991050f0809208e6982",
+  "installerSize": 133939947,
+  "notes": "Обновлён значок приложения на предоставленное блочное яблоко; изображения оптимизированы, прозрачность сохранена. Сохранены portable- и NSIS-установка, автообновление, игровой запуск и пользовательские данные."
 }

@@ -3,6 +3,16 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — по [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.0.22] - 2026-11-25
+
+### Changed
+
+- Обновлён значок лаунчера на предоставленное блочное яблоко. PNG-источник оптимизирован до 1024×1024 с сохранением прозрачности; заново собраны PNG, multi-size ICO и ICNS.
+
+### Tests
+
+- Проверены размеры и структуры ICO/ICNS; `npm test` — 51/51 PASS.
+
 ## [1.0.21] - 2026-11-22
 
 ### Changed
