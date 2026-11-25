@@ -1,10 +1,10 @@
 {
-  "version": "1.1.0",
-  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.1.0/bodaYan-Launcher.exe",
-  "sha1": "7c19615c8cb9b4ba816914067396023e912c97d8",
-  "size": 126335906,
+  "version": "1.1.1",
+  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.1.1/bodaYan%20Launcher.exe",
+  "sha1": "3bf6cea89edb27eae495bc592227a592a91df985",
+  "size": 127492256,
   "installerUrl": "",
   "installerSha1": "",
   "installerSize": 0,
-  "notes": "Ребрендинг в bodaYan Launcher: новый логотип BDY-куб (максимальный размер, без рамок), обновлённое название во всём интерфейсе и метаданных, миграция каталога данных AppleLauncher → bodaYan. Сохранены portable-сборка, автообновление, игровой запуск и пользовательские данные."
+  "notes": "Фикс UI-логотипа: в интерфейсе восстановлен вордмарк «Скайблок-деревня» (в v1.1.0 ошибочно отображался BDY-куб). Иконка приложения, трея и сплэша — BDY-куб — без изменений. Ребрендинг bodaYan Launcher и миграция каталога данных сохранены."
 }
