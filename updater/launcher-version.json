@@ -1,10 +1,10 @@
 {
-  "version": "1.0.22",
-  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.22/AppleLauncher.exe",
-  "sha1": "d600d2ddebb280ee57398f34ae11220020f4087e",
-  "size": 125379984,
-  "installerUrl": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.22/AppleLauncher-Setup.exe",
-  "installerSha1": "705b5544191463f6998f5991050f0809208e6982",
-  "installerSize": 133939947,
-  "notes": "Обновлён значок приложения на предоставленное блочное яблоко; изображения оптимизированы, прозрачность сохранена. Сохранены portable- и NSIS-установка, автообновление, игровой запуск и пользовательские данные."
+  "version": "1.1.1",
+  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.1.1/bodaYan%20Launcher.exe",
+  "sha1": "3bf6cea89edb27eae495bc592227a592a91df985",
+  "size": 127492256,
+  "installerUrl": "",
+  "installerSha1": "",
+  "installerSize": 0,
+  "notes": "Фикс UI-логотипа: в интерфейсе восстановлен вордмарк «Скайблок-деревня» (в v1.1.0 ошибочно отображался BDY-куб). Иконка приложения, трея и сплэша — BDY-куб — без изменений. Ребрендинг bodaYan Launcher и миграция каталога данных сохранены."
 }

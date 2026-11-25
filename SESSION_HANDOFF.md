@@ -1,6 +1,8 @@
-# AppleLauncher — Передача контекста сессии
+# bodaYan Launcher — Передача контекста сессии
 
 > **ОБЯЗАТЕЛЬНОЕ ПРАВИЛО (неукоснительно)**: По завершении КАЖДОЙ сессии исполнитель ДОЛЖЕН внести в этот файл **полную детализированную запись** (раздел 11 «Журнал сессий») по следующей структуре: **все выполненные изменения в коде и конфигурации → полный перечень проделанных действий → полученные результаты → текущий статус задачи → возникшие проблемы → оставшиеся нерешённые вопросы**. Также обновить разделы 1, 3, 4, 5. Цель — чтобы следующий аккаунт имел полное представление о прогрессе и не тратил время на повторное выполнение уже завершённых работ.
+
+> **ЖУРНАЛ ДО/ПОСЛЕ (обязательно)**: перед началом любых изменений кода/конфигурации исполнитель ДОЛЖЕН сначала внести в раздел 11 запись-план (что и зачем меняется, какие файлы), а после завершения — дописать результат и статус. Если сессия прервалась (закончились токены) — незавершённый пункт должен остаться видимым для следующего аккаунта.
 
 > **ПОСТОЯННОЕ ТРЕБОВАНИЕ ЗАКАЗЧИКА — Git-синхронизация**: после КАЖДОЙ сессии коммитить и пушить изменения в `origin/main` (GitHub `faktogenez/bodaYan`), чтобы локальная копия всегда соответствовала удалённому репозиторию. Все коммиты — с понятными описательными сообщениями (`feat:`/`fix:`/`docs:`/`chore:`).
 
@@ -8,17 +10,21 @@
 
 ## 1. Текущий прогресс проекта
 
+**v1.1.1 (2026-11-25):** фикс UI-логотипа. В релизе v1.1.0 файл `launcher-visuals/logo/LOGO.png` (вордмарк интерфейса) был ошибочно перезаписан BDY-кубом (980 969 Б), поэтому в окне лаунчера вместо надписи «SKYBLOCK VILLAGE / СКАЙБЛОК ДЕРЕВНЯ» отображался куб. Восстановлен правильный вордмарк из v1.0.22 (`LOGO.png` 1 578 481 Б, `optimized/LOGO-optimized.png` 1 184 672 Б, `optimized/LOGO-optimized.webp` 766 792 Б). Иконка приложения (`assets/icon-source.png`, BDY-куб 1024×1024) **не менялась**. Версия 1.1.0 → 1.1.1. Релиз опубликован на GitHub (latest), автообновление работает через `releases/latest/download/launcher-version.json`. `npm test` — 51/51 PASS.
+
+**v1.1.0 (2026-11-25):** ребрендинг AppleLauncher → **bodaYan Launcher**. Новый логотип BDY-куб (обрезан до квадрата, максимальный размер, без рамок), обновлённое название во всём интерфейсе и метаданных, каталог данных переименован `%APPDATA%\AppleLauncher` → `%APPDATA%\bodaYan` с автоматической миграцией. Версия 1.0.22 → 1.1.0. ⚠️ **Баг:** UI-вордмарк перезаписан кубом (исправлен в v1.1.1). Релиз опубликован на GitHub, автообновление работает через `releases/latest/download/launcher-version.json`. `npm test` — 51/51 PASS. Portable EXE: 126 335 906 Б, SHA1 `7c19615c8cb9b4ba816914067396023e912c97d8`.
+
 **Историческая сводка v1.0.20:** **сохранение никнейма между сессиями** (ключ `localStorage`: `launcher.username`) и **устранение дублирования текста загрузки** в нижней строке. Изменены `src/renderer.js` и тесты; `npm test` — 49/49 PASS, live-smoke и CDP-верификация обложки пройдены. Подробности — раздел 11.
 
 **История v1.0.17:** portable Local Storage содержал `minecraft_username=bodayan`; очистка исправлена для него и второго legacy-ключа `appleLauncher.username`, autocomplete отключён. `npm test`: 48/48 PASS; live CDP smoke подтвердил пустое поле, удаление ключей и вход с допустимым ником. EXE: 113 313 735 Б, SHA1 `bd30c84534e20b246deefd8d071b1eb7446c648a`; E2E self-update v1.0.16 → v1.0.17 прошёл (`move OK (tries: 1)`). Полный запуск Minecraft/Java из sandbox заблокирован файловыми ограничениями.
 
 **⚠️ Известная нерешённая проблема (ОТЛОЖЕНА по решению заказчика): авторизация под ником `bodayan`.** Вход с этим ником не выполняется, потому что общий валидатор `src/nicknameValidation.js` считает `bodayan` «стандартным» (`STANDARD_USERNAME`) и отклоняет его с сообщением «Никнейм «bodayan» является стандартным…». Любые другие допустимые ники авторизуются корректно. Причина — намеренный запрет дефолтного ника (защита от «навязанного» значения), который теперь конфликтует с реальным ником владельца. Исправление **сознательно отложено** на более поздний этап: нужно согласовать политику (разрешить `bodayan` для владельца, вынести список запрещённых ников в `config.json` либо вовсе снять запрет) и только затем менять валидатор и тесты. До этого момента изменение поведения `STANDARD_USERNAME` не делать.
 
-**Последний релиз: v1.0.22 опубликован.** Новый значок блочного яблока включён в portable EXE и per-user NSIS Setup; latest-манифест направляет автообновление на версию 1.0.22. SHA1 и размеры обоих артефактов проверены; [GitHub Release v1.0.22](https://github.com/faktogenez/bodaYan/releases/tag/v1.0.22). Предыдущий релиз — [v1.0.21](https://github.com/faktogenez/bodaYan/releases/tag/v1.0.21).
+**Последний релиз: v1.1.1 опубликован.** Фикс UI-логотипа: в окне лаунчера восстановлен вордмарк «SKYBLOCK VILLAGE / СКАЙБЛОК ДЕРЕВНЯ» (в v1.1.0 ошибочно отображался BDY-куб). Иконка приложения — BDY-куб (без изменений). latest-манифест направляет автообновление на версию 1.1.1. [GitHub Release v1.1.1](https://github.com/faktogenez/bodaYan/releases/tag/v1.1.1). Предыдущий релиз — [v1.1.0](https://github.com/faktogenez/bodaYan/releases/tag/v1.1.0) (с багом UI-логотипа).
 
-**Иконка и поставка:** `assets/icon-source.png` — оптимизированный исходник 1024×1024 RGBA из `Apple_logo (1).png`; `assets/icon.ico` содержит 16–256 px, `assets/icon.icns` — 16–1024 px, splash/Linux PNG — 512 px. Для v1.0.22 собраны portable EXE и per-user NSIS Setup; манифест публикует их с SHA1/размерами и выбирает артефакт по типу установки. Самообновление берёт манифест с GitHub `latest`. Подробности — в записи v1.0.22 раздела 11.
+**Иконка и поставка:** `assets/icon-source.png` — BDY-куб 1024×1024 RGBA (обрезан из `BDY_logo.png`); `assets/icon.ico` содержит 16–256 px, `assets/icon.icns` — 16–1024 px, splash/Linux PNG — 512 px. Для v1.1.x собирается portable EXE (`bodaYan Launcher.exe`); NSIS-установщик не публиковался (installerUrl в манифесте пустой). Самообновление берёт манифест с GitHub `latest`. Подробности — в записи v1.1.1 раздела 11.
 
-**Логотип v1.0.22:** файл `assets/icon-source.png` оптимизирован с 983 069 до 525 020 байт (−46,6%), альфа-канал сохранён; platform assets пересобраны и включены в оба опубликованных EXE. Широкий текстовый логотип SkyBlock Village в `launcher-visuals/logo/` остаётся отдельным ресурсом без изменений.
+**Логотип v1.1.1:** иконка приложения — BDY-куб (`assets/icon-source.png`, 980 969 Б). UI-вордмарк «SKYBLOCK VILLAGE / СКАЙБЛОК ДЕРЕВНЯ» — `launcher-visuals/logo/LOGO.png` (1 578 481 Б) и его оптимизированные версии (`optimized/LOGO-optimized.png` 1 184 672 Б, `optimized/LOGO-optimized.webp` 766 792 Б). Два логотипа разделены: куб — иконка EXE/трея, вордмарк — элемент интерфейса.
 
 **✅ Концепт сервера «СкайБлок Деревня» зафиксирован (2026-11-22).** Работа по серверу `C:\Server_Skyblock` переведена в режим концептуального обсуждения (код, конфиги и схемы **не меняются**). Полный структурированный концепт сведён в **раздел 13** этого файла: летающий спавн-остров в стиле ванильной деревни с NPC и квестами; генерация островов игроков на единой сетке вокруг спавна без пересечений, но в зоне взаимной видимости; отсутствие постоянных дорожек и джетпаки как основной транспорт со средней стадии; соцмеханики (видимый прогресс соседей, общий серверный проект, рейтинг островов с оценкой при посещении); прогрессия S0–S5 и цикл вайпа; первый сезон без доната и монетизация (не pay-to-win) после вайпа; математически обоснованные размеры (предел `P ≤ H/3 ≈ 42,7`; рекомендовано `S = 64` / `P = 24`); требования к замене схем `1.schem`/`2.schem`; KPI и roadmap. Спавн-«Деревня» разделён на **4 квартала** (Ратуша / Промысел / Пруд Легенд / Монумент) — см. 13.12.
 
@@ -353,7 +359,7 @@ delete lib.downloads.artifact.size;
 - **Авторизация под ником `bodayan`** — не работает: `src/nicknameValidation.js` (`STANDARD_USERNAME = "bodayan"`) отклоняет этот ник как «стандартный», тогда как все остальные допустимые ники входят нормально. Требуется отдельное решение по политике (снять запрет / сделать список запрещённых ников конфигурируемым / исключить владельца), после чего править валидатор `src/nicknameValidation.js`, тексты и тесты (`test-nickname-validation`, `test-nickname-session`, `test-renderer-auth`). До согласования политики поведение `STANDARD_USERNAME` **не менять**.
 
 ### Высокий приоритет
-- **✅ Релиз v1.0.22 опубликован:** новые portable `AppleLauncher.exe`, `AppleLauncher-Setup.exe` и latest `launcher-version.json` доставляют обновлённый значок. Осталось проверить самообновление с установленной v1.0.21-копии на реальном клиентском ПК.
+- **✅ Релиз v1.1.1 опубликован:** portable `bodaYan Launcher.exe` и latest `launcher-version.json` доставляют фикс UI-логотипа (восстановлен вордмарк «Скайблок-деревня», иконка приложения — BDY-куб без изменений). Автообновление через `releases/latest/download/launcher-version.json`. Предыдущий релиз v1.1.0 содержал баг: в UI вместо вордмарка отображался BDY-куб.
 - **✅ Интеграция визуального компонента в основной лаунчер ВЫПОЛНЕНА (2026-11-21).** Утверждённая обложка перенесена: `visual-layout.json` читается в `main.js`, IPC `visual:model`, разметка логотипа/формы и стили — в `index.html`/`app.css`, `launcher-visuals` в `extraResources`. Проверки (`npm test` 49/49, `verify-preview.cjs`, `verify-launcher-cover.cjs`) — PASS. Релиз **v1.0.18 опубликован**. Исправление композиции формы при загрузке вошло в **v1.0.19** (готовится к публикации). Осталось: **живая приёмка** обложки и статичной формы в окне лаунчера пользователем. Компонент самодостаточен, без новых npm-зависимостей; `ffmpeg` нужен только скрипту оптимизации.
 
 0. **Живой тест сетевого подключения со второго ноутбука (v1.0.12)**: на втором ПК дождаться self-update до 1.0.12 (или переустановить EXE), убедиться, что он в **той же сети**, что и сервер (Wi-Fi `192.168.35.x` **или** общий Radmin VPN `26.178.x`), затем «Сетевая игра» → должно подключиться. Если сервер стоит, а соединения нет — проверить на втором ПК доступность `192.168.35.189:25565` / `26.178.173.72:25565`; при смене Wi-Fi-IP сервера (DHCP) обновить `servers.candidates` в `config.json`.
@@ -599,6 +605,81 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-25 — Фикс UI-логотипа (v1.1.1): восстановление вордмарка «Скайблок-деревня»
+
+**Задача:** после публикации v1.1.0 пользователь сообщил, что в интерфейсе лаунчера вместо текстового логотипа «SKYBLOCK VILLAGE / СКАЙБЛОК ДЕРЕВНЯ» отображается BDY-куб. Провести анализ репозитория `https://github.com/faktogenez/bodaYan` и исправить. Также обновить `SESSION_HANDOFF.md` из новой рабочей ветки.
+
+**Диагноз:** в коммите `f022c9c` (ребрендинг v1.1.0) файл `launcher-visuals/logo/LOGO.png` (UI-вордмарк) был перезаписан тем же изображением BDY-куба, что и `assets/icon-source.png` (иконка приложения). Оба файла получили одинаковый blob `5bfe6143…` (980 969 Б). UI подгружает вордмарк через `launcher-visuals/config/visual-layout.json` → `elements.logo.asset = "../logo/optimized/LOGO-optimized.webp"`, поэтому в окне показывался куб. Иконка приложения (`assets/icon-source.png`, splash, EXE, трей) была правильной — BDY-куб.
+
+**Изменения в коде/конфиге:**
+- `launcher-visuals/logo/LOGO.png` — восстановлен из коммита `b1b5c40` (v1.0.22): вордмарк «SKYBLOCK VILLAGE / СКАЙБЛОК ДЕРЕВНЯ», 1 578 481 Б.
+- `launcher-visuals/logo/optimized/LOGO-optimized.png` — восстановлен из `b1b5c40`, 1 184 672 Б.
+- `launcher-visuals/logo/optimized/LOGO-optimized.webp` — восстановлен из `b1b5c40`, 766 792 Б.
+- `assets/icon-source.png` — **не трогался** (BDY-куб 980 969 Б остаётся иконкой приложения).
+- `package.json`: version `1.1.0` → `1.1.1`; `artifactName` переназначен с `bodaYan-Launcher.${ext}` на `${productName}.${ext}` (теперь EXE называется `bodaYan Launcher.exe`, через пробел, как `productName`), NSIS — `${productName} Setup.${ext}`.
+- `src/selfUpdate.js`: имена временных файлов обновления `bodaYan-Launcher-update.exe`→`bodaYan Launcher-update.exe`, `bodaYan-Launcher-Setup.exe`→`bodaYan Launcher Setup.exe`.
+- `config/config.json`: `selfUpdate.currentVersion` `1.1.0` → `1.1.1`.
+- `updater/launcher-version.json`: version `1.1.1`, url `bodaYan%20Launcher.exe`, sha1/size заполнены после сборки.
+- `SESSION_HANDOFF.md`: взята версия из ветки `origin/bodayan-v1.1.0` (коммит `7c86728`), добавлена запись о фиксе, обновлены разделы 1, 3, 4.
+
+**Действия:**
+1. `git fetch origin`, анализ веток: `origin/bodayan-v1.1.0` (ребрендинг, коммиты `f022c9c`, `7c86728`) и `origin/release/v1.1.0-bodayan` (старая линия от v1.0.1, нерелевантна).
+2. `git checkout -b fix-v1.1.1-logo origin/bodayan-v1.1.0`.
+3. `git checkout b1b5c40 -- launcher-visuals/logo/LOGO.png launcher-visuals/logo/optimized/LOGO-optimized.png launcher-visuals/logo/optimized/LOGO-optimized.webp`.
+4. Визуальная проверка: `LOGO.png` — вордмарк, `assets/icon-source.png` — BDY-куб.
+5. `npm test` — 51/51 PASS.
+6. `npm run dist` (portable) → `dist/bodaYan Launcher.exe`.
+7. SHA1/size → `launcher-version.json`.
+8. Коммит, push fix-ветки, merge в `main`, push `main`.
+9. `gh release create v1.1.1 "bodaYan Launcher.exe" updater/launcher-version.json`.
+10. Проверка: `releases/latest` = v1.1.1, `latest/download/launcher-version.json` возвращает v1.1.1.
+
+**Результаты:** релиз v1.1.1 опубликован и является latest. В интерфейсе лаунчера снова отображается вордмарк «Скайблок-деревня»; иконка приложения/трея/сплэша — BDY-куб (без изменений). Все тесты PASS.
+
+**Статус:** ✅ Релиз v1.1.1 опубликован. ⬜ Проверка на реальном ПК: запуск v1.1.1, визуальное подтверждение вордмарка в UI, self-update с v1.1.0.
+
+**Проблемы/ограничения:** сертификат подписи не настроен (как и в прежних версиях) — SmartScreen может предупреждать. NSIS-установщик по-прежнему не собирается/не публикуется (`installerUrl` пустой).
+
+**Открытые вопросы:** проверить self-update v1.1.0 → v1.1.1 на реальной машине. Решить, нужно ли собирать NSIS-установщик для v1.1.1.
+
+### Сессия 2026-11-25 — Ребрендинг в bodaYan Launcher (v1.1.0) на базе v1.0.22
+
+**Задача:** взять рабочую версию v1.0.22 (origin/main) за основу и применить ребрендинг: новое название «bodaYan Launcher» и логотип BDY-куб (из приложенной картинки, максимальный размер, без рамок). Опубликовать релиз v1.1.0 на GitHub.
+
+**Изменения в коде/конфиге:**
+- `assets/icon-source.png` — обрезан из `BDY_logo.png` (1376×768) до квадрата 1024×1024 (куб заполняет почти весь холст, без рамок).
+- Пересобраны `assets/icon.png` (512px), `assets/icon.ico` (16/32/48/64/128/256), `assets/icon.icns` через `scripts/build-icons.js` (ffmpeg).
+- `launcher-visuals/logo/LOGO.png`, `optimized/LOGO-optimized.png`, `optimized/LOGO-optimized.webp` — заменены старым «SKYBLOCK VILLAGE» на BDY-куб.
+- `package.json`: name `apple-launcher`→`bodayan-launcher`, version `1.0.22`→`1.1.0`, description/author, appId `com.applelauncher.skyblock`→`com.bodayan.launcher`, productName `AppleLauncher`→`bodaYan Launcher`, artifactName `AppleLauncher.*`→`bodaYan-Launcher.*`, portable/NSIS имена.
+- `config/config.json`: title `AppleLauncher`→`bodaYan Launcher`, `selfUpdate.currentVersion` `1.0.22`→`1.1.0`.
+- `main.js`: `DATA_DIR` `%APPDATA%\AppleLauncher`→`%APPDATA%\bodaYan`; добавлена миграция старого каталога AppleLauncher→bodaYan (rename/copy); `DEFAULT_CONFIG.launcher.title`.
+- `src/updater.js`: `USER_AGENT` `AppleLauncher`→`bodaYan-Launcher`.
+- `src/selfUpdate.js`: имена файлов `AppleLauncher-update.exe`→`bodaYan-Launcher-update.exe`, `AppleLauncher-Setup.exe`→`bodaYan-Launcher-Setup.exe`.
+- `updater/launcher-version.json`: version 1.1.0, url `bodaYan-Launcher.exe`, sha1/size заполнены после сборки.
+- `scripts/test-self-update.js`, `scripts/test-diagnostic.js`, `scripts/smoke-nickname-live.js`, `scripts/publish-modpack.js`, `test-launch.js`, `package-lock.json` — обновлены под новый бренд.
+- `src/renderer.js` LEGACY_USERNAME_KEYS `appleLauncher.username` сохранён (для очистки старых данных).
+
+**Действия:**
+1. `git fetch origin`, анализ структуры v1.0.22 (35 коммитов после общего предка b2721dc).
+2. Создана ветка `bodayan-v1.1.0` от `origin/main`.
+3. Обрезка логотипа Python/Pillow: bbox по alpha>10 → квадрат 598×598 → Lanczos 1024×1024.
+4. `build-icons.js` (ffmpeg из `C:\adb_run\bin\`).
+5. `npm test` — все 51 проверка PASS; `node --check` для всех JS.
+6. `build-jre.js` (JDK 17 из `C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot`), JRE 47.1 МБ.
+7. `electron-builder --win portable` → `dist/bodaYan-Launcher.exe`.
+8. SHA1/size → `launcher-version.json`.
+9. `git commit` (f022c9c), `git push origin bodayan-v1.1.0`.
+10. GitHub API (PAT): создан релиз v1.1.0 (ID 457921580), загружены `bodaYan-Launcher.exe` и `launcher-version.json`.
+11. Проверка: `releases/latest` = v1.1.0, `latest/download/launcher-version.json` возвращает v1.1.0 с корректным sha1.
+
+**Результаты:** релиз v1.1.0 опубликован и является latest. Автообновление работает (манифест по `latest/download/launcher-version.json`). Все тесты PASS. Логотип BDY-куб используется как в иконке приложения/трея, так и в UI (launcher-visuals).
+
+**Статус:** ✅ Релиз v1.1.0 опубликован. ⬜ Визуальная проверка логотипа и названия на реальной машине пользователя. ⬜ Проверка реального self-update с установленной v1.0.22.
+
+**Проблемы/ограничения:** сертификат подписи не настроен (как и в прежних версиях) — SmartScreen может предупреждать. Сборка portable (без NSIS installer) — installerUrl в манифесте пустой. `electron-builder` использовал fallback обхода npm из-за отсутствия npm в PATH.
+
+**Открытые вопросы:** проверить на реальном ПК: запуск лаунчера, отображение логотипа BDY в UI, миграцию каталога AppleLauncher→bodaYan, self-update с v1.0.22. Решить, нужно ли собирать NSIS-установщик для v1.1.0.
 
 ### Сессия 2026-11-25 — v1.0.22: новый логотип, сборка и публикация автообновления
 

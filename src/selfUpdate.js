@@ -51,7 +51,7 @@ function resolveUpdateArtifact(remote, isPortable) {
   if (isPortable) {
     return {
       type: "portable",
-      fileName: "AppleLauncher-update.exe",
+      fileName: "bodaYan Launcher-update.exe",
       url: remote.url,
       sha1: remote.sha1,
       size: remote.size
@@ -64,7 +64,7 @@ function resolveUpdateArtifact(remote, isPortable) {
 
   return {
     type: "installer",
-    fileName: "AppleLauncher-Setup.exe",
+    fileName: "bodaYan Launcher Setup.exe",
     url: remote.installerUrl,
     sha1: remote.installerSha1,
     size: remote.installerSize

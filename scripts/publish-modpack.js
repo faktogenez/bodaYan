@@ -54,7 +54,7 @@ function run(cmd, cmdArgs) {
   if (!files.length) throw new Error("Манифест пуст — нечего публиковать");
 
   // 2) Стейджинг: копии файлов во временный каталог под именами ассетов.
-  const stage = fs.mkdtempSync(path.join(os.tmpdir(), "applelauncher-modpack-"));
+  const stage = fs.mkdtempSync(path.join(os.tmpdir(), "bodayan-modpack-"));
   const assets = [];
   try {
     for (const f of files) {

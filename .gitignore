@@ -32,3 +32,6 @@ backups/
 # ОС
 .DS_Store
 Thumbs.db
+
+# TRAE share-артефакты (не относятся к проекту)
+.trae-html-share-packages/

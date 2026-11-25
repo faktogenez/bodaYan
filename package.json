@@ -1,8 +1,8 @@
 {
-  "name": "apple-launcher",
-  "version": "1.0.22",
-  "description": "SkyBlock Launcher",
-  "author": "AppleLauncher",
+  "name": "bodayan-launcher",
+  "version": "1.1.1",
+  "description": "bodaYan Launcher",
+  "author": "bodaYan",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -22,9 +22,9 @@
     "minecraft-launcher-core": "^3.18.2"
   },
   "build": {
-    "appId": "com.applelauncher.skyblock",
-    "productName": "AppleLauncher",
-    "artifactName": "AppleLauncher.${ext}",
+    "appId": "com.bodayan.launcher",
+    "productName": "bodaYan Launcher",
+    "artifactName": "${productName}.${ext}",
     "compression": "maximum",
     "asar": true,
     "directories": {
@@ -65,14 +65,14 @@
       ]
     },
     "nsis": {
-      "artifactName": "AppleLauncher-Setup.${ext}",
+      "artifactName": "${productName} Setup.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": false,
-      "shortcutName": "AppleLauncher"
+      "shortcutName": "bodaYan Launcher"
     },
     "mac": {
       "icon": "assets/icon.icns"
@@ -81,7 +81,7 @@
       "icon": "assets/icon.png"
     },
     "portable": {
-      "artifactName": "AppleLauncher.exe"
+      "artifactName": "${productName}.exe"
     }
   },
   "devDependencies": {

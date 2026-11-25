@@ -6,9 +6,9 @@ const logger = require("../src/logger");
 const diagnostic = require("../src/diagnostic");
 
 diagnostic.configure({
-  dataDir: path.join(os.homedir(), "AppData", "Roaming", "AppleLauncher"),
+  dataDir: path.join(os.homedir(), "AppData", "Roaming", "bodaYan"),
   exeDir: process.cwd(),
-  gameDir: path.join(os.homedir(), "AppData", "Roaming", "AppleLauncher", "minecraft", "game"),
+  gameDir: path.join(os.homedir(), "AppData", "Roaming", "bodaYan", "minecraft", "game"),
   config: { launcher: { version: { custom: "Forge 1.16.5" }, memory: { min: "2048", max: "4096" }, server: { host: "127.0.0.1", port: 25565 }, javaPath: "" } },
   javaPath: "C:\\jre\\bin\\javaw.exe"
 });
