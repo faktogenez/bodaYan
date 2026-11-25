@@ -67,14 +67,14 @@ async function main() {
     await check("манифест выбирает portable EXE или NSIS Setup для нужного типа установки", async () => {
       assert.deepStrictEqual(selfUpdate.resolveUpdateArtifact(manifest, true), {
         type: "portable",
-        fileName: "AppleLauncher-update.exe",
+        fileName: "bodaYan-Launcher-update.exe",
         url: manifest.url,
         sha1: manifest.sha1,
         size: manifest.size
       });
       assert.deepStrictEqual(selfUpdate.resolveUpdateArtifact(manifest, false), {
         type: "installer",
-        fileName: "AppleLauncher-Setup.exe",
+        fileName: "bodaYan-Launcher-Setup.exe",
         url: manifest.installerUrl,
         sha1: manifest.installerSha1,
         size: manifest.installerSize
@@ -121,8 +121,8 @@ async function main() {
 
     await check("apply-скрипт заменяет без конвейеров, с логами, ретраями и fallback", async () => {
       const { batPath, content } = selfUpdate.buildApplyScript({
-        newExePath: path.join(tempDir, "AppleLauncher-update.exe"),
-        targetExePath: path.join(tempDir, "AppleLauncher.exe"),
+        newExePath: path.join(tempDir, "bodaYan-Launcher-update.exe"),
+        targetExePath: path.join(tempDir, "bodaYan-Launcher.exe"),
         pid: 4321
       });
       assert.strictEqual(batPath, path.join(tempDir, "apply-launcher-update.bat"));
@@ -142,13 +142,13 @@ async function main() {
     });
 
     await check("NSIS apply-скрипт ждёт разблокировки EXE, запускает тихий Setup и умеет откатить", async () => {
-      const targetExePath = path.join(tempDir, "installed", "AppleLauncher.exe");
-      const installerPath = path.join(tempDir, "AppleLauncher-Setup.exe");
+      const targetExePath = path.join(tempDir, "installed", "bodaYan-Launcher.exe");
+      const installerPath = path.join(tempDir, "bodaYan-Launcher-Setup.exe");
       const { batPath, content } = selfUpdate.buildInstallerApplyScript({ installerPath, targetExePath });
       assert.strictEqual(batPath, path.join(tempDir, "apply-launcher-installer-update.bat"));
       assert.ok(content.includes(`set "TARGET=${targetExePath}"`));
       assert.ok(content.includes(`set "SETUP=${installerPath}"`));
-      assert.ok(content.includes(`set "BACKUP=${path.join(tempDir, "AppleLauncher.exe.update-backup")}"`));
+      assert.ok(content.includes(`set "BACKUP=${path.join(tempDir, "bodaYan-Launcher.exe.update-backup")}"`));
       assert.ok(content.includes(`move /Y "%TARGET%" "%BACKUP%"`));
       assert.ok(content.includes(`start /wait "" "%SETUP%" /S`));
       assert.ok(content.includes(":rollback"));

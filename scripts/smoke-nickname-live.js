@@ -19,7 +19,7 @@ async function main() {
     return response.json();
   });
   const target = targets.find((entry) => entry.type === "page" && entry.url.includes("index.html"));
-  assert.ok(target, "Не найдено окно AppleLauncher с index.html");
+  assert.ok(target, "Не найдено окно bodaYan Launcher с index.html");
 
   const socket = new WebSocket(target.webSocketDebuggerUrl);
   const pending = new Map();

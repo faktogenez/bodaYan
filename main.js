@@ -23,9 +23,9 @@ const EXE_DIR = app.isPackaged
   : ROOT;
 
 // Постоянный каталог данных (записываемый). НЕ зависит от места EXE: при запуске EXE с рабочего
-// стола рядом создавались бы config/minecraft/updater — теперь всё хранится в %APPDATA%\AppleLauncher.
+// стола рядом создавались бы config/minecraft/updater — теперь всё хранится в %APPDATA%\bodaYan.
 // В dev-режиме используется корень проекта.
-const DATA_DIR = app.isPackaged ? path.join(app.getPath("appData"), "AppleLauncher") : ROOT;
+const DATA_DIR = app.isPackaged ? path.join(app.getPath("appData"), "bodaYan") : ROOT;
 
 // Лог (debug.log в каталоге данных) — только при process.env.DEBUG.
 logger.setLogDir(DATA_DIR);
@@ -34,6 +34,20 @@ logger.setLogDir(DATA_DIR);
 // чтобы пользователи предыдущих версий не качали модпак заново.
 function migrateDataDir() {
   try {
+    // Ребрендинг: перенос данных из старого каталога %APPDATA%\AppleLauncher → %APPDATA%\bodaYan.
+    if (app.isPackaged) {
+      const oldBrandDir = path.join(app.getPath("appData"), "AppleLauncher");
+      if (fs.existsSync(oldBrandDir) && !fs.existsSync(DATA_DIR)) {
+        try {
+          fs.renameSync(oldBrandDir, DATA_DIR);
+          logger.log("[data] каталог переименован при ребрендинге:", oldBrandDir, "->", DATA_DIR);
+        } catch (_) {
+          fs.cpSync(oldBrandDir, DATA_DIR, { recursive: true });
+          fs.rmSync(oldBrandDir, { recursive: true, force: true });
+          logger.log("[data] каталог скопирован при ребрендинге:", oldBrandDir, "->", DATA_DIR);
+        }
+      }
+    }
     if (path.resolve(EXE_DIR) === path.resolve(DATA_DIR)) return;
     const from = path.join(EXE_DIR, "minecraft");
     const to = path.join(DATA_DIR, "minecraft");
@@ -79,7 +93,7 @@ const AUTHLIB_FIX_VERSION = "2.3.31";
 
 const DEFAULT_CONFIG = {
   launcher: {
-    title: "AppleLauncher",
+    title: "bodaYan Launcher",
     width: 920,
     height: 600,
     offline: true,

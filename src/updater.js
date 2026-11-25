@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const { URL } = require("url");
 const logger = require("./logger");
 
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleLauncher";
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) bodaYan-Launcher";
 const MAX_REDIRECTS = 5;
 const INACTIVITY_TIMEOUT_MS = 15000; // 15с без данных → обрыв запроса и retry
 
