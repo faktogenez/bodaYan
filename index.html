@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' file: data:; script-src 'self';">
-  <title>AppleLauncher</title>
+  <title>bodaYan Launcher</title>
   <link rel="stylesheet" href="assets/styles/app.css">
 </head>
 <body>
@@ -13,16 +13,17 @@
   <div class="app">
     <header class="titlebar">
       <div class="window-controls">
-        <button class="control-btn close-btn" id="closeBtn" title="Закрыть"></button>
         <button class="control-btn minimize-btn" id="minimizeBtn" title="Свернуть"></button>
+        <button class="control-btn close-btn" id="closeBtn" title="Закрыть"></button>
       </div>
-      <span class="brand">AppleLauncher</span>
+      <span class="brand" id="brandText">bodaYan Launcher</span>
       <div style="width: 54px;"></div>
     </header>
 
     <main class="content">
       <div class="hero">
-        <h1>SkyBlock</h1>
+        <img src="assets/logo.svg" alt="bodaYan Launcher" class="brand-logo" id="brandLogo">
+        <h1>bodaYan</h1>
         <p>Minecraft 1.16.5 с Forge</p>
       </div>
 
@@ -48,6 +49,7 @@
     </main>
 
     <footer class="status-bar" id="statusText">Готов к запуску</footer>
+    <div class="about-bar" id="aboutBar">bodaYan Launcher</div>
   </div>
 
   <script src="src/renderer.js"></script>

@@ -5,8 +5,33 @@ const http = require("http");
 const crypto = require("crypto");
 const { URL } = require("url");
 
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleLauncher";
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) bodaYan-Launcher";
 const MAX_REDIRECTS = 5;
+const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
+
+// Безопасное соединение путей: запрещает выход за пределы targetPath (path traversal).
+function safeJoin(targetPath, relPath) {
+  const resolved = path.resolve(targetPath, relPath);
+  const normalizedTarget = path.resolve(targetPath) + path.sep;
+  if (!resolved.startsWith(normalizedTarget) && resolved !== path.resolve(targetPath)) {
+    throw new Error(`Путь выходит за пределы целевой директории: ${relPath}`);
+  }
+  return resolved;
+}
+
+// Валидация URL: только http/https, корректный парсинг.
+function assertSafeUrl(urlStr) {
+  let u;
+  try {
+    u = new URL(urlStr);
+  } catch {
+    throw new Error(`Некорректный URL: ${urlStr}`);
+  }
+  if (!ALLOWED_PROTOCOLS.has(u.protocol)) {
+    throw new Error(`Недопустимый протокол URL: ${u.protocol}`);
+  }
+  return u;
+}
 
 // SHA1 файла (потоково, без загрузки целиком в память).
 function sha1File(filePath) {
@@ -23,7 +48,7 @@ function sha1File(filePath) {
 function fetchBuffer(urlStr, redirects = 0) {
   return new Promise((resolve, reject) => {
     if (redirects > MAX_REDIRECTS) return reject(new Error("Слишком много редиректов"));
-    const u = new URL(urlStr);
+    const u = assertSafeUrl(urlStr);
     const mod = u.protocol === "http:" ? http : https;
     const req = mod.get(urlStr, { headers: { "User-Agent": USER_AGENT } }, (res) => {
       const { statusCode, headers } = res;
@@ -60,7 +85,7 @@ async function downloadToFile(urlStr, destPath, onBytes, opts = {}) {
 function streamDownload(urlStr, destPath, onBytes, opts, redirects) {
   return new Promise((resolve, reject) => {
     if (redirects > MAX_REDIRECTS) return reject(new Error("Слишком много редиректов"));
-    const u = new URL(urlStr);
+    const u = assertSafeUrl(urlStr);
     const mod = u.protocol === "http:" ? http : https;
 
     const req = mod.get(urlStr, { headers: { "User-Agent": USER_AGENT } }, (res) => {
@@ -169,7 +194,13 @@ async function runUpdate({ manifestUrl, manifestPath, targetPath, onProgress }) 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const rel = file.path;
-    const dest = path.join(targetPath, rel);
+    let dest;
+    try {
+      dest = safeJoin(targetPath, rel);
+    } catch (err) {
+      results.failed.push({ path: rel, error: err.message });
+      continue;
+    }
 
     report({ phase: "check", current: i + 1, total: files.length, file: rel });
 

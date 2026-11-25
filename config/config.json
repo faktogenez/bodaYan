@@ -1,6 +1,6 @@
 {
   "launcher": {
-    "title": "AppleLauncher",
+    "title": "bodaYan Launcher",
     "width": 920,
     "height": 600,
     "offline": true,
@@ -18,7 +18,8 @@
       "type": "release",
       "custom": "Forge 1.16.5"
     },
-    "javaPath": ""
+    "javaPath": "",
+    "gameDirectory": ""
   },
   "theme": {
     "accent": "#0a84ff",
@@ -49,7 +50,7 @@
   "selfUpdate": {
     "enabled": true,
     "manifestUrl": "https://github.com/faktogenez/bodaYan/releases/latest/download/launcher-version.json",
-    "currentVersion": "1.0.1",
+    "currentVersion": "1.1.0",
     "autoApply": true
   }
 }

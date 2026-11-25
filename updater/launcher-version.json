@@ -1,7 +1,7 @@
 {
-  "version": "1.0.1",
-  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.0.1/AppleLauncher-1.0.1.exe",
-  "sha1": "a9095b2064cb8329e55029684adc2ceda6f7ab87",
-  "size": 80705568,
-  "notes": "Иконка приложения, версия 1.0.1"
+  "version": "1.1.0",
+  "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.1.0/bodaYan-Launcher-1.1.0.exe",
+  "sha1": "4ec271698b68968953baf14a27549c67222647a8",
+  "size": 80800372,
+  "notes": "Новый логотип BDY (белые панели + 3D буквы), системный трей, инфо 'О программе', фикс currentVersion"
 }

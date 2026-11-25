@@ -1,8 +1,8 @@
 {
-  "name": "apple-launcher",
-  "version": "1.0.1",
-  "description": "SkyBlock Launcher",
-  "author": "AppleLauncher",
+  "name": "bodayan-launcher",
+  "version": "1.1.0",
+  "description": "bodaYan Launcher",
+  "author": "bodaYan",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -14,9 +14,9 @@
     "minecraft-launcher-core": "^3.18.2"
   },
   "build": {
-    "appId": "com.applelauncher.skyblock",
-    "productName": "AppleLauncher",
-    "artifactName": "AppleLauncher-${version}.${ext}",
+    "appId": "com.bodayan.launcher",
+    "productName": "bodaYan Launcher",
+    "artifactName": "bodaYan-Launcher-${version}.${ext}",
     "compression": "maximum",
     "asar": true,
     "directories": {
@@ -44,7 +44,7 @@
       ]
     },
     "portable": {
-      "artifactName": "AppleLauncher-${version}.exe"
+      "artifactName": "bodaYan-Launcher-${version}.exe"
     }
   },
   "devDependencies": {

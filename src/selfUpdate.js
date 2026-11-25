@@ -6,6 +6,18 @@ const updater = require("./updater");
 // Автообновление самого лаунчера: проверка версии по манифесту, загрузка нового EXE,
 // подмена собственного файла и перезапуск.
 
+// Экранирование строки для использования внутри .bat (cmd.exe):
+// удваиваем кавычки уже снаружи, здесь защищаем спецсимволы cmd.
+function escapeBat(str) {
+  return String(str)
+    .replace(/\^/g, "^^")
+    .replace(/&/g, "^&")
+    .replace(/\|/g, "^|")
+    .replace(/</g, "^<")
+    .replace(/>/g, "^>")
+    .replace(/%/g, "%%");
+}
+
 function parseVersion(v) {
   return String(v || "0")
     .trim()
@@ -64,12 +76,15 @@ async function downloadUpdate({ url, destFile, sha1, onProgress }) {
 // подменит exe и перезапустит его. На Windows работает, т.к. сам Electron уже завершится.
 function applyUpdateAndRestart({ newExePath, targetExePath, pid }) {
   const batPath = path.join(path.dirname(newExePath), "apply-launcher-update.bat");
+  const safeTarget = escapeBat(targetExePath);
+  const safeSource = escapeBat(newExePath);
+  const safePid = escapeBat(String(pid));
   const lines = [
     "@echo off",
     "setlocal",
-    `set "TARGET=${targetExePath}"`,
-    `set "SOURCE=${newExePath}"`,
-    `set "PID=${pid}"`,
+    `set "TARGET=${safeTarget}"`,
+    `set "SOURCE=${safeSource}"`,
+    `set "PID=${safePid}"`,
     ":wait",
     `tasklist /FI "PID eq %PID%" 2>nul | find "%PID%" >nul`,
     "if not errorlevel 1 (",

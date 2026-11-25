@@ -1,4 +1,4 @@
-# AppleLauncher — Передача контекста сессии
+# bodaYan Launcher — Передача контекста сессии
 
 > **ОБЯЗАТЕЛЬНОЕ ПРАВИЛО (неукоснительно)**: По завершении КАЖДОЙ сессии исполнитель ДОЛЖЕН внести в этот файл **полную детализированную запись** (раздел 11 «Журнал сессий») по следующей структуре: **все выполненные изменения в коде и конфигурации → полный перечень проделанных действий → полученные результаты → текущий статус задачи → возникшие проблемы → оставшиеся нерешённые вопросы**. Также обновить разделы 1, 3, 4, 5. Цель — чтобы следующий аккаунт имел полное представление о прогрессе и не тратил время на повторное выполнение уже завершённых работ.
 
@@ -6,11 +6,11 @@
 
 ## 1. Текущий прогресс проекта
 
-**Статус**: ✅ Базовый лаунчер работает. Minecraft 1.16.5 Forge успешно запускается и доходит до главного меню. ✅ Внешний `config/config.json` читается `main.js`; подключены случайный фон, тема из конфига, прогресс-бар загрузки и динамический meta-row. ✅ Работает **оффлайн-режим («пиратка»)** — вычисляется корректный оффлайн-UUID, аккаунт без токенов Mojang. ✅ **Кнопка «Сетевая игра» активна** — фикс authlib 2.1.28 → 2.3.31 (автопатч version JSON перед запуском). ✅ **Автоподключение к серверу ОТКЛЮЧЕНО**: игра всегда открывает главное меню Minecraft (логотип Mojang → меню), игрок сам выбирает «Одиночная игра» / «Сетевая игра». ✅ **Автообновление самого лаунчера** (`src/selfUpdate.js`) — проверка версии по манифесту, скачивание нового EXE, подмена и авто-перезапуск. ✅ **Переносимость одним EXE**: каталог данных вычисляется из расположения EXE (`APP_DIR`), внешний `config.json` создаётся автоматически при первом запуске (см. раздел 12).
+**Статус**: ✅ Базовый лаунчер работает. Minecraft 1.16.5 Forge успешно запускается и доходит до главного меню. ✅ **Ребрендинг в bodaYan Launcher (v1.1.0)** — название обновлено во всей кодовой базе. ✅ **Новый логотип BDY** — изометрический Minecraft-куб с белыми вставными панелями и объёмными буквами B/D/Y (генератор `scripts/generate_logo.py`, форматы PNG 512×512 / ICO 16–256 / SVG). ✅ **Системный трей** — иконка BDY, тултип с версией, меню «Открыть/Выход», сворачивание в трей при закрытии окна. ✅ **Инфо «О программе»** — строка с названием и версией в футере UI. ✅ **Аудит безопасности**, **оптимизация**, **оффлайн-режим**, **фикс authlib**, **автообновление файлов и самого лаунчера**, **переносимость одним EXE**. ✅ **Сборка v1.1.0** — `dist/bodaYan-Launcher-1.1.0.exe` (77.06 МБ, SHA1 `4ec271698b68968953baf14a27549c67222647a8`), smoke-тест пройден (окно «bodaYan Launcher», portable-режим работает).
 
 **Цель проекта**: Электронный лаунчер Minecraft для запуска Minecraft 1.16.5 Forge с подключением к локальному серверу `127.0.0.1:25565`.
 
-**Корень проекта**: `C:\Users\LEO\AppleLauncher`
+**Корень проекта**: `C:\Users\user\Documents\trae_projects\SkyBlock`
 
 ---
 
@@ -39,22 +39,69 @@
 
 ---
 
+## 2.1 Концепция бренда «Бодаян» (BDY)
+
+### Происхождение названия
+
+«**Бодаян**» (латиницей **BoDaYan**, монограмма **BDY**) образовано из первых слогов имён детей проекта:
+- **Bo** — Боря
+- **Da** — Даша
+- **Yan** — Ян
+
+Это не случайный набор букв, а **семейный шифр**: название несёт личный смысл и выделяет проект среди типовых «MineLauncher»/«CraftLauncher».
+
+### Почему это работает
+
+1. **Уникальность.** Название не ассоциируется с существующими лаунчерами — легко запоминается и не конфликтует с брендами.
+2. **Семейная идентичность.** Лаунчер позиционируется как «свой» — сделанный для близких, а не как обезличенный продукт. Это повышает доверие и упрощает распространение среди друзей семьи.
+3. **Монограмма BDY** отлично ложится на Minecraft-эстетику: три буквы = три грани куба = три ребёнка. Визуальная метафора усиливает смысл названия.
+4. **Короткое и произносимое.** «Бодаян» — 3 слога, ударение естественно ложится на «о»; «BDY» — 3 символа, удобно для иконки и водяных знаков.
+
+### Текущая реализация
+
+- **Логотип** — изометрический Minecraft-куб (трава + земля), на трёх гранях буквы **B**, **D**, **Y**. Цвета: зелёная трава, коричневая земля, белые панели с буквами. Сгенерирован в `scripts/generate_logo.py` (PNG/ICO/SVG).
+- **Название в UI** — `bodaYan` (hero-заголовок) + «Launcher» (подзаголовок). Смешанный регистр подчёркивает слоговую структуру: **Bo**d**a**Y**an**.
+- **Каталог данных** — `%LOCALAPPDATA%\bodaYan\`.
+
+### Улучшения для усиления концепции
+
+**Визуальный стиль:**
+- Добавить в `assets/styles/app.css` акцентный цвет семейной палитры (например, тёплый оранжевый/янтарный — «Ян») и использовать его для кнопки «Играть» и прогресс-бара.
+- Ввести три тематических цвета-персонажа:
+  - **Bo** (Боря) — синий/голубой
+  - **Da** (Даша) — розовый/лиловый
+  - **Yan** (Ян) — янтарный/жёлтый
+  Эти цвета можно использовать в индикаторах (например, три точки загрузки в цветах детей) или в случайном выборе акцента при запуске.
+- Сделать вариант логотипа с пиксельным шрифтом (Minecraft-стиль) для букв B/D/Y вместо гладкого Arial — усилит связь с игрой.
+
+**Интерфейс:**
+- При первом запуске показать короткую заставку с объяснением названия («Бодаян — Боря, Даша, Ян») — формирует эмоциональную связь.
+- В статус-баре или «О программе» добавить строку «Сделано с любовью для Бори, Даши и Яна».
+- Добавить пасхалку: при вводе ника одного из детей (например, `borya`, `dasha`, `yan`) менять акцентный цвет интерфейса на соответствующий.
+
+**Идентичность:**
+- В `config/config.json` добавить секцию `brand` с настраиваемым приветствием и автором.
+- В README добавить раздел «О проекте» с рассказом о семейной сути — это повышает лояльность пользователей.
+- При сборке EXE использовать иконку BDY в качестве иконки приложения (сейчас `assets/icon.ico` уже сгенерирован, убедиться что `build.icon` в `package.json` указывает на него).
+
+---
+
 ## 3. Архитектура кода
 
 ### Файлы проекта
 
 | Файл | Назначение |
 |------|-----------|
-| [main.js](file:///C:/Users/LEO/AppleLauncher/main.js) | Главный процесс Electron. Создаёт окно, обрабатывает IPC, запускает игру через `minecraft-launcher-core`. |
-| [index.html](file:///C:/Users/LEO/AppleLauncher/index.html) | Разметка UI. Поле ника, meta-row, кнопка запуска, прогресс-бар, статус-бар. |
-| [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) | Мост между renderer и main через `contextBridge`. Экспонирует `electronAPI`. |
-| [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) | UI-логика. Тема/meta из конфига, случайный фон, прогресс-бар (игра + обновление), статус. |
-| [src/updater.js](file:///C:/Users/LEO/AppleLauncher/src/updater.js) | Проверка целостности и дозагрузка файлов по манифесту (Google Drive / прямой URL). |
-| [src/servers.js](file:///C:/Users/LEO/AppleLauncher/src/servers.js) | Запись `servers.dat` (NBT) — список серверов только из `config.json`. |
-| [src/selfUpdate.js](file:///C:/Users/LEO/AppleLauncher/src/selfUpdate.js) | Автообновление лаунчера: проверка версии, загрузка нового EXE, подмена и перезапуск. |
-| [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css) | Стили (glassmorphism). |
-| [test-launch.js](file:///C:/Users/LEO/AppleLauncher/test-launch.js) | Отладочный скрипт прямого запуска игры без Electron (offline UUID, quickPlay, корректная авторизация). |
-| [config/config.json](file:///C:/Users/LEO/AppleLauncher/config/config.json) | ✅ Читается `main.js`. Настройки окна, памяти, сервера, версии, ника, флаг `offline`, пути к фонам и тема. |
+| [main.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/main.js) | Главный процесс Electron. Создаёт окно, обрабатывает IPC, запускает игру через `minecraft-launcher-core`. |
+| [index.html](file:///C:/Users/user/Documents/trae_projects/SkyBlock/index.html) | Разметка UI. Поле ника, meta-row, кнопка запуска, прогресс-бар, статус-бар. |
+| [src/preload.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/src/preload.js) | Мост между renderer и main через `contextBridge`. Экспонирует `electronAPI`. |
+| [src/renderer.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/src/renderer.js) | UI-логика. Тема/meta из конфига, случайный фон, прогресс-бар (игра + обновление), статус. |
+| [src/updater.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/src/updater.js) | Проверка целостности и дозагрузка файлов по манифесту (Google Drive / прямой URL). |
+| [src/servers.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/src/servers.js) | Запись `servers.dat` (NBT) — список серверов только из `config.json`. |
+| [src/selfUpdate.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/src/selfUpdate.js) | Автообновление лаунчера: проверка версии, загрузка нового EXE, подмена и перезапуск. |
+| [assets/styles/app.css](file:///C:/Users/user/Documents/trae_projects/SkyBlock/assets/styles/app.css) | Стили (glassmorphism). |
+| [test-launch.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/test-launch.js) | Отладочный скрипт прямого запуска игры без Electron (offline UUID, quickPlay, корректная авторизация). |
+| [config/config.json](file:///C:/Users/user/Documents/trae_projects/SkyBlock/config/config.json) | ✅ Читается `main.js`. Настройки окна, памяти, сервера, версии, ника, флаг `offline`, пути к фонам и тема. |
 
 ### Поток запуска игры
 
@@ -69,7 +116,10 @@ renderer.js (клик "Играть")
 ```
 
 ### Ключевые константы в `main.js` (все выводятся из `config.json`):
-- `GAME_DIR` ← `launcher.gameDirectory` = `C:\Users\LEO\AppleLauncher\minecraft\game`
+- `APP_NAME = "bodaYan Launcher"` — единая константа названия для заголовка окна, трея, меню
+- `APP_VERSION = app.getVersion()` — версия из `package.json`
+- `ICON_PNG` / `ICON_ICO` — пути к иконке (PNG для трея, ICO для окна/сборки)
+- `GAME_DIR` ← `launcher.gameDirectory` = `C:\Users\user\Documents\trae_projects\SkyBlock\minecraft\game`
 - `VERSION_CUSTOM` ← `launcher.version.custom` = `"Forge 1.16.5"`
 - `VERSION_NUMBER` = `"1.16.5"`, `VERSION_TYPE` = `"release"`
 - `DEFAULT_USERNAME` ← `launcher.defaultUsername` = `"bodayan"`
@@ -206,19 +256,29 @@ delete lib.downloads.artifact.size;
 - [x] **[Portable EXE]** Переносимость одним EXE: `APP_DIR` (каталог данных рядом с EXE через `PORTABLE_EXECUTABLE_DIR`), авто-создание внешнего `config/config.json` из шаблона, пути `gameDirectory`/`targetPath`/`manifestPath` выводятся из `APP_DIR`; устранены абсолютные пути в `config.json`
 - [x] **[Фикс]** Целевой путь self-update для portable: используется `PORTABLE_EXECUTABLE_FILE` вместо `process.execPath` (иначе обновлялась бы распакованная копия в `%TEMP%`)
 - [x] **[Документация]** Раздел 12: сервисы хранения, состав EXE vs динамика, целостность/докачка, требования к упаковке, план тестирования на чистой системе, механика self-update
+- [x] **[Ребрендинг v1.1.0]** Лаунчер переименован из `AppleLauncher` в `bodaYan Launcher` во всей кодовой базе: `package.json` (name/appId/productName/artifactName), `index.html`, `main.js` (`APP_DIR` → `%LOCALAPPDATA%\bodaYan`, title, temp-файл обновления), `config/config.json`, `src/updater.js` (User-Agent), `updater/launcher-version.json` (v1.1.0), `README.md`, `CHANGELOG.md`, `SESSION_HANDOFF.md`, `test-launch.js`, `package-lock.json`
+- [x] **[Логотип BDY]** Создан `scripts/generate_logo.py` (Pillow): изометрический Minecraft-куб с монограммой BDY (трава сверху — D, левая грань — B, правая — Y). Генерирует `assets/icon.png` (512×512), `assets/icon.ico` (6 размеров), `assets/logo.svg` (вектор). Интегрирован в UI (`index.html`, `.brand-logo` CSS, fallback SVG→PNG в `renderer.js`)
+- [x] **[Безопасность]** Валидация никнейма в `main.js` (`USERNAME_RE`, `isValidUsername`); защита от path traversal в `src/updater.js` (`safeJoin`); валидация URL (`assertSafeUrl`, только http/https); экранирование cmd-метасимволов в `src/selfUpdate.js` (`escapeBat`); санитизация серверов в `src/servers.js` (`sanitizeServer`, лимит 256 симв.)
+- [x] **[Оптимизация]** Удалён мёртвый код: `test-mojang.js`, `javaw_wrapper.cs`, `javaw_wrapper.exe`, `build-log*.txt`; обновлён `.gitignore`
+- [x] **[Логотип v2]** Обновлён `scripts/generate_logo.py`: добавлены белые вставные панели на каждой грани куба, объёмные 3D-буквы (тень + световая кромка), пиксельная текстура травы/земли. Перегенерированы `assets/icon.png`, `assets/icon.ico`, `assets/logo.svg`
+- [x] **[Системный трей]** `main.js`: `createTray()` создаёт `Tray` с иконкой BDY, тултипом `bodaYan Launcher v<версия>`, контекстным меню «Открыть/Выход»; клик по иконке показывает/скрывает окно; закрытие окна сворачивает в трей (полный выход — через меню трея)
+- [x] **[«О программе»]** `index.html` + `src/renderer.js`: добавлена строка `.about-bar` с названием и версией лаунчера; `config:get` отдаёт `app: { name, version }`; `document.title` синхронизируется с `APP_NAME`
+- [x] **[Фикс currentVersion]** `config/config.json`: `selfUpdate.currentVersion` → `"1.1.0"` (совпадает с `package.json`, иначе self-update определял бы ложное обновление)
+- [x] **[Сборка v1.1.0]** `npm run dist` → `dist/bodaYan-Launcher-1.1.0.exe` (77.06 МБ, SHA1 `4ec271698b68968953baf14a27549c67222647a8`). Smoke-тест: процесс `bodaYan Launcher`, заголовок окна «bodaYan Launcher», portable-режим создаёт `config/` и `minecraft/` рядом с EXE
+- [x] **[Манифест версии]** `updater/launcher-version.json` обновлён: SHA1 и размер новой сборки
 
 ---
 
 ## 5. Оставшиеся задачи (приоритет)
 
 ### Высокий приоритет
-1. **Валидация никнейма** (длина 3–16, только `[A-Za-z0-9_]`) с подсветкой ошибки в UI — важно и для оффлайн-UUID.
+1. **Публикация релиза v1.1.0 в GitHub Releases** — загрузить `dist/bodaYan-Launcher-1.1.0.exe` и обновить `launcher-version.json` на GitHub (локальный манифест уже обновлён: SHA1 `4ec27169…`, size `80800372`).
+2. **Визуальная проверка логотипа** — убедиться, что логотип BDY корректно отображается на главном экране, в заголовке окна и в системном трее на реальной машине (в песочнице GUI ограничен).
 
 ### Средний приоритет
-2. **Опциональная авторизация Microsoft** — второй режим (`launcher.offline = false`) для лицензии; поля уже готовы, нужен OAuth-flow (device code).
-3. **Больше фонов** — добавить изображения в `assets/backgrounds/` (сейчас только `skyblock.png`).
-4. **Боевая настройка автообновления** — выбрать хостинг (рекомендация: **GitHub Releases**), залить модпак, заполнить `updater/manifest.json` и включить `updater.enabled = true`; заполнить `updater/launcher-version.json` и включить `selfUpdate.enabled = true` (см. разделы 10 и 12).
-5. **Сборка EXE** — ✅ `npm run dist` выполнен: `dist/AppleLauncher-1.0.0.exe` (76.9 МБ), запуск проверен. Осталось: иконка (`.ico`), тест на чистой машине (12.7). В песочнице Trae сборке нужны `ELECTRON_BUILDER_CACHE`/`ELECTRON_CACHE` в `.cache/` (см. журнал, раздел 11).
+3. **Опциональная авторизация Microsoft** — второй режим (`launcher.offline = false`) для лицензии; поля уже готовы, нужен OAuth-flow (device code).
+4. **Больше фонов** — добавить изображения в `assets/backgrounds/` (сейчас только `skyblock.png`).
+5. **Боевая настройка автообновления модпака** — заполнить `updater/manifest.json` (список файлов модпака с SHA1) и включить `updater.enabled = true` (см. раздел 10).
 6. **Решение по Java runtime** — механизм выбора уже реализован (`resolveJavaPath`: `launcher.javaPath` → `APP_DIR/jre/bin/javaw.exe` → PATH). Остаётся решить: встроить JRE 17 в EXE (вариант A) или докачивать через манифест (вариант B) (см. 12.4).
 7. **Решение по автозапуску игры** — реализовать флаг `launcher.autoLaunch` (по умолчанию `false`), если нужен автоматический старт игры после проверки файлов (см. 12.8).
 
@@ -226,6 +286,7 @@ delete lib.downloads.artifact.size;
 8. **Докачка с HTTP Range** — добавить продолжение прерванной загрузки (`bytes=<received>-`) в `src/updater.js` (см. 12.5).
 9. **Логирование** в файл `debug.log` через `[Conditional("DEBUG")]` стиль (Node-аналог: писать только при `process.env.DEBUG`).
 10. **Кнопка отмены/остановки запуска** — сброс флага `launching` и завершение процесса Java.
+11. **Подпись кода** — сертификат OV/EV для обхода SmartScreen.
 
 ---
 
@@ -284,7 +345,7 @@ delete lib.downloads.artifact.size;
 ### 9.1 Порядок запуска приложения
 
 1. Установить Node.js 18+ и Java 17 (JDK/JRE).
-2. Перейти в корень проекта: `cd C:\Users\LEO\AppleLauncher`.
+2. Перейти в корень проекта: `cd C:\Users\user\Documents\trae_projects\SkyBlock`.
 3. Установить зависимости (только при первом запуске или после обновления): `npm install`.
 4. Запустить лаунчер: `npm start`.
 5. В открывшемся окне ввести никнейм (по умолчанию `bodayan`) и нажать **«Играть»**.
@@ -313,7 +374,7 @@ delete lib.downloads.artifact.size;
 
 **На стороне друга:**
 
-1. Получить от хоста копию проекта `AppleLauncher` (или установить зависимости: `npm install`).
+1. Получить от хоста копию проекта `bodaYan Launcher` (или установить зависимости: `npm install`).
 2. Запустить лаунчер: `npm start`.
 3. Ввести уникальный никнейм и нажать **«Играть»** — откроется главное меню Minecraft.
 4. Выбрать «Сетевая игра» → «Добавить сервер» → ввести адрес `IP-хоста:25565` (например `192.168.1.50:25565`) → «Готово» → подключиться.
@@ -337,7 +398,7 @@ delete lib.downloads.artifact.size;
 
 ```
 Google Drive/
-└── AppleLauncher/                 (папка, доступ «Все, у кого есть ссылка»)
+└── bodaYan/                 (папка, доступ «Все, у кого есть ссылка»)
     ├── manifest.json              (индекс: список файлов + gdriveId + sha1 + size)
     ├── mods/                      (структура повторяет minecraft/game/mods)
     │   ├── example-mod-1.0.jar
@@ -347,7 +408,7 @@ Google Drive/
     └── ...
 ```
 
-Пути в `manifest.json` указываются **относительно** `updater.targetPath` (по умолчанию `C:\Users\LEO\AppleLauncher\minecraft\game`), поэтому структура папок на Drive должна повторять структуру игровой директории.
+Пути в `manifest.json` указываются **относительно** `updater.targetPath` (по умолчанию `C:\Users\user\Documents\trae_projects\SkyBlock\minecraft\game`), поэтому структура папок на Drive должна повторять структуру игровой директории.
 
 ### 10.3 Формат `manifest.json`
 
@@ -397,7 +458,7 @@ Google Drive/
 
 ### 10.5 Инструкция по размещению на Google Drive
 
-1. Создать на Google Drive папку `AppleLauncher` и загрузить в неё файлы из списка 10.4, сохранив структуру подпапок.
+1. Создать на Google Drive папку `bodaYan` и загрузить в неё файлы из списка 10.4, сохранив структуру подпапок.
 2. Для каждого файла: **Поделиться → «Все, у кого есть ссылка» → Читатель** → скопировать ссылку. ID файла — между `/d/` и `/view` (например `.../file/d/1AbCdEfGhIj.../view` → ID `1AbCdEfGhIj...`).
 3. Посчитать SHA1 каждого файла (PowerShell):
    ```powershell
@@ -406,13 +467,13 @@ Google Drive/
    (Получить нижний регистр при необходимости: `(...).ToLower()`.)
 4. Заполнить `manifest.json` (формат из 10.3) по всем файлам.
 5. Загрузить `manifest.json` на Drive, открыть доступ «Все, у кого есть ссылка», скопировать **ID манифеста**.
-6. В [config.json](file:///C:/Users/LEO/AppleLauncher/config/config.json) заполнить:
+6. В [config.json](file:///C:/Users/user/Documents/trae_projects/SkyBlock/config/config.json) заполнить:
    ```json
    "updater": {
      "enabled": true,
      "manifestUrl": "https://drive.google.com/uc?export=download&id=<ID_МАНИФЕСТА>",
-     "manifestPath": "C:\\Users\\LEO\\AppleLauncher\\updater\\manifest.json",
-     "targetPath": "C:\\Users\\LEO\\AppleLauncher\\minecraft\\game"
+     "manifestPath": "C:\\Users\\user\\Documents\\trae_projects\\SkyBlock\\updater\\manifest.json",
+     "targetPath": "C:\\Users\\user\\Documents\\trae_projects\\SkyBlock\\minecraft\\game"
    }
    ```
    (`manifestUrl` имеет приоритет; если пусто — читается локальный `manifestPath`.)
@@ -429,6 +490,135 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-25 — Новый логотип BDY (v2), системный трей, «О программе», сборка v1.1.0
+
+**Запрос пользователя:** (1) заменить логотип лаунчера на приложенное изображение (Minecraft-куб BDY с белыми панелями и объёмными буквами), проверить отображение на всех элементах UI (главный экран, загрузка, заголовок, трей), форматы и размеры; (2) обновить все упоминания названия на «bodaYan Launcher» (окна, главный экран, «О программе», процессы, метаданные сборки, константы); (3) протестировать и подготовить сборку.
+
+**Изменения в коде/конфиге:**
+
+1. **Новый логотип BDY (v2) — `scripts/generate_logo.py`:**
+   - Добавлены белые вставные панели (`draw_panel`) на каждой из трёх граней куба с тенью и обводкой.
+   - Объёмные 3D-буквы (`draw_3d_letter`): смещённая тень (выдавливание) + световая кромка сверху-слева.
+   - Пиксельная текстура травы (зелёная) и земли (коричневая) на гранях.
+   - Вывод: `assets/icon.png` (512×512 RGBA), `assets/icon.ico` (16/32/48/64/128/256), `assets/logo.svg` (вектор с градиентами).
+   - Перегенерированы все три ассета.
+
+2. **Системный трей — `main.js`:**
+   - Импортированы `Tray`, `Menu`, `nativeImage`.
+   - Добавлены константы `APP_NAME = "bodaYan Launcher"`, `APP_VERSION`, `ICON_PNG`, `ICON_ICO`.
+   - `createTray()`: `Tray` с иконкой 16×16 (из `icon.png`), тултип `bodaYan Launcher v<версия>`, контекстное меню «Открыть bodaYan Launcher / Выход».
+   - Клик по иконке трея — показать/скрыть окно.
+   - Закрытие окна (`mainWindow.on("close")`) — сворачивание в трей (если трей активен), полный выход только через меню трея (`app.isQuitting`).
+   - `DEFAULT_CONFIG.launcher.title` теперь берётся из `APP_NAME`.
+
+3. **«О программе» — `index.html` + `src/renderer.js` + `main.js`:**
+   - `index.html`: добавлен `<div class="about-bar" id="aboutBar">`, `id="brandText"` у заголовка.
+   - `main.js`: `config:get` отдаёт дополнительно `app: { name: APP_NAME, version: APP_VERSION }`.
+   - `renderer.js`: заполняет `.about-bar` строкой `bodaYan Launcher v<версия>`, синхронизирует `document.title` и текст заголовка.
+   - `app.css`: стили `.about-bar` (мелкий серый текст по центру).
+
+4. **Фиксы:**
+   - `config/config.json`: `selfUpdate.currentVersion` `1.0.1` → `1.1.0` (совпадает с `package.json`, иначе self-update давал ложное обновление).
+   - `main.js`: временный файл обновления переименован `bodaYan-update.exe` → `bodaYan-Launcher-update.exe`.
+   - `index.html`: порядок кнопок окна изменён (сначала «свернуть», потом «закрыть») для согласия с macOS-стилем.
+
+5. **Манифест версии — `updater/launcher-version.json`:**
+   - Обновлены `sha1` (`4ec271698b68968953baf14a27549c67222647a8`) и `size` (`80800372`) под новую сборку.
+
+**Действия:**
+1. Проверено окружение: Python 3.13.15 + Pillow 11.3.0, portable Node.js v22.11.0 в `node-portable/`.
+2. Переписан `generate_logo.py` под изображение пользователя (белые панели + 3D буквы).
+3. Запущен `python scripts/generate_logo.py` — сгенерированы icon.png/icon.ico/logo.svg.
+4. Добавлен системный трей и поведение «свернуть в трей».
+5. Добавлена строка «О программе» с версией.
+6. `node --check` для всех 7 JS-файлов — OK; валидация 4 JSON — OK.
+7. `npm install` через portable Node — 267 пакетов.
+8. `npm run dist` с `ELECTRON_BUILDER_CACHE`/`ELECTRON_CACHE` внутри проекта — сборка успешна.
+9. Smoke-тест: запуск `dist\win-unpacked\bodaYan Launcher.exe` в portable-режиме — процесс жив, заголовок окна «bodaYan Launcher», `Responding=True`, созданы `config/` и `minecraft/` рядом с EXE.
+
+**Результаты:**
+- Логотип BDY v2 сгенерирован в трёх форматах (PNG 512, ICO 6 размеров, SVG).
+- Название «bodaYan Launcher» присутствует во всех точках: `package.json` (productName/appId/artifactName), `main.js` (APP_NAME, title, tray, temp), `index.html` (title, brand, about-bar), `config.json` (title), `updater.js` (User-Agent).
+- Системный трей реализован (иконка, меню, сворачивание).
+- Сборка `dist/bodaYan-Launcher-1.1.0.exe` — 77.06 МБ, SHA1 `4ec27169…`.
+- Smoke-тест пройден: окно открывается, portable-режим работает.
+
+**Статус:** ✅ Логотип обновлён, название везде «bodaYan Launcher», трей и «О программе» добавлены, EXE собран и протестирован. ⬜ Публикация в GitHub Releases (нужен `gh` или ручная загрузка). ⬜ Визуальная проверка логотипа на реальной машине.
+
+**Проблемы/примечания:**
+- В песочнице Trae `AppData\Local` недоступен для записи — для теста использован portable-режим (маркер `portable` рядом с EXE). На реальной машине обе схемы работают.
+- GUI-проверка отображения логотипа в трее/окне в песочнице ограничена — визуально подтверждён только заголовок окна.
+- Подпись кода не настроена (SmartScreen предупреждение — ожидаемо для несертифицированного EXE).
+
+**Открытые вопросы:**
+- Публикация релиза v1.1.0 в GitHub Releases (загрузка EXE + обновление `launcher-version.json` на GitHub).
+- Визуальная проверка логотипа на главном экране, в заголовке и трее пользователем.
+
+---
+
+### Сессия 2026-11-25 — Ребрендинг в bodaYan Launcher, новый логотип BDY, оптимизация и аудит безопасности
+
+**Запрос пользователя:** комплекс работ: обновить логотип с монограммой BDY, переименовать лаунчер в `bodaYan Launcher` во всей кодовой базе, оптимизировать код, провести аудит безопасности, задокументировать изменения, загрузить в GitHub.
+
+**Изменения в коде/конфиге:**
+
+1. **Ребрендинг (переименование AppleLauncher → bodaYan Launcher):**
+   - **`package.json`**: `name` → `bodayan-launcher`, `version` → `1.1.0`, `description` → `bodaYan Launcher`, `author` → `bodaYan`, `appId` → `com.bodayan.launcher`, `productName` → `bodaYan Launcher`, `artifactName` → `bodaYan-Launcher-${version}.${ext}` (в т.ч. portable).
+   - **`index.html`**: `<title>` и `.brand` → `bodaYan Launcher`, hero `<h1>` → `bodaYan`, добавлен `<img class="brand-logo" src="assets/logo.svg">`.
+   - **`main.js`**: каталог данных `APP_DIR` → `%LOCALAPPDATA%\bodaYan`, `DEFAULT_CONFIG.launcher.title` → `bodaYan Launcher`, временный файл обновления → `bodaYan-update.exe`.
+   - **`config/config.json`**: `launcher.title` → `bodaYan Launcher`.
+   - **`src/updater.js`**: `USER_AGENT` → `bodaYan-Launcher`.
+   - **`updater/launcher-version.json`**: версия `1.1.0`, URL артефакта → `bodaYan-Launcher-1.1.0.exe`.
+   - **`README.md`**, **`CHANGELOG.md`**, **`SESSION_HANDOFF.md`**: заголовки, пути, ссылки на файлы, имена артефактов обновлены.
+   - **`test-launch.js`**: путь к игре заменён на `path.join(__dirname, "minecraft", "game")` (был абсолютный `C:\Users\LEO\AppleLauncher\...`).
+   - **`package-lock.json`**: имя и версия синхронизированы.
+
+2. **Новый логотип с монограммой BDY:**
+   - **`scripts/generate_logo.py`** (новый): генерирует изометрический Minecraft-куб (трава сверху с буквой D, белые грани с буквами B и Y). Выводит `assets/icon.png` (512×512), `assets/icon.ico` (16–256), `assets/logo.svg` (векторная версия).
+   - **`assets/icon.png`**, **`assets/logo.svg`** (новые), **`assets/icon.ico`** (обновлён).
+   - **`assets/styles/app.css`**: добавлены стили `.hero` (flex-column) и `.brand-logo` (96×96, drop-shadow, запрет перетаскивания).
+   - **`src/renderer.js`**: fallback на `assets/icon.png` при ошибке загрузки SVG.
+
+3. **Аудит безопасности и исправления:**
+   - **`main.js`**: добавлена валидация никнейма (`USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/`, функция `isValidUsername`) в обработчике `game:launch` — некорректный ник отклоняется с понятным сообщением.
+   - **`src/updater.js`**: добавлены `safeJoin(targetPath, relPath)` — защита от path traversal (путь не может выйти за пределы `targetPath`); `assertSafeUrl(urlStr)` — валидация URL (только `http:`/`https:`). Применены в `fetchBuffer`, `streamDownload`, `runUpdate`.
+   - **`src/selfUpdate.js`**: добавлена функция `escapeBat()` — экранирование спецсимволов cmd.exe (`^`, `&`, `|`, `<`, `>`, `%`) в путях, подставляемых в `.bat` для self-update (защита от инъекции команд).
+   - **`src/servers.js`**: добавлена `sanitizeServer()` — ограничение длины `name`/`ip` (≤256 символов) и приведение к строке перед записью в `servers.dat`.
+
+4. **Оптимизация и очистка:**
+   - Удалены неиспользуемые файлы: `test-mojang.js` (устаревший тест с deprecated `user_type`), `javaw_wrapper.cs` + `javaw_wrapper.exe` (старый workaround для userType, не используется), `build-log.txt`, `build-log2.txt`, `build-log3.txt` (дебаг-логи).
+   - **`.gitignore`**: добавлен `build-log*.txt`.
+
+**Действия:**
+1. Проанализирована вся кодовая база, найдены все упоминания `AppleLauncher`/`SkyBlock`/`apple-launcher` (13 файлов).
+2. Выполнено последовательное переименование во всех файлах.
+3. Написан и запущен скрипт генерации логотипа на Python/Pillow.
+4. Интегрирован логотип в UI (HTML + CSS + JS fallback).
+5. Реализованы исправления безопасности (валидация ника, path traversal, URL, .bat-инъекции, sanitize серверов).
+6. Удалён мёртвый код и артефакты сборки.
+7. Проверена валидность всех JSON-файлов через Python.
+8. Обновлена документация (README, CHANGELOG, SESSION_HANDOFF).
+
+**Результаты:**
+- Все упоминания старого названия в исходном коде заменены на `bodaYan Launcher` (исторические записи в журнале сессий сохранены).
+- Создан логотип в трёх форматах: PNG, ICO (6 размеров), SVG.
+- Устранены 4 класса уязвимостей: невалидированный ввод пользователя, path traversal, небезопасные URL, инъекция команд в .bat.
+- Удалено ~150 строк неиспользуемого кода и 4 артефакта.
+- JSON-файлы проходят валидацию.
+
+**Статус:** ✅ Кодовая база переименована, логотип создан, безопасность усилена, код оптимизирован. ⬜ Тест запуска Electron (Node.js не установлен в текущем окружении — запуск выполнялся пользователем локально). ⬜ Загрузка в GitHub (см. открытые вопросы).
+
+**Проблемы/примечания:**
+- Node.js не установлен в окружении Trae, поэтому не удалось выполнить `npm start` / `node --check`. Синтаксис проверен вручную; JSON валидирован через Python.
+- `icon.ico` пересобран Pillow (29–37 КБ); при необходимости можно заменить на профессиональную иконку.
+
+**Открытые вопросы:**
+- Запуск и тестирование лаунчера пользователем на машине с Node.js.
+- Сборка EXE (`npm run dist`) и публикация релиза v1.1.0 в GitHub Releases.
+- Обновление `launcher-version.json` на GitHub Releases с новым SHA1/размером собранного EXE.
+
+---
 
 ### Сессия 2026-11-19 — Публикация релиза v1.0.0 в GitHub Releases
 
@@ -646,7 +836,7 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 ### 12.1 Целевой результат (что получает пользователь)
 
-Один файл `AppleLauncher-<версия>.exe` (portable, ~90–120 МБ). Пользователь копирует **только его** и запускает двойным щелчком. Далее без его участия:
+Один файл `bodaYan-Launcher-<версия>.exe` (portable, ~90–120 МБ). Пользователь копирует **только его** и запускает двойным щелчком. Далее без его участия:
 
 1. Лаунчер разворачивается, показывает окно с прогресс-баром.
 2. **Self-update**: проверяет манифест версии → если есть новее, скачивает новый EXE, подменяет себя и перезапускается.
@@ -691,7 +881,7 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 ### 12.4 Требования к единому самодостаточному EXE
 
-1. **Формат**: electron-builder, target `portable` → один самодостаточный `.exe` (распаковывается в `%TEMP%` при запуске). `artifactName: AppleLauncher-<version>.exe`.
+1. **Формат**: electron-builder, target `portable` → один самодостаточный `.exe` (распаковывается в `%TEMP%` при запуске). `artifactName: bodaYan-Launcher-<version>.exe`.
 2. **Упаковка**: `asar: true` (по умолчанию), `compression: "maximum"`.
 3. **Только production-зависимости**: `electron` — в `devDependencies` (не пакуется), `minecraft-launcher-core` — в `dependencies` (пакуется).
 4. **Иконка и метаданные**: `win.icon` (.ico 256×256), `version`, `productName`, `appId`.
@@ -717,18 +907,18 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 ### 12.6 Автообновление лаунчера (self-update) — реализовано
 
-Код: [src/selfUpdate.js](file:///C:/Users/LEO/AppleLauncher/src/selfUpdate.js). Управление: секция `selfUpdate` в `config.json`.
+Код: [src/selfUpdate.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/src/selfUpdate.js). Управление: секция `selfUpdate` в `config.json`.
 
 **Манифест версии** (`updater/launcher-version.json`; читается локально или по URL):
 
 ```json
-{ "version": "1.0.1", "url": "https://github.com/<user>/<repo>/releases/download/v1.0.1/AppleLauncher-1.0.1.exe", "sha1": "…", "size": 12345678 }
+{ "version": "1.1.0", "url": "https://github.com/faktogenez/bodaYan/releases/download/v1.1.0/bodaYan-Launcher-1.1.0.exe", "sha1": "…", "size": 12345678 }
 ```
 
-**Поток** (`runSelfUpdate()` в [main.js](file:///C:/Users/LEO/AppleLauncher/main.js)):
+**Поток** (`runSelfUpdate()` в [main.js](file:///C:/Users/user/Documents/trae_projects/SkyBlock/main.js)):
 1. Только для собранного EXE (`app.isPackaged`); в dev (`npm start`) — пропуск.
 2. `checkForUpdate({manifestUrl, manifestPath, currentVersion})` — сравнение версий по numeric-сегментам (`isNewer`).
-3. Если версия новее — скачивание в `%TEMP%\AppleLauncher-update.exe` с проверкой SHA1 и прогрессом (`launcher:update` → renderer).
+3. Если версия новее — скачивание в `%TEMP%\bodaYan-update.exe` с проверкой SHA1 и прогрессом (`launcher:update` → renderer).
 4. При `autoApply ≠ false` — `applyUpdateAndRestart()` пишет отсоединённый `.bat`: ждёт завершения PID лаунчера → `move /Y` новый EXE → целевой EXE (повтор при блокировке) → перезапуск → самоудаление.
 5. **Целевой путь** = `process.env.PORTABLE_EXECUTABLE_FILE` (исходный EXE пользователя) или `process.execPath`. Для portable `process.execPath` указывает на копию в `%TEMP%` — использовать напрямую нельзя.
 6. `app.quit()` через 500 мс → `.bat` доводит подмену и перезапуск.
@@ -737,7 +927,7 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 ### 12.7 Пошаговый план тестирования на чистой системе
 
-Чистая Windows (лучше ВМ/свежий пользователь) БЕЗ Java, `.minecraft`, Node.js, проекта. Скопировать **только** `AppleLauncher-<версия>.exe`.
+Чистая Windows (лучше ВМ/свежий пользователь) БЕЗ Java, `.minecraft`, Node.js, проекта. Скопировать **только** `bodaYan-Launcher-<версия>.exe`.
 
 1. **Запуск**: двойной щелчок → окно лаунчера, прогресс-бар «Проверка файлов».
 2. **Java**: убедиться, что JRE скачалась/использована (B) либо встроена (A); в логе нет `java not found`.
@@ -762,4 +952,4 @@ $env:ELECTRON_BUILDER_CACHE="$PWD\.cache\electron-builder"; $env:ELECTRON_CACHE=
 
 ---
 
-*Последнее обновление: 2026-11-19 | Сессия: (1) опубликован релиз **v1.0.0** в GitHub Releases (`https://github.com/faktogenez/bodaYan/releases/tag/v1.0.0`) — ассеты `AppleLauncher-1.0.0.exe` (76.9 МБ, SHA1 `98e3c9a61d2ab670e3b5dea8b194963fc9b9c5c0`) + `launcher-version.json`; ветка `main` запушена; (2) подключён `gh` CLI, self-update включён (`manifestUrl` → `…/releases/latest/download/launcher-version.json`); (3) добавлены `README.md`, `CHANGELOG.md`, манифесты `updater/*`. Ранее: собран portable EXE; фиксация рабочего состояния (`backups/…zip`, коммиты `c4a3d51`, `169e5d0`); подготовка к продакшену (`resolveJavaPath`, `os` из `process.platform`, защита self-update на не-Windows); self-update лаунчера; переносимость одним EXE (`APP_DIR`); `servers.dat` — только свой сервер; автоскрытие окна; автообновление файлов; прогресс-бар. Детальный журнал — раздел 11.*
+*Последнее обновление: 2026-11-25 | Сессия: **новый логотип BDY (v2), системный трей, «О программе», сборка v1.1.0** — обновлён `scripts/generate_logo.py` (белые панели + 3D буквы), перегенерированы `assets/icon.png`/`icon.ico`/`logo.svg`; добавлен системный трей (`createTray`, сворачивание в трей при закрытии); добавлена строка «О программе» с версией; фикс `selfUpdate.currentVersion` → `1.1.0`; собран `dist/bodaYan-Launcher-1.1.0.exe` (77.06 МБ, SHA1 `4ec271698b68968953baf14a27549c67222647a8`), smoke-тест пройден. Ранее (2026-11-25): **ребрендинг в bodaYan Launcher (v1.1.0)** — переименование во всей кодовой базе, логотип BDY, оптимизация и аудит безопасности. Ранее (2026-11-19): опубликован релиз **v1.0.0** в GitHub Releases; self-update включён; добавлены README/CHANGELOG/манифесты. Детальный журнал — раздел 11.*

@@ -114,6 +114,22 @@ body {
   text-align: center;
 }
 
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.brand-logo {
+  width: 96px;
+  height: 96px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 .hero h1 {
   font-size: 34px;
   font-weight: 700;
@@ -239,6 +255,18 @@ input[type="text"]:focus {
 .status-bar.success { color: #30d158; }
 .status-bar.error { color: #ff453a; }
 .status-bar.loading { color: var(--accent); }
+
+/* Нижняя строка «О программе»: название + версия лаунчера */
+.about-bar {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+  color: rgba(134, 134, 139, 0.7);
+  letter-spacing: 0.4px;
+  padding-top: 4px;
+  user-select: none;
+  cursor: default;
+}
 
 .progress {
   width: 100%;

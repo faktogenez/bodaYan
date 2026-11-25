@@ -1,5 +1,6 @@
 const { Client } = require("minecraft-launcher-core");
 const crypto = require("crypto");
+const path = require("path");
 
 function offlineUUID(name) {
   const hash = crypto.createHash("md5").update("OfflinePlayer:" + name, "utf8").digest();
@@ -21,7 +22,7 @@ const opts = {
     user_properties: "{}",
     meta: { type: "mojang" }
   },
-  root: "C:\\Users\\LEO\\AppleLauncher\\minecraft\\game",
+  root: path.join(__dirname, "minecraft", "game"),
   version: { number: "1.16.5", type: "release", custom: "Forge 1.16.5" },
   memory: { max: "4096", min: "2048" },
   os: "windows",

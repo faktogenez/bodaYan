@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
@@ -10,12 +10,36 @@ const selfUpdate = require("./src/selfUpdate");
 
 const ROOT = __dirname;
 
-// Каталог данных (записываемый): рядом с исходным EXE в portable-сборке, иначе корень проекта.
-// В portable-сборке electron-builder распаковывает приложение в %TEMP%, поэтому реальную
-// папку запуска берём из PORTABLE_EXECUTABLE_DIR, а не из process.execPath.
-const APP_DIR = app.isPackaged
+// Название лаунчера — единая константа для всех мест отображения.
+const APP_NAME = "bodaYan Launcher";
+const APP_VERSION = app.getVersion();
+
+// Иконка приложения (PNG для tray/nativeImage, ICO для окна).
+const ICON_PNG = path.join(ROOT, "assets", "icon.png");
+const ICON_ICO = path.join(ROOT, "assets", "icon.ico");
+
+// Папка, из которой запущен EXE (в portable-сборке electron-builder распаковывает
+// приложение в %TEMP%, поэтому реальную папку берём из PORTABLE_EXECUTABLE_DIR).
+const EXE_DIR = app.isPackaged
   ? (process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath))
   : ROOT;
+
+// Портативный режим включается ТОЛЬКО при наличии файла-маркера "portable" рядом с EXE.
+// Без него все данные (конфиг, игра, обновления) хранятся в %LOCALAPPDATA%\bodaYan,
+// чтобы не засорять папку пользователя (например, Рабочий стол).
+const PORTABLE_MARKER = path.join(EXE_DIR, "portable");
+const IS_PORTABLE = fs.existsSync(PORTABLE_MARKER);
+
+// Каталог данных (записываемый):
+//   portable → папка рядом с EXE
+//   обычный  → %LOCALAPPDATA%\bodaYan (стандарт для больших файлов на Windows)
+const APP_DIR = IS_PORTABLE
+  ? EXE_DIR
+  : path.join(process.env.LOCALAPPDATA || app.getPath("appData"), "bodaYan");
+
+console.log(`[paths] режим: ${IS_PORTABLE ? "portable" : "localAppData"}`);
+console.log(`[paths] EXE_DIR = ${EXE_DIR}`);
+console.log(`[paths] APP_DIR = ${APP_DIR}`);
 
 // Встроенный шаблон конфига (в dev — в проекте, в сборке — в resources).
 const BUNDLED_CONFIG = app.isPackaged
@@ -44,7 +68,7 @@ const AUTHLIB_FIX_VERSION = "2.3.31";
 
 const DEFAULT_CONFIG = {
   launcher: {
-    title: "AppleLauncher",
+    title: APP_NAME,
     width: 920,
     height: 600,
     offline: true,
@@ -82,11 +106,22 @@ const DEFAULT_CONFIG = {
 function readConfig() {
   try {
     const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+    const launcher = { ...DEFAULT_CONFIG.launcher, ...(cfg.launcher || {}) };
+    // Пустой gameDirectory = использовать путь по умолчанию (APP_DIR/minecraft/game).
+    if (!launcher.gameDirectory) {
+      launcher.gameDirectory = DEFAULT_CONFIG.launcher.gameDirectory;
+    }
+    const updater = { ...DEFAULT_CONFIG.updater, ...(cfg.updater || {}) };
+    // Синхронизация: если пользователь задал gameDirectory, updater.targetPath
+    // по умолчанию берётся из него (можно переопределить отдельно в updater).
+    if (launcher.gameDirectory && !cfg.updater?.targetPath) {
+      updater.targetPath = launcher.gameDirectory;
+    }
     return {
-      launcher: { ...DEFAULT_CONFIG.launcher, ...(cfg.launcher || {}) },
+      launcher,
       theme: { ...DEFAULT_CONFIG.theme, ...(cfg.theme || {}) },
       backgrounds: { ...DEFAULT_CONFIG.backgrounds, ...(cfg.backgrounds || {}) },
-      updater: { ...DEFAULT_CONFIG.updater, ...(cfg.updater || {}) },
+      updater,
       servers: { ...DEFAULT_CONFIG.servers, ...(cfg.servers || {}) },
       selfUpdate: { ...DEFAULT_CONFIG.selfUpdate, ...(cfg.selfUpdate || {}) }
     };
@@ -105,19 +140,39 @@ const DEFAULT_USERNAME = CONFIG.launcher.defaultUsername;
 const SERVER_HOST = CONFIG.launcher.server.host;
 const SERVER_PORT = CONFIG.launcher.server.port;
 
+// Создать структуру папок игры, если она ещё не существует.
+function ensureGameDirs() {
+  try {
+    fs.mkdirSync(GAME_DIR, { recursive: true });
+    fs.mkdirSync(path.join(GAME_DIR, "versions"), { recursive: true });
+    fs.mkdirSync(path.join(GAME_DIR, "libraries"), { recursive: true });
+    fs.mkdirSync(path.join(GAME_DIR, "assets"), { recursive: true });
+  } catch (err) {
+    console.error("[dirs] не удалось создать папки игры:", err.message);
+  }
+}
+ensureGameDirs();
+
 const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
 
 // Маркеры в логе игры, означающие, что клиент загрузился и отрисовал окно.
 const GAME_START_MARKERS = ["Backend library:", "OpenAL initialized", "Sound engine started"];
 
+// Валидация никнейма Minecraft: длина 3–16, только [A-Za-z0-9_].
+const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
+function isValidUsername(name) {
+  return typeof name === "string" && USERNAME_RE.test(name);
+}
+
 let mainWindow = null;
+let tray = null;
 let launching = false;
 let gameStarted = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     title: CONFIG.launcher.title,
-    icon: path.join(ROOT, "assets", "icon.ico"),
+    icon: ICON_ICO,
     width: CONFIG.launcher.width,
     height: CONFIG.launcher.height,
     minWidth: 640,
@@ -134,6 +189,15 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(ROOT, "index.html"));
+
+  // Закрытие окна — сворачивание в трей (а не выход), если трей активен.
+  // Полный выход — через пункт «Выход» в меню трея.
+  mainWindow.on("close", (e) => {
+    if (!app.isQuitting && tray) {
+      e.preventDefault();
+      mainWindow.hide();
+    }
+  });
 
   // Автопроверка при запуске: сначала самообновление лаунчера, затем файлы игры.
   mainWindow.webContents.on("did-finish-load", () => {
@@ -176,7 +240,7 @@ async function runSelfUpdate() {
     console.log(`[selfupdate] доступно обновление ${remote.version} (текущая ${current})`);
     send({ phase: "start", version: remote.version, currentVersion: current });
 
-    const dest = path.join(app.getPath("temp"), "AppleLauncher-update.exe");
+    const dest = path.join(app.getPath("temp"), "bodaYan-Launcher-update.exe");
     await selfUpdate.downloadUpdate({
       url: remote.url,
       destFile: dest,
@@ -334,7 +398,10 @@ function resolveJavaPath() {
 ipcMain.handle("window:minimize", () => { if (mainWindow) mainWindow.minimize(); });
 ipcMain.handle("window:close", () => { if (mainWindow) mainWindow.close(); });
 
-ipcMain.handle("config:get", () => CONFIG);
+ipcMain.handle("config:get", () => ({
+  ...CONFIG,
+  app: { name: APP_NAME, version: APP_VERSION }
+}));
 
 ipcMain.handle("updater:check", () => runUpdater());
 
@@ -350,12 +417,25 @@ ipcMain.handle("backgrounds:random", () => {
 ipcMain.handle("game:launch", async (event, username) => {
   if (launching) return { ok: false, message: "Игра уже запускается" };
 
-  const name = (username || "").trim() || DEFAULT_USERNAME;
+  const rawName = (username || "").trim();
+  const name = rawName || DEFAULT_USERNAME;
+
+  if (!isValidUsername(name)) {
+    return {
+      ok: false,
+      message: "Некорректный никнейм. Допустимо 3–16 символов: буквы, цифры и подчёркивание."
+    };
+  }
+
   const versionDir = path.join(GAME_DIR, "versions", VERSION_CUSTOM);
   const versionJson = path.join(versionDir, VERSION_CUSTOM + ".json");
 
   if (!fs.existsSync(versionJson)) {
-    return { ok: false, message: "Не найдена версия: " + versionJson };
+    return {
+      ok: false,
+      message: `Игровые файлы не найдены. Поместите версию "${VERSION_CUSTOM}" в папку: ${versionDir}` +
+        ` (либо включите updater в config.json для автоматической загрузки).`
+    };
   }
 
   patchAuthlib(versionJson);
@@ -474,14 +554,69 @@ ipcMain.handle("game:launch", async (event, username) => {
   }
 });
 
+// Создать системный трей с иконкой лаунчера и контекстным меню.
+function createTray() {
+  try {
+    const icon = nativeImage.createFromPath(ICON_PNG);
+    if (icon.isEmpty()) {
+      console.warn("[tray] иконка не найдена:", ICON_PNG);
+      return;
+    }
+    tray = new Tray(icon.resize({ width: 16, height: 16 }));
+    tray.setToolTip(`${APP_NAME} v${APP_VERSION}`);
+
+    const menu = Menu.buildFromTemplate([
+      {
+        label: `Открыть ${APP_NAME}`,
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+          } else {
+            createWindow();
+          }
+        }
+      },
+      { type: "separator" },
+      {
+        label: "Выход",
+        click: () => {
+          app.isQuitting = true;
+          app.quit();
+        }
+      }
+    ]);
+    tray.setContextMenu(menu);
+
+    // Клик по иконке трея — показать/скрыть окно.
+    tray.on("click", () => {
+      if (!mainWindow) { createWindow(); return; }
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    console.log("[tray] системный трей создан");
+  } catch (err) {
+    console.error("[tray] ошибка создания трея:", err.message);
+  }
+}
+
 app.whenReady().then(() => {
   applyPinnedServers();
   createWindow();
+  createTray();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  if (process.platform !== "darwin") {
+    app.isQuitting = true;
+    app.quit();
+  }
 });

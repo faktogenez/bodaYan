@@ -11,6 +11,16 @@ const TAG_STRING = 0x08;
 const TAG_LIST = 0x09;
 const TAG_COMPOUND = 0x0a;
 
+// Ограничения Minecraft для полей servers.dat.
+const MAX_NAME_LEN = 256;
+const MAX_IP_LEN = 256;
+
+function sanitizeServer({ name, ip }) {
+  const safeName = String(name || "Сервер").slice(0, MAX_NAME_LEN);
+  const safeIp = String(ip || "").slice(0, MAX_IP_LEN);
+  return { name: safeName, ip: safeIp };
+}
+
 function nameBytes(name) {
   return Buffer.from(name, "utf8");
 }
@@ -40,7 +50,8 @@ function tagString(name, value) {
 }
 
 // Один сервер → compound-запись списка.
-function serverEntry({ name, ip }) {
+function serverEntry(server) {
+  const { name, ip } = sanitizeServer(server);
   return Buffer.concat([
     tagString("name", name),
     tagString("ip", ip),

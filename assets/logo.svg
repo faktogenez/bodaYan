@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#82cd55"/>
+      <stop offset="100%" stop-color="#5aa03c"/>
+    </linearGradient>
+    <linearGradient id="dirtLeft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9a6b47"/>
+      <stop offset="100%" stop-color="#6e4a2c"/>
+    </linearGradient>
+    <linearGradient id="dirtRight" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a5e3d"/>
+      <stop offset="100%" stop-color="#604026"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e6e6e0"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="256" cy="388" rx="156" ry="16" fill="rgba(0,0,0,0.28)"/>
+  <polygon points="256.0,50.0 404.0,198.0 256.0,346.0 108.0,198.0" fill="url(#grass)" stroke="387824" stroke-width="3"/>
+  <polygon points="108.0,198.0 256.0,346.0 256.0,416.0 108.0,346.0" fill="url(#dirtLeft)" stroke="46321c" stroke-width="3"/>
+  <polygon points="256.0,346.0 404.0,198.0 404.0,346.0 256.0,416.0" fill="url(#dirtRight)" stroke="46321c" stroke-width="3"/>
+  <polygon points="256.0,124.0 330.0,198.0 256.0,272.0 182.0,198.0" fill="url(#panel)" stroke="46321c" stroke-width="3"/>
+  <polygon points="140.6,254.5 223.4,337.4 223.4,376.6 140.6,337.4" fill="url(#panel)" stroke="46321c" stroke-width="3"/>
+  <polygon points="288.6,337.4 371.4,254.5 371.4,337.4 288.6,376.6" fill="url(#panel)" stroke="46321c" stroke-width="3"/>
+  <text x="256.0" y="233.0" font-family="Arial, sans-serif" font-size="92" font-weight="bold" fill="#603e1c" text-anchor="middle">D</text>
+  <text x="182.0" y="368.5" font-family="Arial, sans-serif" font-size="118" font-weight="bold" fill="#603e1c" text-anchor="middle">B</text>
+  <text x="330.0" y="368.5" font-family="Arial, sans-serif" font-size="118" font-weight="bold" fill="#603e1c" text-anchor="middle">Y</text>
+</svg>

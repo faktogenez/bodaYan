@@ -9,7 +9,10 @@ const elements = {
   progressLabel: document.getElementById("progressLabel"),
   metaVersion: document.getElementById("metaVersion"),
   metaMemory: document.getElementById("metaMemory"),
-  metaServer: document.getElementById("metaServer")
+  metaServer: document.getElementById("metaServer"),
+  brandLogo: document.getElementById("brandLogo"),
+  brandText: document.getElementById("brandText"),
+  aboutBar: document.getElementById("aboutBar")
 };
 
 function formatMemory(value) {
@@ -209,6 +212,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (config && config.launcher && config.launcher.defaultUsername) {
     elements.username.value = config.launcher.defaultUsername;
   }
+
+  // Информация «О программе»: название + версия лаунчера.
+  if (config && config.app) {
+    const name = config.app.name || "bodaYan Launcher";
+    const version = config.app.version || "";
+    if (elements.brandText) elements.brandText.textContent = name;
+    if (elements.aboutBar) {
+      elements.aboutBar.textContent = version ? `${name} v${version}` : name;
+      elements.aboutBar.title = `${name} v${version}`;
+    }
+    document.title = name;
+  }
+
+  // Fallback логотипа: если SVG не загрузился — переключиться на PNG.
+  if (elements.brandLogo) {
+    elements.brandLogo.addEventListener("error", function onErr() {
+      elements.brandLogo.removeEventListener("error", onErr);
+      elements.brandLogo.src = "assets/icon.png";
+    });
+  }
+
   await applyBackground();
 
   setStatus("Готов к запуску", "info");

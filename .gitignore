@@ -2,6 +2,10 @@
 node_modules/
 npm-debug.log*
 
+# Portable Node.js (локальная копия для сборки)
+node-portable/
+node-portable2/
+
 # Сборка (electron-builder)
 dist/
 release/
@@ -16,6 +20,7 @@ logs/
 *.log
 *.log.gz
 hs_err_pid*.log
+build-log*.txt
 
 # Локальные резервные копии
 backups/
@@ -24,3 +29,6 @@ backups/
 # ОС
 .DS_Store
 Thumbs.db
+
+# IDE
+.trae-html-share-packages/
