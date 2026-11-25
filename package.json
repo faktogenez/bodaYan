@@ -24,7 +24,7 @@
   "build": {
     "appId": "com.bodayan.launcher",
     "productName": "bodaYan Launcher",
-    "artifactName": "${productName}.${ext}",
+    "artifactName": "bodaYan-Launcher.${ext}",
     "compression": "maximum",
     "asar": true,
     "directories": {
@@ -65,7 +65,7 @@
       ]
     },
     "nsis": {
-      "artifactName": "${productName} Setup.${ext}",
+      "artifactName": "bodaYan-Launcher-Setup.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
@@ -81,7 +81,7 @@
       "icon": "assets/icon.png"
     },
     "portable": {
-      "artifactName": "${productName}.exe"
+      "artifactName": "bodaYan-Launcher.exe"
     }
   },
   "devDependencies": {
