@@ -426,6 +426,70 @@ input[type="text"].invalid:focus {
   line-height: 1.35;
 }
 
+/* ---------- Состояние загрузки/обновления ----------
+   Пока лаунчер качает файлы или обновляется, форма ввода и кнопка «Играть» скрыты,
+   а на их месте показывается сообщение ожидания. Форма остаётся статичной:
+   скрытые элементы сохраняют своё место (visibility: hidden), а панель ожидания
+   ложится поверх тем же прямоугольником — карточка не меняет размер и текст не выходит за рамки. */
+.login-card.is-busy .input-group,
+.login-card.is-busy .cover-online,
+.login-card.is-busy .play-btn,
+.login-card.is-busy .account-slot,
+.login-card.is-busy .status-bar {
+  visibility: hidden;
+}
+
+.login-busy {
+  display: none;
+}
+
+.login-card.is-busy .login-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: clamp(16px, 2.2vw, 24px);
+  text-align: center;
+  overflow: hidden;
+}
+
+.busy-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.16);
+  border-top-color: var(--accent);
+  animation: busy-spin 0.9s linear infinite;
+}
+
+.busy-title {
+  max-width: 100%;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  word-break: break-word;
+}
+
+.busy-hint {
+  max-width: 92%;
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.busy-hint-muted {
+  opacity: 0.85;
+}
+
+@keyframes busy-spin {
+  to { transform: rotate(360deg); }
+}
+
 .cover-online {
   color: var(--text-primary);
   text-align: center;
@@ -475,29 +539,60 @@ input[type="text"].invalid:focus {
   box-shadow: var(--focus-ring);
 }
 
-/* Служебная кнопка отчёта — вне макета карточки, намеренно малозаметная */
+/* Кнопка отчёта о проблеме — заметная таблетка в правом нижнем углу.
+   Во время загрузки/обновления она остаётся доступной и не перекрывается панелью ожидания. */
 .cover-report {
   position: fixed;
   right: 18px;
   bottom: 16px;
-  z-index: 6;
-  padding: 2px 6px;
-  border: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--font-xs);
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-pill);
+  background: rgba(20, 20, 22, 0.74);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  font-weight: 600;
   letter-spacing: 0.2px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cover-report::before {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  content: "!";
 }
 
 .cover-report:hover:not(:disabled) {
-  color: var(--text-primary);
-  text-decoration: underline;
+  color: #fff;
+  border-color: rgba(255, 69, 58, 0.75);
+  background: rgba(255, 69, 58, 0.24);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+.cover-report:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .cover-report:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: default;
 }
 

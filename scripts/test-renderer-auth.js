@@ -24,7 +24,18 @@ class FakeElement {
     this.src = "";
     this.style = {};
     this.listeners = {};
-    this.classList = { toggle() {}, add() {}, remove() {} };
+    const classes = new Set();
+    this.classList = {
+      add: (name) => classes.add(name),
+      remove: (name) => classes.delete(name),
+      toggle: (name, force) => {
+        const want = force === undefined ? !classes.has(name) : force;
+        if (want) classes.add(name);
+        else classes.delete(name);
+        return want;
+      },
+      contains: (name) => classes.has(name)
+    };
   }
 
   addEventListener(type, callback) { this.listeners[type] = callback; }
@@ -170,12 +181,17 @@ async function main() {
   console.log("  PASS ошибка IPC запуска снимает блокировку интерфейса и показывает статус");
 
   second.emitUpdate({ phase: "checking", currentVersion: "1.0.12" });
-  assert.match(second.elements.progressLabel.textContent, /Проверка обновлений/);
+  assert.strictEqual(second.elements.loginCard.classList.contains("is-busy"), true);
+  assert.match(second.elements.busyTitle.textContent, /обновлени/i);
+  assert.match(second.elements.statusText.textContent, /лаунчера/i);
   second.emitUpdate({ phase: "downloading", version: "1.0.13", bytes: 50, bytesTotal: 100 });
-  assert.strictEqual(second.elements.progressBar.style.width, "50%");
+  assert.match(second.elements.busyTitle.textContent, /1\.0\.13/);
+  assert.match(second.elements.busyTitle.textContent, /50%/);
   second.emitUpdate({ phase: "applying", version: "1.0.13", restartRequired: true });
   assert.match(second.elements.statusText.textContent, /перезапустится автоматически/);
-  console.log("  PASS проверка/загрузка обновления показывает прогресс и предупреждает о перезапуске");
+  second.emitUpdate({ phase: "ready", version: "1.0.13" });
+  assert.strictEqual(second.elements.loginCard.classList.contains("is-busy"), false);
+  console.log("  PASS проверка/загрузка обновления показывает сообщение ожидания и предупреждает о перезапуске");
 
   // Визуальный слой: модель обложки применяет логотип и случайный фон из launcher-visuals.
   const visualModel = {

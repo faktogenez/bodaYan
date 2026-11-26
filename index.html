@@ -28,7 +28,7 @@
     <img class="brand-logo" id="brandLogo" alt="Логотип bodaYan">
 
     <main class="cover-main">
-      <section class="card login-card" aria-label="Форма входа">
+      <section class="card login-card" id="loginCard" aria-label="Форма входа">
         <div class="input-group">
           <label for="username">Никнейм</label>
           <input type="text" id="username" name="minecraftNickname" placeholder="Введите никнейм" maxlength="16" autocomplete="off">
@@ -47,11 +47,18 @@
           </div>
         </div>
         <div class="status-bar info" id="statusText" role="status" aria-live="polite">Готов к запуску</div>
+
+        <div class="login-busy" id="loginBusy" role="status" aria-live="polite">
+          <div class="busy-spinner" aria-hidden="true"></div>
+          <p class="busy-title" id="busyTitle">Идёт загрузка</p>
+          <p class="busy-hint">Пожалуйста, дождитесь завершения и не закрывайте окно — всё идёт по плану.</p>
+          <p class="busy-hint busy-hint-muted">Если что-то пошло не так, нажмите «Сообщить о проблеме».</p>
+        </div>
       </section>
     </main>
   </div>
 
-  <button class="cover-report" id="reportBtn" type="button">Сообщить об ошибке</button>
+  <button class="cover-report" id="reportBtn" type="button">Сообщить о проблеме</button>
 
   <script src="src/nicknameValidation.js"></script>
   <script src="src/renderer.js"></script>

@@ -180,6 +180,9 @@ async function main() {
     // обновлением и пересчётом раскладки, из-за которой карточка ложно «смещалась».
     const loading = await evaluate(cdp, `(() => {
       if (typeof window.showProgress !== 'function') return null;
+      // Снимаем режим ожидания: проверяем именно индикатор на месте «Создать аккаунт»,
+      // а не панель ожидания, которая тоже скрывает строку статуса.
+      if (typeof window.setBusy === 'function') window.setBusy(false);
       const card = document.querySelector('.login-card');
       const before = card.getBoundingClientRect();
       window.showProgress('Проверка файлов…', 42);
@@ -211,12 +214,42 @@ async function main() {
     assert.strictEqual(loading.cardHeight, loading.readyHeight, "Высота карточки изменилась в состоянии загрузки");
     console.log("PASS состояние загрузки: индикатор на месте «Создать аккаунт», форма статична, статус скрыт");
     // Сброс и чтение выполняем одним выражением: между двумя отдельными evaluate в renderer
-    // могут прийти фоновые события обновления, которые снова вызовут showProgress и скроют строку.
+    // могут прийти фоновые события обновления, которые снова включат режим ожидания и скроют строку.
     const statusAfterReset = await evaluate(cdp, `(() => {
+      if (typeof window.setBusy === 'function') window.setBusy(false);
       if (typeof window.resetProgress === 'function') window.resetProgress();
       return getComputedStyle(document.getElementById('statusText')).visibility;
     })()`);
     assert.strictEqual(statusAfterReset, "visible", "Строка статуса не вернулась после завершения загрузки");
+
+    // Состояние загрузки/обновления: форма входа и кнопка «Играть» скрыты, панель ожидания
+    // занимает их место, карточка сохраняет размер — текст не выходит за рамки.
+    const busy = await evaluate(cdp, `(() => {
+      if (typeof window.setBusy !== 'function') return null;
+      const card = document.getElementById('loginCard');
+      const before = card.getBoundingClientRect();
+      window.setBusy(true, 'Загрузка файлов: 42%');
+      const after = card.getBoundingClientRect();
+      const panel = document.getElementById('loginBusy');
+      const result = {
+        sameTop: Math.round(before.top) === Math.round(after.top),
+        sameHeight: Math.round(before.height) === Math.round(after.height),
+        panelVisible: panel.offsetParent !== null && getComputedStyle(panel).display !== 'none',
+        formHidden: getComputedStyle(document.getElementById('username')).visibility === 'hidden',
+        playHidden: getComputedStyle(document.getElementById('playBtn')).visibility === 'hidden',
+        title: document.getElementById('busyTitle').textContent
+      };
+      window.setBusy(false);
+      return result;
+    })()`);
+    assert.ok(busy, "Функция setBusy недоступна в renderer");
+    assert.ok(busy.sameTop, "Карточка сместилась по вертикали в состоянии ожидания");
+    assert.ok(busy.sameHeight, "Высота карточки изменилась в состоянии ожидания");
+    assert.ok(busy.panelVisible, "Панель ожидания не отображается");
+    assert.ok(busy.formHidden, "Форма ввода не скрыта во время загрузки");
+    assert.ok(busy.playHidden, "Кнопка «Играть» не скрыта во время загрузки");
+    assert.match(busy.title, /42%/, "Заголовок панели ожидания не обновился");
+    console.log("PASS состояние ожидания: форма и кнопка скрыты, панель показана, карточка статична");
 
     assert.strictEqual(cdp.errors.length, 0, "В консоли лаунчера есть ошибки");
     console.log("PASS ошибок renderer-консоли нет");

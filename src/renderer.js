@@ -12,6 +12,8 @@ const elements = {
   progressTrack: document.getElementById("progressTrack"),
   progressBar: document.getElementById("progressBar"),
   progressLabel: document.getElementById("progressLabel"),
+  loginCard: document.getElementById("loginCard"),
+  busyTitle: document.getElementById("busyTitle"),
   splash: document.getElementById("splash")
 };
 
@@ -175,6 +177,17 @@ function setStatus(text, type = "info") {
   elements.status.className = "status-bar " + type;
 }
 
+// Режим ожидания: во время загрузки/обновления форма входа и кнопка «Играть» скрыты,
+// а вместо них показывается сообщение. Панель ложится поверх тем же прямоугольником,
+// поэтому карточка остаётся статичной и текст не выходит за её рамки.
+function setBusy(active, title) {
+  elements.loginCard.classList.toggle("is-busy", active);
+  if (active) {
+    resetProgress();
+    if (typeof title === "string") elements.busyTitle.textContent = title;
+  }
+}
+
 // Автосбор диагностики при ошибках интерфейса: отчёт уходит в main и пишется на Рабочий стол.
 window.addEventListener("error", (e) => {
   const err = e.error || { name: "Error", message: e.message, stack: "" };
@@ -239,15 +252,9 @@ function resetProgress() {
 }
 
 window.electronAPI.onGameData(() => {
-  showProgress("Запуск игры… окно Minecraft вот-вот откроется");
+  setBusy(true, "Minecraft запускается — окно игры откроется автоматически");
   setStatus("Игра запускается...", "loading");
 });
-
-const UPDATE_LABELS = {
-  check: "Проверка файлов",
-  download: "Загрузка файлов",
-  done: "Проверка завершена"
-};
 
 const PROGRESS_LABELS = {
   assets: "Загрузка ассетов",
@@ -257,20 +264,21 @@ const PROGRESS_LABELS = {
   forge: "Подготовка Forge"
 };
 
+// Проверка/дозагрузка файлов игры. На время загрузки форма входа и кнопка «Играть» скрыты,
+// вместо них показывается сообщение ожидания.
 window.electronAPI.onUpdateProgress((p) => {
   if (!p) return;
-  const label = UPDATE_LABELS[p.phase] || "Обновление";
 
   if (p.phase === "done") {
-    showProgress("Все файлы актуальны", 100);
+    setBusy(true, "Все файлы актуальны");
     setStatus("Все файлы актуальны", "info");
-    setTimeout(() => { if (!elements.playBtn.disabled) resetProgress(); }, 1500);
+    setTimeout(() => { if (!elements.playBtn.disabled) setBusy(false); }, 1500);
     return;
   }
 
   if (p.phase === "check") {
     const percent = p.total ? Math.round((p.current / p.total) * 100) : 0;
-    showProgress(`Проверка файлов: ${p.file || ""} (${p.current}/${p.total})`, percent);
+    setBusy(true, `Проверка файлов: ${percent}%`);
     setStatus(`Проверка файлов... ${percent}%`, "loading");
     return;
   }
@@ -280,70 +288,69 @@ window.electronAPI.onUpdateProgress((p) => {
     ? Math.round((p.bytes / p.bytesTotal) * 100)
     : (p.total ? Math.round((p.current / p.total) * 100) : 0);
   const sizeInfo = p.bytesTotal ? ` — ${formatBytes(p.bytes)} / ${formatBytes(p.bytesTotal)}` : "";
-  showProgress(`Загрузка: ${p.file || ""}${sizeInfo}`, percent);
+  setBusy(true, `Загрузка файлов: ${percent}%${sizeInfo}`);
   setStatus(`Загрузка файлов... ${percent}%`, "loading");
 });
 
+// Загрузка ассетов/библиотек, выполняемая лаунчером Minecraft при запуске.
 window.electronAPI.onGameProgress((p) => {
   if (!p || !p.total) return;
   const percent = Math.min(100, Math.round((p.task / p.total) * 100));
   const label = PROGRESS_LABELS[p.type] || "Загрузка";
-  showProgress(`${label}… ${percent}%`, percent);
+  setBusy(true, `${label}: ${percent}%`);
   setStatus(`${label}... ${percent}%`, "loading");
 });
 
 window.electronAPI.onLauncherUpdate((u) => {
   if (!u) return;
   if (u.phase === "checking") {
-    showProgress(`Проверка обновлений лаунчера (установлена версия ${u.currentVersion})…`);
+    setBusy(true, `Проверяем обновления лаунчера (версия ${u.currentVersion})…`);
     setStatus("Проверяем новую версию лаунчера…", "loading");
     return;
   }
   if (u.phase === "up-to-date") {
-    const message = `Лаунчер обновлён до версии ${u.currentVersion}`;
-    showProgress(message, 100);
+    setBusy(false);
     setStatus("Установлена последняя версия лаунчера.", "success");
-    setTimeout(() => {
-      if (elements.progressLabel.textContent === message) resetProgress();
-    }, 1800);
     return;
   }
   if (u.phase === "start") {
-    showProgress(`Обновление лаунчера до ${u.version}…`);
+    setBusy(true, `Обновление лаунчера до ${u.version}…`);
     setStatus(`Найдено обновление лаунчера ${u.version}`, "loading");
     return;
   }
   if (u.phase === "downloading") {
     const percent = u.bytesTotal ? Math.round((u.bytes / u.bytesTotal) * 100) : 0;
     const sizeInfo = u.bytesTotal ? ` — ${formatBytes(u.bytes)} / ${formatBytes(u.bytesTotal)}` : "";
-    showProgress(`Обновление лаунчера ${u.version}${sizeInfo}`, percent);
+    setBusy(true, `Обновление лаунчера ${u.version}: ${percent}%${sizeInfo}`);
     setStatus(`Загрузка обновления лаунчера... ${percent}%`, "loading");
     return;
   }
   if (u.phase === "applying") {
-    showProgress(`Обновление ${u.version} загружено. Перезапуск для применения…`, 100);
+    setBusy(true, `Обновление ${u.version} загружено. Перезапуск для применения…`);
     setStatus("Лаунчер перезапустится автоматически, чтобы применить обновление.", "loading");
     return;
   }
   if (u.phase === "ready") {
-    resetProgress();
+    setBusy(false);
     setStatus(`Обновление ${u.version} загружено. Перезапустите лаунчер.`, "info");
     return;
   }
   if (u.phase === "error") {
-    resetProgress();
+    setBusy(false);
     setStatus("Ошибка обновления лаунчера: " + u.message, "error");
   }
 });
 
 window.electronAPI.onGameClose((code) => {
   elements.playBtn.disabled = false;
+  setBusy(false);
   resetProgress();
   setStatus(code === 0 ? "Игра закрыта" : `Игра закрыта с кодом ${code}`, code === 0 ? "info" : "error");
 });
 
 window.electronAPI.onGameError((err) => {
   elements.playBtn.disabled = false;
+  setBusy(false);
   resetProgress();
   setStatus("Ошибка: " + err + " — отчёт сохранён на Рабочем столе", "error");
 });
