@@ -2,6 +2,7 @@
 // Запускает приложение, подключается к renderer и проверяет визуальный слой и раскладку.
 const assert = require("assert");
 const { spawn, execFileSync } = require("child_process");
+const fs = require("fs");
 const path = require("path");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
@@ -77,6 +78,17 @@ async function waitFor(cdp, expression, timeoutMs = 20000) {
     await delay(200);
   }
   throw new Error(`Таймаут ожидания условия: ${expression}`);
+}
+
+// Возвращает значение выражения, как только оно станет истинным (для проверок с ожиданием данных).
+async function waitForValue(cdp, expression, timeoutMs = 20000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const value = await evaluate(cdp, expression);
+    if (value) return value;
+    await delay(200);
+  }
+  throw new Error(`Таймаут ожидания значения: ${expression}`);
 }
 
 async function main() {
@@ -250,6 +262,29 @@ async function main() {
     assert.ok(busy.playHidden, "Кнопка «Играть» не скрыта во время загрузки");
     assert.match(busy.title, /42%/, "Заголовок панели ожидания не обновился");
     console.log("PASS состояние ожидания: форма и кнопка скрыты, панель показана, карточка статична");
+
+    // Живой подхват фонов: копируем картинку в пользовательскую папку без перезапуска лаунчера.
+    // В dev-режиме каталог данных — корень проекта, поэтому папка совпадает с BACKGROUNDS_DIR из main.js.
+    const userBackgroundsDir = path.join(PROJECT_ROOT, "backgrounds");
+    const liveName = "__verify_live_bg.webp";
+    const livePath = path.join(userBackgroundsDir, liveName);
+    const sourceImage = path.join(PROJECT_ROOT, "launcher-visuals", "backgrounds", "optimized", "1.webp");
+    fs.mkdirSync(userBackgroundsDir, { recursive: true });
+    try {
+      fs.copyFileSync(sourceImage, livePath);
+      const appliedUrl = await waitForValue(cdp, `(() => {
+        const bg = document.getElementById('bgLayer').style.backgroundImage;
+        return bg.includes('${liveName}') ? bg : '';
+      })()`);
+      assert.ok(appliedUrl.includes(liveName), "Новый фон из папки не применился без перезапуска");
+      console.log("PASS живой подхват: добавленный фон применён без перезапуска");
+
+      fs.rmSync(livePath, { force: true });
+      await waitFor(cdp, `!document.getElementById('bgLayer').style.backgroundImage.includes('${liveName}')`);
+      console.log("PASS живой подхват: удалённый фон убран из ротации без перезапуска");
+    } finally {
+      fs.rmSync(livePath, { force: true });
+    }
 
     assert.strictEqual(cdp.errors.length, 0, "В консоли лаунчера есть ошибки");
     console.log("PASS ошибок renderer-консоли нет");

@@ -3,6 +3,7 @@ const elements = {
   usernameError: document.getElementById("usernameError"),
   playBtn: document.getElementById("playBtn"),
   reportBtn: document.getElementById("reportBtn"),
+  folderBtn: document.getElementById("folderBtn"),
   accountBtn: document.getElementById("accountBtn"),
   accountSlot: document.getElementById("accountSlot"),
   status: document.getElementById("statusText"),
@@ -103,6 +104,7 @@ function applyTheme(theme) {
 
 let visualConfig = null;
 let backgrounds = [];
+let currentBackgroundId = "";
 
 // Переносит координаты и параметры читаемости из visual-layout.json в CSS-переменные.
 function applyLayout(config) {
@@ -131,6 +133,20 @@ function applyLayout(config) {
   );
 }
 
+// Показывает конкретный фон и запоминает его как последний (защита от повтора при следующем запуске).
+function showBackground(picked) {
+  elements.bgLayer.style.backgroundImage = `url("${picked.url}")`;
+  const backgroundsConfig = (visualConfig && visualConfig.backgrounds) || {};
+  elements.bgLayer.style.backgroundSize = backgroundsConfig.fit || "cover";
+  const focal = backgroundsConfig.defaultFocalPoint || { x: 50, y: 50 };
+  elements.bgLayer.style.backgroundPosition = `${focal.x}% ${focal.y}%`;
+
+  currentBackgroundId = picked.id;
+  try {
+    localStorage.setItem(LAST_BACKGROUND_KEY, picked.id);
+  } catch (_) {}
+}
+
 // Случайный фон при запуске с защитой от немедленного повтора (как в утверждённом макете).
 function applyBackground() {
   if (!backgrounds.length) return;
@@ -141,17 +157,28 @@ function applyBackground() {
 
   const candidates = backgrounds.filter((item) => item.id !== previousId);
   const pool = candidates.length ? candidates : backgrounds;
-  const picked = pool[Math.floor(Math.random() * pool.length)];
+  showBackground(pool[Math.floor(Math.random() * pool.length)]);
+}
 
-  elements.bgLayer.style.backgroundImage = `url("${picked.url}")`;
-  const backgroundsConfig = (visualConfig && visualConfig.backgrounds) || {};
-  elements.bgLayer.style.backgroundSize = backgroundsConfig.fit || "cover";
-  const focal = backgroundsConfig.defaultFocalPoint || { x: 50, y: 50 };
-  elements.bgLayer.style.backgroundPosition = `${focal.x}% ${focal.y}%`;
+// Живой подхват фонов: main следит за пользовательской папкой и присылает новый список.
+// Добавленный фон показываем сразу (наглядное подтверждение), удалённый текущий — заменяем.
+function handleBackgroundsChanged(list) {
+  if (!Array.isArray(list) || !list.length) return;
+  const previousIds = new Set(backgrounds.map((item) => item.id));
+  backgrounds = list;
 
-  try {
-    localStorage.setItem(LAST_BACKGROUND_KEY, picked.id);
-  } catch (_) {}
+  const added = list.filter((item) => !previousIds.has(item.id));
+  if (added.length) {
+    const picked = added[Math.floor(Math.random() * added.length)];
+    showBackground(picked);
+    setStatus("Добавлен новый фон: " + picked.name, "success");
+    return;
+  }
+
+  if (!backgrounds.some((item) => item.id === currentBackgroundId)) {
+    applyBackground();
+    setStatus("Текущий фон удалён — выбран другой", "info");
+  }
 }
 
 async function applyVisualLayer() {
@@ -417,6 +444,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   setStatus("Готов к запуску", "info");
   elements.playBtn.addEventListener("click", launchGame);
   elements.reportBtn.addEventListener("click", sendReport);
+  elements.folderBtn.addEventListener("click", async () => {
+    const result = await window.electronAPI.openBackgroundsFolder();
+    if (result && result.ok) setStatus("Открыта папка фонов — положите туда свои картинки", "info");
+    else setStatus("Не удалось открыть папку фонов", "error");
+  });
+  // Живой подхват фонов: main присылает обновлённый список при изменении папки.
+  window.electronAPI.onBackgroundsChanged(handleBackgroundsChanged);
   elements.accountBtn.addEventListener("click", () => {
     setStatus("Создание аккаунта — заглушка, действие пока не подключено", "info");
   });

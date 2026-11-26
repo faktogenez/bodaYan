@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   close: () => ipcRenderer.invoke("window:close"),
   getConfig: () => ipcRenderer.invoke("config:get"),
   getVisualModel: () => ipcRenderer.invoke("visual:model"),
+  getBackgrounds: () => ipcRenderer.invoke("visual:backgrounds"),
+  openBackgroundsFolder: () => ipcRenderer.invoke("visual:openBackgrounds"),
   loginByNickname: (username) => ipcRenderer.invoke("auth:login", username),
   launchGame: () => ipcRenderer.invoke("game:launch"),
   stopGame: () => ipcRenderer.invoke("game:stop"),
@@ -24,5 +26,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onGameClose: (cb) => ipcRenderer.on("game:close", (_e, code) => cb(code)),
   onGameError: (cb) => ipcRenderer.on("game:error", (_e, err) => cb(err)),
   onUpdateProgress: (cb) => ipcRenderer.on("updater:progress", (_e, progress) => cb(progress)),
-  onLauncherUpdate: (cb) => ipcRenderer.on("launcher:update", (_e, info) => cb(info))
+  onLauncherUpdate: (cb) => ipcRenderer.on("launcher:update", (_e, info) => cb(info)),
+  onBackgroundsChanged: (cb) => ipcRenderer.on("visual:backgrounds-changed", (_e, list) => cb(list))
 });

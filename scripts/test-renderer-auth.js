@@ -62,6 +62,8 @@ function makeRenderer(storage, options = {}) {
     onGameError() {},
     onUpdateProgress() {},
     onLauncherUpdate: (callback) => { launcherUpdateHandler = callback; },
+    onBackgroundsChanged() {},
+    openBackgroundsFolder: async () => ({ ok: true }),
     reportError() {},
     sendReport: async () => ({ ok: true }),
     launchGame: async () => {

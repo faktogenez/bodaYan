@@ -10,7 +10,9 @@
 
 ## 1. Текущий прогресс проекта
 
-**🆕 UI-доработка (2026-11-26, не релиз):** во время загрузки файлов и автообновления форма ввода никнейма и кнопка «Играть» скрыты, вместо них — панель ожидания с просьбой дождаться и подсказкой «Сообщить о проблеме»; кнопка отчёта сделана заметной (контрастная таблетка с красной «!»); карточка входа остаётся статичной (скрытые элементы сохраняют место, панель ожидания ложится поверх тем же прямоугольником). `npm test` 51/51 PASS, `verify-launcher-cover.cjs` PASS. Версия не поднималась, релиз не публиковался. Подробности — раздел 11.
+**🆕 Система управления фонами (2026-11-26, не релиз):** свои фоны кладутся в пользовательскую папку `%APPDATA%\bodaYan\backgrounds` (в dev — `<корень проекта>\backgrounds`); папка создаётся автоматически, фоны из неё в приоритете, имя файла произвольное; изменения подхватываются на лету (`fs.watch`, без перезапуска) — добавленный фон применяется сразу, удалённый убирается из ротации. В UI добавлена кнопка «Папка фонов». `npm test` 51/51 PASS, `verify-launcher-cover.cjs` PASS (включая живой подхват). Версия не поднималась. Подробности — раздел 11.
+
+**🆕 UI-доработка (2026-11-26, не релиз):** во время загрузки файлов и автообновления форма ввода никнейма и кнопка «Играть» скрыты, вместо них — панель ожидания с просьбой дождаться и подсказкой «Сообщить о проблеме»; кнопка отчёта сделана заметной (контрастная таблетка с красной «!»); карточка входа остаётся статичной (скрытые элементы сохраняют место, панель ожидания ложится поверх тем же прямоугольником). Подробности — раздел 11.
 
 **v1.1.2 (2026-11-26):** снята привязка сессии к никнейму — удалён блок-лист стандартного ника `bodayan` из общего валидатора (`src/nicknameValidation.js`) и его экспорт из `src/nicknameSession.js`. Теперь любой корректный ник (3–16 символов, `[A-Za-z0-9_]`, trim) принимается, включая `bodayan` в любом регистре; механизм защиты по нику при авторизации отключён. Серверная часть ограничений по нику не имела (`white-list=false`, `online-mode=false`, пустые whitelist/banned, пустой Essentials `nick-blacklist`). `npm test` — 51/51 PASS. Portable EXE: 127 490 089 Б, SHA1 `89b6664e02932df51e856a7ea5f1c51febf1d017` (ассет `bodaYan-Launcher.exe`). Релиз опубликован на GitHub (Latest). Подробности — раздел 11.
 
@@ -59,6 +61,8 @@
 - ✅ **Экран-заглушка при старте лаунчера** (`#splash` в [index.html](file:///C:/Users/LEO/AppleLauncher/index.html)): мгновенно показывает логотип приложения и надпись «Загрузка» (с анимированными точками); держит до завершения инициализации (конфиг → тема → визуальный слой → фон), затем плавно скрывается (`.splash-hidden`).
 - ✅ **Режим ожидания при загрузке/обновлении** (`is-busy` на карточке входа): пока лаунчер качает файлы игры или обновляет сам себя, форма ввода никнейма и кнопка «Играть» скрыты (`visibility: hidden` — место сохраняется), вместо них показывается панель ожидания `#loginBusy` (спиннер + «дождитесь завершения, не закрывайте окно» + «если что-то пошло не так — нажмите «Сообщить о проблеме»»). Панель ложится поверх тем же прямоугольником (`position: absolute; inset: 0`), поэтому карточка остаётся **статичной**, текст не выходит за рамки и окно не «прыгает». Логика — `setBusy(active, title)` в [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js).
 - ✅ **Заметная кнопка «Сообщить о проблеме»** (`#reportBtn`, `.cover-report`): оформлена контрастной «таблеткой» в правом нижнем углу (красный кружок «!», полупрозрачный фон + blur, тень, hover), `z-index: 7` — остаётся доступной поверх панели ожидания.
+- ✅ **Кнопка «Папка фонов»** (`#folderBtn`, `.cover-folder`): открывает пользовательскую папку фонов в проводнике (`shell.openPath`); вторичная спокойная таблетка рядом с отчётом; в узком окне обе кнопки сжимаются до иконок 40×40.
+- ✅ **Автономная система фонов**: пользовательская папка `%APPDATA%\bodaYan\backgrounds` (в dev — `<корень проекта>\backgrounds`) создаётся автоматически с памяткой `КАК-ДОБАВИТЬ-ФОН.txt`; фоны оттуда в приоритете над встроенными; имя файла произвольное; живой подхват через `fs.watch` (добавленный фон применяется сразу, удалённый убирается из ротации).
 - ✅ Кнопка «Играть» запускает Minecraft 1.16.5 Forge и доходит до **главного меню** (без автоподключения к серверу)
 - ✅ Передача параметров памяти из `config.json`: `-Xms2048M -Xmx4096M`
 - ✅ Чтение `config/config.json` в `main.js` (окно, память, сервер, версия, ник, путь игры, фоны); при ошибке — фолбэк на значения по умолчанию
@@ -92,10 +96,10 @@
 
 | Файл | Назначение |
 |------|-----------|
-| [main.js](file:///C:/Users/LEO/AppleLauncher/main.js) | Главный процесс Electron. Создаёт окно с платформенной иконкой, обрабатывает IPC, проверяет никнейм и запускает игру через `minecraft-launcher-core`. |
-| [index.html](file:///C:/Users/LEO/AppleLauncher/index.html) | Разметка UI обложки. Экран-заглушка `#splash` (лого + «Загрузка»), фон-слой, титлбар с кнопками окна, логотип, форма входа `#loginCard` (пустое поле ника, «Играть», слот аккаунта `#accountSlot` с прогресс-баром, статус), панель ожидания `#loginBusy` (спиннер + `#busyTitle` + подсказки), счётчик онлайна, кнопка отчёта `#reportBtn` («Сообщить о проблеме»). Кнопок «Войти по никнейму» и «Остановить» нет; meta-row отсутствует. |
-| [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) | Мост между renderer и main через `contextBridge`; IPC `auth:login` и запуск игры без передачи произвольного ника. |
-| [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) | UI-логика. Валидация ника (пустое поле блокирует запуск), вход при нажатии «Играть», скрытие заглушки после инициализации, тема, визуальный слой обложки (раскладка/фон), прогресс-бар игры и self-update, режим ожидания `setBusy()` (скрытие формы/кнопки «Играть» при загрузке и обновлении). |
+| [main.js](file:///C:/Users/LEO/AppleLauncher/main.js) | Главный процесс Electron. Создаёт окно с платформенной иконкой, обрабатывает IPC, проверяет никнейм и запускает игру через `minecraft-launcher-core`. Визуальный слой: `getVisualModel()`, `listVisualBackgrounds()` (пользовательская папка `%APPDATA%\bodaYan\backgrounds` + встроенные), `ensureUserBackgroundsDir()`, `watchUserBackgrounds()` (`fs.watch` → IPC `visual:backgrounds-changed`), IPC `visual:backgrounds` / `visual:openBackgrounds`. |
+| [index.html](file:///C:/Users/LEO/AppleLauncher/index.html) | Разметка UI обложки. Экран-заглушка `#splash` (лого + «Загрузка»), фон-слой, титлбар с кнопками окна, логотип, форма входа `#loginCard` (пустое поле ника, «Играть», слот аккаунта `#accountSlot` с прогресс-баром, статус), панель ожидания `#loginBusy` (спиннер + `#busyTitle` + подсказки), счётчик онлайна, кнопки-инструменты `.cover-tools` (папка фонов `#folderBtn` + отчёт `#reportBtn`). Кнопок «Войти по никнейму» и «Остановить» нет; meta-row отсутствует. |
+| [src/preload.js](file:///C:/Users/LEO/AppleLauncher/src/preload.js) | Мост между renderer и main через `contextBridge`; IPC `auth:login`, запуск игры, визуальный слой (`getVisualModel`, `getBackgrounds`, `openBackgroundsFolder`, `onBackgroundsChanged`) без передачи произвольного ника. |
+| [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) | UI-логика. Валидация ника (пустое поле блокирует запуск), вход при нажатии «Играть», скрытие заглушки после инициализации, тема, визуальный слой обложки (раскладка/фон), прогресс-бар игры и self-update, режим ожидания `setBusy()` (скрытие формы/кнопки «Играть» при загрузке и обновлении), живой подхват фонов (`handleBackgroundsChanged`), кнопка «Папка фонов». |
 | [src/nicknameValidation.js](file:///C:/Users/LEO/AppleLauncher/src/nicknameValidation.js) | Общие нормализация/валидация ника для renderer, main и `nicknameSession`; единая политика и тексты ошибок. |
 | [src/updater.js](file:///C:/Users/LEO/AppleLauncher/src/updater.js) | Проверка целостности и дозагрузка файлов по манифесту (Google Drive / прямой URL). |
 | [src/servers.js](file:///C:/Users/LEO/AppleLauncher/src/servers.js) | Запись `servers.dat` (NBT) — список серверов только из `config.json`. |
@@ -119,9 +123,10 @@
 | [scripts/test-netsel.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-netsel.js) | ✅ Автотест `src/netsel.js` (10 проверок: разбор адресов, дедупликация, выбор/фолбэк, реальная TCP-проба). Запуск: `node scripts/test-netsel.js`. |
 | [scripts/firewall-server.ps1](file:///C:/Users/LEO/AppleLauncher/scripts/firewall-server.ps1) | ✅ Опциональный скрипт: идемпотентно создаёт входящее правило брандмауэра TCP 25565 (требует прав администратора). |
 | [scripts/test-diagnostic.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-diagnostic.js) | Тест системы сбора ошибок: 5 сценариев (try/catch, unhandledRejection, manual, non-error, проверка содержимого отчёта). |
-| [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css) | ✅ Единый shared-CSS обложки: базовые компоненты (`.card`, `.input-group`, `.play-btn`, `.progress`, `.splash`) + раскладка обложки (`.cover-bg/.cover-tint/.cover-shell/.cover-titlebar/.cover-controls/.brand-logo/.cover-main/.login-card/.cover-online/.cover-account/.cover-report`) и `compact-layout`. Режим ожидания: `.login-card.is-busy` (скрытие формы/кнопки/статуса) + `.login-busy/.busy-spinner/.busy-title/.busy-hint`. Раскладка управляется CSS-переменными из `visual-layout.json`. |
+| [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css) | ✅ Единый shared-CSS обложки: базовые компоненты (`.card`, `.input-group`, `.play-btn`, `.progress`, `.splash`) + раскладка обложки (`.cover-bg/.cover-tint/.cover-shell/.cover-titlebar/.cover-controls/.brand-logo/.cover-main/.login-card/.cover-online/.cover-account`) и `compact-layout`. Режим ожидания: `.login-card.is-busy` + `.login-busy/.busy-spinner/.busy-title/.busy-hint`. Инструменты: `.cover-tools/.cover-folder/.cover-report` (в `compact-layout` — иконки 40×40). Раскладка управляется CSS-переменными из `visual-layout.json`. |
 | [launcher-visuals/](file:///C:/Users/LEO/AppleLauncher/launcher-visuals) | ✅ Каталог визуальных ресурсов обложки: `config/visual-layout.json` (схема v1), `backgrounds/optimized` (числовые фоны), `backgrounds/source`, `logo/optimized/LOGO-optimized.webp`, автономное `preview/` и `tools/`. Включается в сборку через `extraResources`. |
-| [scripts/verify-launcher-cover.cjs](file:///C:/Users/LEO/AppleLauncher/scripts/verify-launcher-cover.cjs) | ✅ CDP-верификация обложки в реальном лаунчере: логотип/фон применены, ник центрирован, цвета кнопок окна, `compact-layout` на 640×460, состояния загрузки (индикатор в слоте) и ожидания (форма/кнопка скрыты, панель показана, карточка статична), отсутствие ошибок консоли. Запуск: `node scripts/verify-launcher-cover.cjs`. |
+| [scripts/verify-launcher-cover.cjs](file:///C:/Users/LEO/AppleLauncher/scripts/verify-launcher-cover.cjs) | ✅ CDP-верификация обложки в реальном лаунчере: логотип/фон применены, ник центрирован, цвета кнопок окна, `compact-layout` на 640×460, состояния загрузки (индикатор в слоте) и ожидания (форма/кнопка скрыты, панель показана, карточка статична), живой подхват фонов (добавление/удаление без перезапуска), отсутствие ошибок консоли. Запуск: `node scripts/verify-launcher-cover.cjs`. |
+| [launcher-visuals/README.md](file:///C:/Users/LEO/AppleLauncher/launcher-visuals/README.md) | Документация визуальных ресурсов: встроенные фоны/логотип, оптимизация, а также раздел «Пользовательские фоны» (пути, требования к изображению, шаги Canva, частые ошибки). |
 | [test-launch.js](file:///C:/Users/LEO/AppleLauncher/test-launch.js) | Отладочный скрипт прямого запуска игры без Electron (offline UUID, quickPlay, корректная авторизация). |
 | [config/config.json](file:///C:/Users/LEO/AppleLauncher/config/config.json) | ✅ Читается `main.js`. Настройки окна, памяти, сервера, версии, ника, флаг `offline`, пути к фонам и тема. |
 | [scripts/build-jre.js](file:///C:/Users/LEO/AppleLauncher/scripts/build-jre.js) | Сборка минимальной JRE 17 (jlink → `jre/`), упаковывается в EXE (`resources/jre`). |
@@ -624,6 +629,39 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-26 — Система управления фонами: пользовательская папка + живой подхват
+
+**Задача (по запросу заказчика):** разработать и внедрить систему управления фонами лаунчера: точные размеры/характеристики картинок; отдельная папка с точным путём; автоподхват новых изображений без пересборки/переустановки; корректная обработка удаления; плюс инструкция по Canva, список частых ошибок и рекомендации.
+
+**Согласовано (AskUserQuestion):** папка — `%APPDATA%\bodaYan\backgrounds` (всегда доступна для записи, переживает обновления); объём — живой подхват (`fs.watch`) + кнопка «Открыть папку фонов».
+
+**Выявленные проблемы прежней схемы (этап проектирования):**
+1. Фоны искались в `launcher-visuals/backgrounds/optimized` внутри `resources` — у portable-EXE это временная распаковка в `%TEMP%`, которая стирается при каждом запуске; ручное добавление файлов было бессмысленным.
+2. `listVisualBackgrounds` принимал только чисто числовые имена (`/^\d+$/`) — файл `mountain.jpg` молча игнорировался (худший UX: «не работает и непонятно почему»).
+3. Не было живого обновления в основном лаунчере (fs.watch был только в автономном предпросмотре).
+
+**Изменения в коде:**
+- `main.js`: добавлена `USER_BACKGROUNDS_DIR = path.join(DATA_DIR, "backgrounds")`; `listVisualImages` теперь безопасно читает каталог (try/catch); `listVisualBackgrounds` объединяет пользовательскую папку и встроенные (optimized → source), имя файла произвольное, сортировка «натуральная» (`localeCompare(..., { numeric: true })`), одноимённый пользовательский файл перекрывает встроенный. Добавлены `ensureUserBackgroundsDir()` (создаёт папку + `КАК-ДОБАВИТЬ-ФОН.txt`), `currentBackgrounds()`, `watchUserBackgrounds()` (`fs.watch` + debounce 300 мс → IPC `visual:backgrounds-changed`), вызов `watchUserBackgrounds()` в `app.whenReady`, закрытие вотчера в `will-quit`. IPC: `visual:backgrounds`, `visual:openBackgrounds` (`shell.openPath`); импортирован `shell`.
+- `src/preload.js`: `getBackgrounds()`, `openBackgroundsFolder()`, `onBackgroundsChanged(cb)`.
+- `src/renderer.js`: `elements.folderBtn`; `showBackground(picked)` выделен из `applyBackground()`; `currentBackgroundId`; `handleBackgroundsChanged(list)` — добавленный фон показывается сразу со статусом «Добавлен новый фон: …», удалённый текущий заменяется; обработчик кнопки «Папка фонов».
+- `index.html`: кнопка `#folderBtn` («Папка фонов») + обёртка `.cover-tools` вокруг неё и `#reportBtn`.
+- `assets/styles/app.css`: `.cover-tools` (общий fixed-контейнер), `.cover-folder` (вторичная таблетка с иконкой папки через `clip-path`), `#reportBtn` внутри контейнера; в `compact-layout` кнопки сжимаются до иконок 40×40 (`font-size: 0`), чтобы не наезжать на форму.
+- `.gitignore`: `/backgrounds/` (в dev `DATA_DIR` = корень проекта).
+- Тесты: `test-renderer-auth.js` — в фейковый `electronAPI` добавлены `onBackgroundsChanged`/`openBackgroundsFolder`; `verify-launcher-cover.cjs` — добавлены helper `waitForValue` и проверки живого подхвата (копирование картинки в `backgrounds/` → фон применяется; удаление → фон убирается), с очисткой во `finally`.
+- Документация: `launcher-visuals/README.md` — раздел «Пользовательские фоны» (пути, требования, шаги Canva, частые ошибки).
+
+**Действия и результат:**
+1. Реализовано и протестировано.
+2. `npm test` — **51/51 PASS**.
+3. `node scripts/verify-launcher-cover.cjs` — **полный PASS**, включая «живой подхват: добавленный фон применён без перезапуска» и «удалённый фон убран из ротации без перезапуска».
+4. Обновлены `CHANGELOG.md` и `SESSION_HANDOFF.md`.
+
+**Статус:** ✅ выполнено и протестировано. Версия/релиз не менялись.
+
+**Проблемы/ограничения:** у portable-EXE путь `%APPDATA%\bodaYan\backgrounds` неочевиден для пользователя — решается кнопкой «Папка фонов». Форматы `.jfif/.heic/.bmp` не поддерживаются.
+
+**Открытые вопросы:** нужен ли отдельный релиз (инкремент версии + сборка + публикация) с доработками UI и фонов — по решению заказчика.
 
 ### Сессия 2026-11-26 — UI: режим ожидания при загрузке/обновлении + заметная кнопка «Сообщить о проблеме»
 

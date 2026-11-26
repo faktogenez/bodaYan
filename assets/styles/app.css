@@ -534,18 +534,26 @@ input[type="text"].invalid:focus {
 }
 
 .cover-account:focus-visible,
+.cover-folder:focus-visible,
 .cover-report:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
-/* Кнопка отчёта о проблеме — заметная таблетка в правом нижнем углу.
-   Во время загрузки/обновления она остаётся доступной и не перекрывается панелью ожидания. */
-.cover-report {
+/* Инструменты в правом нижнем углу: «Папка фонов» (вторичная) + «Сообщить о проблеме» (заметная).
+   Остаются доступными во время загрузки/обновления и не перекрываются панелью ожидания. */
+.cover-tools {
   position: fixed;
   right: 18px;
   bottom: 16px;
   z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cover-folder,
+.cover-report {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -565,6 +573,23 @@ input[type="text"].invalid:focus {
     transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* «Папка фонов» — вторичная кнопка: спокойная, не конкурирует с отчётом. */
+.cover-folder {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(20, 20, 22, 0.6);
+  font-weight: 500;
+}
+
+/* Иконка папки: заливка currentColor, обрезанная в силуэт папки (видна и в icon-only режиме). */
+.cover-folder::before {
+  content: "";
+  width: 16px;
+  height: 12px;
+  background: currentColor;
+  opacity: 0.85;
+  clip-path: polygon(0 15%, 38% 15%, 50% 0, 100% 0, 100% 100%, 0 100%);
+}
+
 .cover-report::before {
   display: inline-grid;
   place-items: center;
@@ -579,6 +604,14 @@ input[type="text"].invalid:focus {
   content: "!";
 }
 
+.cover-folder:hover:not(:disabled) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
 .cover-report:hover:not(:disabled) {
   color: #fff;
   border-color: rgba(255, 69, 58, 0.75);
@@ -587,10 +620,12 @@ input[type="text"].invalid:focus {
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
 }
 
+.cover-folder:active:not(:disabled),
 .cover-report:active:not(:disabled) {
   transform: translateY(0);
 }
 
+.cover-folder:disabled,
 .cover-report:disabled {
   opacity: 0.55;
   cursor: default;
@@ -625,6 +660,24 @@ input[type="text"].invalid:focus {
 
 .compact-layout .cover-account {
   font-size: var(--font-sm);
+}
+
+/* В узком окне карточка занимает центр снизу, поэтому кнопки-инструменты сжимаются
+   до иконок (текст читается из подсказки) и не наезжают на форму. */
+.compact-layout .cover-tools {
+  right: 12px;
+  bottom: 12px;
+  gap: 6px;
+}
+
+.compact-layout .cover-folder,
+.compact-layout .cover-report {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+  font-size: 0;
 }
 
 /* ---------- Экран-заглушка при старте лаунчера ---------- */

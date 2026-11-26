@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
@@ -402,6 +402,11 @@ const VISUAL_CONFIG_DIR = path.join(VISUAL_ROOT, "config");
 const VISUAL_CONFIG_PATH = path.join(VISUAL_CONFIG_DIR, "visual-layout.json");
 const VISUAL_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".avif"];
 
+// Пользовательская папка фонов: лежит в каталоге данных (вне сборки и вне resources),
+// поэтому в неё можно вручную добавлять и удалять картинки без пересборки и переустановки.
+const USER_BACKGROUNDS_DIR = path.join(DATA_DIR, "backgrounds");
+const USER_BACKGROUNDS_README = path.join(USER_BACKGROUNDS_DIR, "КАК-ДОБАВИТЬ-ФОН.txt");
+
 function readVisualConfig() {
   try {
     const parsed = JSON.parse(fs.readFileSync(VISUAL_CONFIG_PATH, "utf8"));
@@ -427,29 +432,97 @@ function resolveVisualPath(relativePath) {
 }
 
 function listVisualImages(directory) {
-  if (!directory || !fs.existsSync(directory)) return [];
-  return fs.readdirSync(directory, { withFileTypes: true })
-    .filter((entry) => entry.isFile() &&
-      VISUAL_IMAGE_EXTS.includes(path.extname(entry.name).toLowerCase()))
-    .map((entry) => entry.name);
+  if (!directory) return [];
+  try {
+    if (!fs.existsSync(directory)) return [];
+    return fs.readdirSync(directory, { withFileTypes: true })
+      .filter((entry) => entry.isFile() &&
+        VISUAL_IMAGE_EXTS.includes(path.extname(entry.name).toLowerCase()))
+      .map((entry) => entry.name);
+  } catch (err) {
+    logger.warn("[visual] не удалось прочитать папку фонов:", directory, err.message);
+    return [];
+  }
 }
 
-// Фоны из launcher-visuals: приоритет — optimized, иначе source; берутся только числовые имена,
-// поэтому новые фоны подхватываются автоматически без правок кода.
+// Список фонов: сначала пользовательская папка, затем встроенные (optimized, иначе source).
+// Имена файлов НЕ фиксированы в коде (раньше подходили только числа) — поэтому любая корректная
+// картинка подхватывается автоматически. Одноимённый файл пользователя перекрывает встроенный.
+// Сортировка «натуральная»: 1, 2, 10, 11, а не 1, 10, 11, 2.
 function listVisualBackgrounds(config) {
   const optimized = resolveVisualPath(config.backgrounds.optimizedDirectory);
   const source = resolveVisualPath(config.backgrounds.sourceDirectory);
-  const directory = listVisualImages(optimized).length ? optimized : source;
+  const bundled = listVisualImages(optimized).length ? optimized : source;
 
-  const numeric = listVisualImages(directory)
-    .filter((name) => /^\d+$/.test(path.parse(name).name))
-    .sort((a, b) => Number(path.parse(a).name) - Number(path.parse(b).name));
+  const seen = new Set();
+  const result = [];
+  for (const directory of [USER_BACKGROUNDS_DIR, bundled]) {
+    for (const name of listVisualImages(directory)) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      result.push({
+        id: name,
+        name: path.parse(name).name,
+        url: pathToFileURL(path.join(directory, name)).href
+      });
+    }
+  }
 
-  return numeric.map((name) => ({
-    id: name,
-    name: path.parse(name).name,
-    url: pathToFileURL(path.join(directory, name)).href
-  }));
+  return result.sort((a, b) => a.id.localeCompare(b.id, "ru", { numeric: true }));
+}
+
+// Создаёт пользовательскую папку фонов и кладёт в неё краткую инструкцию (один раз).
+function ensureUserBackgroundsDir() {
+  try {
+    fs.mkdirSync(USER_BACKGROUNDS_DIR, { recursive: true });
+    if (!fs.existsSync(USER_BACKGROUNDS_README)) {
+      fs.writeFileSync(USER_BACKGROUNDS_README, [
+        "Как добавить свой фон в лаунчер bodaYan",
+        "",
+        "1. Положите картинку в ЭТУ папку (.png, .jpg, .jpeg, .webp, .avif).",
+        "2. Имя файла значения не имеет — лаунчер найдёт картинку сам.",
+        "3. Чтобы убрать фон — просто удалите его файл из этой папки.",
+        "",
+        "Рекомендуемый размер: 1920x1080 (16:9), вес до ~1,5 МБ.",
+        "Важные детали сцены — в правых двух третях: левая треть затемняется под логотип и форму входа.",
+        "",
+        "Изменения применяются сразу: лаунчер следит за папкой, перезапуск не нужен.",
+        "",
+        "Полный путь к папке: " + USER_BACKGROUNDS_DIR
+      ].join("\r\n"), "utf8");
+    }
+  } catch (err) {
+    logger.warn("[visual] не удалось подготовить папку фонов:", err.message);
+  }
+}
+
+let backgroundsWatcher = null;
+let backgroundsWatchTimer = null;
+
+function currentBackgrounds() {
+  const config = readVisualConfig();
+  return config ? listVisualBackgrounds(config) : [];
+}
+
+// Живой подхват: новый фон появляется и удалённый исчезает сразу, без перезапуска.
+// fs.watch выдаёт несколько событий на одну операцию, поэтому отправка в renderer
+// объединяется задержкой (debounce).
+function watchUserBackgrounds() {
+  ensureUserBackgroundsDir();
+  try {
+    backgroundsWatcher = fs.watch(USER_BACKGROUNDS_DIR, () => {
+      clearTimeout(backgroundsWatchTimer);
+      backgroundsWatchTimer = setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("visual:backgrounds-changed", currentBackgrounds());
+        }
+      }, 300);
+    });
+    backgroundsWatcher.on("error", (err) =>
+      logger.warn("[visual] наблюдение за папкой фонов остановлено:", err.message));
+  } catch (err) {
+    logger.warn("[visual] не удалось установить наблюдение за папкой фонов:", err.message);
+  }
 }
 
 // Модель визуального слоя для renderer: конфиг раскладки, логотип и список фонов.
@@ -607,6 +680,16 @@ ipcMain.handle("launcher:checkUpdate", () => runSelfUpdate());
 
 // Единая модель визуального слоя (обложка): конфиг раскладки, логотип, список фонов.
 ipcMain.handle("visual:model", () => getVisualModel());
+
+// Актуальный список фонов (для ручного обновления из renderer).
+ipcMain.handle("visual:backgrounds", () => currentBackgrounds());
+
+// Открывает пользовательскую папку фонов в системном проводнике.
+ipcMain.handle("visual:openBackgrounds", async () => {
+  ensureUserBackgroundsDir();
+  const error = await shell.openPath(USER_BACKGROUNDS_DIR);
+  return error ? { ok: false, error } : { ok: true, path: USER_BACKGROUNDS_DIR };
+});
 
 ipcMain.handle("game:launch", async () => {
   if (launching) return { ok: false, message: "Игра уже запускается" };
@@ -769,9 +852,18 @@ app.whenReady().then(async () => {
     logger.error("[servers] автоподбор адреса не удался:", err.message);
   }
   createWindow();
+  // Живой подхват фонов: следим за пользовательской папкой весь сеанс работы.
+  watchUserBackgrounds();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on("will-quit", () => {
+  clearTimeout(backgroundsWatchTimer);
+  if (backgroundsWatcher) {
+    try { backgroundsWatcher.close(); } catch (_) {}
+  }
 });
 
 app.on("window-all-closed", () => {
