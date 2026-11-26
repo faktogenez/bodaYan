@@ -16,11 +16,11 @@ check("пустое значение запрещено", () => {
   assert.strictEqual(session.requireAuthenticatedUser().ok, false);
 });
 
-check("стандартный ник запрещён без учёта регистра", () => {
+check("ранее зарезервированный ник разрешён в любом регистре", () => {
   for (const username of ["bodayan", "BodaYan", "BODAYAN"]) {
     const result = session.login(username);
-    assert.strictEqual(result.ok, false);
-    assert.match(result.message, /стандартным/);
+    assert.strictEqual(result.ok, true, username);
+    assert.strictEqual(result.username, username);
   }
 });
 
@@ -48,7 +48,7 @@ check("собственный ник после входа доступен иг
 check("неудачный вход сбрасывает предыдущую пользовательскую сессию", () => {
   assert.strictEqual(session.login("Player_A").ok, true);
   assert.strictEqual(session.requireAuthenticatedUser().username, "Player_A");
-  assert.strictEqual(session.login("bodayan").ok, false);
+  assert.strictEqual(session.login("ab").ok, false);
   assert.strictEqual(session.requireAuthenticatedUser().ok, false);
 });
 

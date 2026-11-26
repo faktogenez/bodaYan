@@ -6,7 +6,6 @@
     root.NicknameValidation = validation;
   }
 })(typeof window !== "undefined" ? window : globalThis, function createNicknameValidation() {
-  const STANDARD_USERNAME = "bodayan";
   const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,16}$/;
 
   function validate(value) {
@@ -14,13 +13,6 @@
 
     if (!username) {
       return { ok: false, username, message: "Введите никнейм." };
-    }
-    if (username.toLowerCase() === STANDARD_USERNAME) {
-      return {
-        ok: false,
-        username,
-        message: "Никнейм «bodayan» является стандартным. Введите собственный уникальный никнейм."
-      };
     }
     if (username.length < 3 || username.length > 16) {
       return {
@@ -40,5 +32,5 @@
     return { ok: true, username, message: "" };
   }
 
-  return { STANDARD_USERNAME, USERNAME_PATTERN, validate };
+  return { USERNAME_PATTERN, validate };
 });

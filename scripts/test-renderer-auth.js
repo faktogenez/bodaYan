@@ -134,10 +134,12 @@ async function main() {
 
   first.elements.username.value = "bodayan";
   await first.elements.playBtn.listeners.click();
-  assert.strictEqual(first.loginCalls.length, 0);
-  assert.strictEqual(first.launchCalls.length, 0);
-  assert.match(first.elements.usernameError.textContent, /стандартным/);
-  console.log("  PASS стандартный ник отклоняется");
+  assert.deepStrictEqual(first.loginCalls, ["bodayan"]);
+  assert.strictEqual(first.launchCalls.length, 1);
+  assert.strictEqual(first.elements.username.value, "bodayan");
+  console.log("  PASS ранее зарезервированный ник принимается и запускает игру");
+  first.loginCalls.length = 0;
+  first.launchCalls.length = 0;
 
   first.elements.username.value = "  Player_2026  ";
   await first.elements.playBtn.listeners.click();

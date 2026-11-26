@@ -105,12 +105,15 @@ async function main() {
       const input = document.getElementById("username");
       input.value = " BodaYan ";
       input.dispatchEvent(new Event("input", { bubbles: true }));
-      document.getElementById("playBtn").click();
       await new Promise(resolve => setTimeout(resolve, 10));
-      return document.getElementById("usernameError").textContent;
+      return {
+        error: document.getElementById("usernameError").textContent,
+        hidden: document.getElementById("usernameError").hidden
+      };
     })()`);
-    assert.match(standard, /стандартным/);
-    console.log("PASS: legacy-ник отклоняется без учёта регистра и внешних пробелов");
+    assert.strictEqual(standard.error, "");
+    assert.strictEqual(standard.hidden, true);
+    console.log("PASS: ранее зарезервированный ник принимается без ошибок");
 
     const launchStub = process.env.LAUNCHER_SMOKE_START_GAME !== "1" && await evaluate(`(() => {
       const api = window.electronAPI;
@@ -182,9 +185,10 @@ async function main() {
       console.log("SKIP: API launchGame неизменяем, поэтому реальный запуск игры не запускался");
     }
 
-    const failedRetry = await evaluate("window.electronAPI.loginByNickname('bodayan')");
-    assert.strictEqual(failedRetry.ok, false);
-    console.log("PASS: неудачный повторный вход отклонён и сбрасывает сессию");
+    const relogin = await evaluate("window.electronAPI.loginByNickname('bodayan')");
+    assert.strictEqual(relogin.ok, true);
+    assert.strictEqual(relogin.username, "bodayan");
+    console.log("PASS: повторный вход ранее зарезервированным ником принимается");
   } finally {
     if (process.env.LAUNCHER_SMOKE_START_GAME === "1" && !gameStopConfirmed) {
       const deadline = Date.now() + 30000;

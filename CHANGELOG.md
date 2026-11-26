@@ -3,6 +3,22 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — по [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [Unreleased] - 2026-11-26
+
+### Changed
+
+- **Снята привязка пользовательской сессии к никнейму `bodayan`**: удалён блок-лист стандартного ника из центрального валидатора. Теперь принимается любой никнейм, проходящий технические требования Minecraft (3–16 символов, латиница/цифры/`_`), в том числе `bodayan` в любом регистре. Валидатор, модуль пользовательской сессии, main-процесс и renderer по-прежнему используют единый источник правил, но больше не имеют «зарезервированных» и «запрещённых» имён.
+- Дефолтный/предустановленный список никнеймов лаунчера больше не содержит записи `bodayan`.
+
+### Removed
+
+- Константа `STANDARD_USERNAME` и связанная с ней проверка/сообщение об ошибке удалены из `src/nicknameValidation.js`; экспорт `STANDARD_USERNAME` убран из `src/nicknameSession.js`.
+
+### Tests
+
+- Обновлены автотесты (`test-nickname-validation.js`, `test-nickname-session.js`, `test-renderer-auth.js`, `smoke-nickname-live.js`): кейсы отклонения `bodayan` заменены на кейсы приёма. Вход с `bodayan`/`BodaYan`/`BODAYAN` и произвольными никами проходит успешно.
+- `npm test` — 51/51 PASS.
+
 ## [1.0.22] - 2026-11-25
 
 ### Changed

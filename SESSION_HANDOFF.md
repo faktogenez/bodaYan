@@ -18,7 +18,7 @@
 
 **История v1.0.17:** portable Local Storage содержал `minecraft_username=bodayan`; очистка исправлена для него и второго legacy-ключа `appleLauncher.username`, autocomplete отключён. `npm test`: 48/48 PASS; live CDP smoke подтвердил пустое поле, удаление ключей и вход с допустимым ником. EXE: 113 313 735 Б, SHA1 `bd30c84534e20b246deefd8d071b1eb7446c648a`; E2E self-update v1.0.16 → v1.0.17 прошёл (`move OK (tries: 1)`). Полный запуск Minecraft/Java из sandbox заблокирован файловыми ограничениями.
 
-**⚠️ Известная нерешённая проблема (ОТЛОЖЕНА по решению заказчика): авторизация под ником `bodayan`.** Вход с этим ником не выполняется, потому что общий валидатор `src/nicknameValidation.js` считает `bodayan` «стандартным» (`STANDARD_USERNAME`) и отклоняет его с сообщением «Никнейм «bodayan» является стандартным…». Любые другие допустимые ники авторизуются корректно. Причина — намеренный запрет дефолтного ника (защита от «навязанного» значения), который теперь конфликтует с реальным ником владельца. Исправление **сознательно отложено** на более поздний этап: нужно согласовать политику (разрешить `bodayan` для владельца, вынести список запрещённых ников в `config.json` либо вовсе снять запрет) и только затем менять валидатор и тесты. До этого момента изменение поведения `STANDARD_USERNAME` не делать.
+**✅ РЕШЕНО (2026-11-26): никнейм `bodayan` разблокирован.** По решению заказчика полностью снята привязка пользовательской сессии к никнейму: удалён блок-лист `STANDARD_USERNAME = "bodayan"` из `src/nicknameValidation.js` (и его экспорт из `src/nicknameSession.js`). Теперь принимается **любой** никнейм, проходящий технические требования Minecraft (3–16 символов, `[A-Za-z0-9_]`, trim внешних пробелов), включая `bodayan`/`BodaYan`/`BODAYAN` и любые произвольные ники: без ограничений, блокировок и принудительных замен. Механизм защиты, основанный на проверке ника при авторизации, отключён. Серверная часть ограничений не имела и не имеет (`white-list=false`, `enforce-whitelist=false`, `online-mode=false`, пустые `whitelist.json`/`banned-players.json`, пустой `nick-blacklist` в Essentials; записи `bodayan` в `ops.json`/сейвах — данные, по решению заказчика не трогались). `npm test` — 51/51 PASS. Подробности — раздел 11.
 
 **Последний релиз: v1.1.1 опубликован.** Фикс UI-логотипа: в окне лаунчера восстановлен вордмарк «SKYBLOCK VILLAGE / СКАЙБЛОК ДЕРЕВНЯ» (в v1.1.0 ошибочно отображался BDY-куб). Иконка приложения — BDY-куб (без изменений). latest-манифест направляет автообновление на версию 1.1.1. [GitHub Release v1.1.1](https://github.com/faktogenez/bodaYan/releases/tag/v1.1.1). Предыдущий релиз — [v1.1.0](https://github.com/faktogenez/bodaYan/releases/tag/v1.1.0) (с багом UI-логотипа).
 
@@ -51,7 +51,7 @@
 ## 2. Реализованная функциональность
 
 - ✅ Electron-окно с безрамочное прозрачное окно 920x600 (размеры/заголовок из `config.json`)
-- ✅ Вход по никнейму: пустой ник и стандартный `bodayan` запрещены. Кнопка **«Войти по никнейму» удалена** — вход выполняется единственным путём при нажатии «Играть» (сначала вход, затем запуск). **Ник сохраняется между сессиями**: после успешного входа пишется в `localStorage` (`launcher.username`) и автоматически подставляется в поле при следующем запуске (невалидное сохранённое значение отбрасывается); legacy-ключи прошлых версий (`appleLauncher.username`, `minecraft_username`) очищаются при старте.
+- ✅ Вход по никнейму: пустой ник запрещён; любые допустимые ники (включая `bodayan`) принимаются без ограничений. Кнопка **«Войти по никнейму» удалена** — вход выполняется единственным путём при нажатии «Играть» (сначала вход, затем запуск). **Ник сохраняется между сессиями**: после успешного входа пишется в `localStorage` (`launcher.username`) и автоматически подставляется в поле при следующем запуске (невалидное сохранённое значение отбрасывается); legacy-ключи прошлых версий (`appleLauncher.username`, `minecraft_username`) очищаются при старте.
 - ✅ **Экран-заглушка при старте лаунчера** (`#splash` в [index.html](file:///C:/Users/LEO/AppleLauncher/index.html)): мгновенно показывает логотип приложения и надпись «Загрузка» (с анимированными точками); держит до завершения инициализации (конфиг → тема → визуальный слой → фон), затем плавно скрывается (`.splash-hidden`).
 - ✅ Кнопка «Играть» запускает Minecraft 1.16.5 Forge и доходит до **главного меню** (без автоподключения к серверу)
 - ✅ Передача параметров памяти из `config.json`: `-Xms2048M -Xmx4096M`
@@ -71,7 +71,7 @@
 - ✅ **Система автообновления файлов** (`src/updater.js`): проверка целостности по SHA1/размеру и дозагрузка отсутствующих/устаревших файлов из Google Drive (или по прямому URL) по манифесту; обработка confirm-токена Google Drive
 - ✅ **Список серверов только свой** (`src/servers.js`): лаунчер при старте и перед запуском игры перезаписывает `servers.dat` — оставляет только серверы из `config.json` (`servers.enforce = true`)
 - ✅ **Автообновление самого лаунчера** (`src/selfUpdate.js`): проверка версии по манифесту, скачивание нового EXE, подмена запущенного файла через отдельный `.bat` и авто-перезапуск (только для собранного EXE, `app.isPackaged`)
-- ✅ **Валидация никнейма**: единый `src/nicknameValidation.js` используется renderer/main/session; trim внешних пробелов, 3–16 ASCII символов `[A-Za-z0-9_]`, стандартный `bodayan` запрещён без учёта регистра; пустое/некорректное поле блокирует запуск с понятной ошибкой. `autocomplete=username` заменён на `off`, поле и legacy `localStorage` ключ очищаются при старте.
+- ✅ **Валидация никнейма**: единый `src/nicknameValidation.js` используется renderer/main/session; trim внешних пробелов, 3–16 ASCII символов `[A-Za-z0-9_]`. Запрет «стандартного» ника `bodayan` **удалён** (2026-11-26) — принимается любой корректный ник; пустое/некорректное поле по-прежнему блокирует запуск с понятной ошибкой. `autocomplete=username` заменён на `off`, поле и legacy `localStorage` ключ очищаются при старте.
 - ✅ **Завершение игры** (IPC `game:stop`): `stopGame()` в `main.js` принудительно завершает процесс игры (`taskkill /pid <pid> /T /F` на Windows, `SIGTERM` иначе). В v1.0.19 UI-кнопка «Остановить» удалена (окно закрывается крестиком), IPC-канал сохранён для возможного возврата отдельной иконкой.
 - ✅ **Логирование в `debug.log`** (`src/logger.js`): запись только при `process.env.DEBUG`; файл рядом с EXE (`APP_DIR`); интерфейс `logger.log/warn/error/setLogDir`
 - ✅ **Автоподключение к серверу (клиентский мод `appleautojoin`)**: при открытии экрана «Сетевая игра» игра сразу подключается к первому серверу из `servers.dat`. Мод кладётся в `minecraft/game/mods/` (и в `release/minecraft/game/mods/`), публикуется как ассет `mods__apple-autojoin-1.0.0.jar` и входит в `updater/manifest.json`. Исходники и скрипт сборки — `mods-src/apple-autojoin/` (см. раздел 3 «Автоподключение»)
@@ -94,12 +94,12 @@
 | [src/updater.js](file:///C:/Users/LEO/AppleLauncher/src/updater.js) | Проверка целостности и дозагрузка файлов по манифесту (Google Drive / прямой URL). |
 | [src/servers.js](file:///C:/Users/LEO/AppleLauncher/src/servers.js) | Запись `servers.dat` (NBT) — список серверов только из `config.json`. |
 | [src/selfUpdate.js](file:///C:/Users/LEO/AppleLauncher/src/selfUpdate.js) | Автообновление лаунчера: выбор portable EXE или NSIS Setup по типу установки, проверка SHA1/размера, безопасная подмена/тихий запуск Setup и перезапуск. |
-| [src/nicknameSession.js](file:///C:/Users/LEO/AppleLauncher/src/nicknameSession.js) | Никнейм-only сессия main-процесса: отклоняет пустой/стандартный `bodayan` и запрещает запуск игры до входа. |
+| [src/nicknameSession.js](file:///C:/Users/LEO/AppleLauncher/src/nicknameSession.js) | Никнейм-only сессия main-процесса: принимает любой корректный ник (запрет `bodayan` снят) и запрещает запуск игры до входа. |
 | [scripts/build-icons.js](file:///C:/Users/LEO/AppleLauncher/scripts/build-icons.js) | Пересборка PNG/ICO/ICNS из `assets/icon-source.png` через FFmpeg Lanczos; ICO 16/32/48/64/128/256, ICNS 16/32/64/128/256/512/1024, PNG 512 px. |
 | [scripts/test-nickname-session.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-nickname-session.js) | Тесты main-проверки никнейма и блокировки запуска до успешного входа. |
 | [scripts/test-nickname-validation.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-nickname-validation.js) | 17 positive/negative/boundary проверок общего валидатора ника. |
 | [scripts/test-renderer-auth.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-renderer-auth.js) | Тесты UI, очистки browser autofill/legacy-хранилища, блокировки неверного ника, отображения нормализованного ника и IPC-ошибок. |
-| [scripts/smoke-nickname-live.js](file:///C:/Users/LEO/AppleLauncher/scripts/smoke-nickname-live.js) | Live CDP smoke-тест уже запущенного Electron UI: legacy Local Storage, пустой/стандартный ник и реальный auth IPC. Для запуска указать `LAUNCHER_CDP_PORT`; опциональный `LAUNCHER_SMOKE_START_GAME=1` запускает тестовую игру. |
+| [scripts/smoke-nickname-live.js](file:///C:/Users/LEO/AppleLauncher/scripts/smoke-nickname-live.js) | Live CDP smoke-тест уже запущенного Electron UI: legacy Local Storage, пустой ник (блокируется), ранее зарезервированный ник (принимается) и реальный auth IPC. Для запуска указать `LAUNCHER_CDP_PORT`; опциональный `LAUNCHER_SMOKE_START_GAME=1` запускает тестовую игру. |
 | [scripts/test-self-update.js](file:///C:/Users/LEO/AppleLauncher/scripts/test-self-update.js) | Локальный HTTP integration test проверки новой версии, прогресса, SHA1 и размера EXE. |
 | [assets/icon-source.png](file:///C:/Users/LEO/AppleLauncher/assets/icon-source.png) | Текущий исходник логотипа-яблока (1024×1024, RGBA); растровый источник для генератора платформенных иконок `scripts/build-icons.js`. Обновлён 2026-11-25 из нового вложения. |
 | [assets/icon.ico](file:///C:/Users/LEO/AppleLauncher/assets/icon.ico) | Windows EXE/Explorer icon (встроенная multi-size ICO, 16–256 px). |
@@ -616,6 +616,43 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-26 — Снятие привязки сессии к никнейму: удаление блок-листа `bodayan`
+
+**Задача:** полностью убрать жёсткую привязку пользовательских сессий и доступа к функционалу к никнейму; отключить механизмы защиты/валидации, основанные на проверке ника при авторизации; удалить `bodayan` из списков дефолтных/предустановленных/разрешённых никнеймов в конфигах лаунчера и сервера; обеспечить вход с **любым** ником без ограничений/блокировок/принудительных замен; протестировать; подготовить обновлённые конфиги (лаунчер + сервер) и отчёт.
+
+**Запись-план:** единственная «защита по нику» — блок-лист стандартного ника `STANDARD_USERNAME = "bodayan"` в общем валидаторе `src/nicknameValidation.js`, используемый renderer/main/`nicknameSession`. План: удалить блок-лист и связанные зависимости, сохранив технические требования Minecraft (3–16 символов, `[A-Za-z0-9_]`, trim). Файлы: `src/nicknameValidation.js`, `src/nicknameSession.js`, тесты `scripts/test-nickname-*.js`, `scripts/test-renderer-auth.js`, `scripts/smoke-nickname-live.js`, `CHANGELOG.md`, `SESSION_HANDOFF.md`.
+
+**Согласовано (AskUserQuestion):** (1) глубина валидации — **«Убрать только блок-лист `bodayan`»** (удалить запрет `bodayan` и чёрные списки, **сохранить** технические лимиты Minecraft); (2) сервер — **«Только логин-ограничения, данные не трогать»** (ничего не удалять из `ops.json`/сейвов/островов; подтвердить, что сервер уже пускает любой ник).
+
+**Изменения в коде/конфиге:**
+- `src/nicknameValidation.js`: удалены константа `STANDARD_USERNAME` и `if`-блок с сообщением «Никнейм «bodayan» является стандартным…»; в экспорт оставлены `USERNAME_PATTERN` и `validate` (проверки пустого значения, длины 3–16 и шаблона `[A-Za-z0-9_]` сохранены).
+- `src/nicknameSession.js`: убраны импорт и экспорт `STANDARD_USERNAME`; `login`/`requireAuthenticatedUser` используют только `validate`. Поведение сессии (сброс при неудаче, запрет запуска без входа) не изменилось.
+- Тесты: `scripts/test-nickname-validation.js` — кейсы `bodayan`/`BODAYAN`/` BodaYan ` перенесены в `validCases` (18 позитивных кейсов); `scripts/test-nickname-session.js` — проверка «стандартный ник запрещён» заменена на «ранее зарезервированный ник разрешён в любом регистре», в тесте сброса сессии использован недопустимый ник `ab`; `scripts/test-renderer-auth.js` — кейс `bodayan` теперь проверяет успешный вход и запуск игры; `scripts/smoke-nickname-live.js` — `bodayan` проверяется как принимаемый (через `input`-валидацию и повторный `loginByNickname`).
+- `CHANGELOG.md`: добавлен раздел `[Unreleased] - 2026-11-26` (Changed/Removed/Tests).
+- Код main/renderer преload, `config/config.json` — **не менялись** (в них нет никнейм-списков; логика технических лимитов сохранена).
+
+**Сервер (`C:\Server_Skyblock`) — проверка (изменений не требовалось):**
+- `server.properties`: `white-list=false`, `enforce-whitelist=false`, `online-mode=false`, `force-gamemode=false`.
+- `whitelist.json` = `[]`, `banned-players.json` = `[]`.
+- `plugins/Essentials/config.yml`: `nick-blacklist` пуст (все строки закомментированы) — запрета ников нет.
+- `plugins/BentoBox/addons/BSkyBlock/config.yml`: есть только `remove-mobs-whitelist: []` (про мобов, не игроков).
+- Записи `bodayan` присутствуют только в **данных** (`ops.json` — права админа level 4, `usercache.json`/`usernamecache.json`, BentoBox/Essentials userdata, `world/`) — по решению заказчика **не тронуты**.
+
+**Действия:**
+1. Прочитаны `src/nicknameValidation.js`, `src/nicknameSession.js`, `main.js` (IPC `auth:login`/`game:launch`), `src/renderer.js`, тесты и `config/config.json`.
+2. Внесены правки в валидатор и сессию; обновлены 4 теста.
+3. `npm test` — **51/51 PASS** (17 + 7 + 9 + 8 + 10).
+4. Проверена серверная часть (свойства, whitelist/banned, config Essentials/BSkyBlock) — ограничений по нику нет.
+5. Обновлены `CHANGELOG.md` и `SESSION_HANDOFF.md` (разделы 1, 2, 3, 11).
+
+**Результаты:** вход с `bodayan`/`BodaYan`/`BODAYAN` и любыми произвольными никами выполняется успешно; ошибок проверки ника больше нет; привязка сессии/доступа к нику удалена на клиенте; серверная часть ограничений не имеет. Дефолтный/предустановленный список никнеймов лаунчера больше не содержит `bodayan`.
+
+**Статус:** ✅ выполнено и протестировано (`npm test` 51/51 PASS). Изменения закоммичены и запушены в `origin/main`.
+
+**Проблемы/ограничения:** серверный процесс Mohist уже запущен вручную (второй экземпляр не поднимался); реальный вход в Minecraft из sandbox-окружения не выполнялся — проверка ограничена автотестами, live CDP smoke-тестом (UI) и анализом серверных конфигов.
+
+**Открытые вопросы:** публиковать ли новый релиз/инкремент версии для этого изменения (изменение пока оформлено как `[Unreleased]`); при необходимости — вынести политику запрещённых ников в `config.json` (сейчас списка нет вовсе).
 
 ### Сессия 2026-11-25 — Анализ releases с GitHub + синхронизация локальной копии до origin/main
 

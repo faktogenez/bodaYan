@@ -1,5 +1,4 @@
 const nicknameValidation = require("./nicknameValidation");
-const { STANDARD_USERNAME } = nicknameValidation;
 
 let authenticatedUsername = null;
 
@@ -26,4 +25,4 @@ function requireAuthenticatedUser() {
   return { ok: true, username: result.username };
 }
 
-module.exports = { STANDARD_USERNAME, login, clear, requireAuthenticatedUser };
+module.exports = { login, clear, requireAuthenticatedUser };
