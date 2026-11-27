@@ -8,13 +8,22 @@
 
 ---
 
-## 0. ТЕКУЩАЯ ТОЧКА ОСТАНОВКИ (2026-11-28) — читать первым
+## 0. ТЕКУЩАЯ ТОЧКА ОСТАНОВКИ (2026-11-28, ч.2) — читать первым
 
 **Что это за работа:** серверная задача по `C:\Server_Skyblock` (Mohist 1.16.5, BentoBox 1.16.2 + BSkyBlock 1.14.4). Не связано с кодом лаунчера.
 
-**Статус: ИНСТРУКЦИЯ РАЗРАБОТАНА (изменения на сервере ещё НЕ применены).** По заданию заказчика составлена полная пошаговая инструкция настройки сервера после копирования схем `spawn_new.schem` / `is.schem`; все ключевые координаты зафиксированы ниже и в разделе 11.
+**Статус: КОНВЕРТАЦИЯ `.schem` → `.blu` ВЫПОЛНЕНА, ФИКС ПОДТВЕРЖДЁН, ТЕСТ-ОСТРОВ УДАЛЁН.** Три схемы (`is_village`/`is_modern`/`is_treehouse`) сконвертированы в рабочие `.blu`, меню выбора из 3 кнопок (bundles с описаниями и иконками) собрано, первопричина `Material cannot be null` устранена. Сервер грузит всё без ошибок. **За заказчиком — проверка в одиночной игре** (`/is create` → 3 кнопки).
 
-**Артефакт:** [docs/bentobox-islands/skyblock-server-setup-instruction.md](file:///C:/Users/LEO/AppleLauncher/docs/bentobox-islands/skyblock-server-setup-instruction.md) — 6 разделов (Preflight → координаты спавна → спавнпоинт → проверка генерации → настройки BentoBox → фиксация параметров), с командами, проверками успешности и критериями готовности по каждому шагу.
+**Что было сделано (кратко):**
+1. **Рабочий процесс `.schem` → `.blu`**: `schem2blu.py` (ZIP: один элемент `{name}.json` с pure-ASCII JSON) → staging `out_islands` (`gen.py`) → деплой PowerShell `Copy-Item` в серверную и клиентскую папки `...\BSkyBlock\blueprints\`.
+2. **Первопричина неработоспособности в одиночной игре устранена:** в YAML предметов сундуков отсутствовала строка `v:` (data version) → `ItemStack.deserialize` (Mohist) шёл по LEGACY-пути → `Material cannot be null`, предмет молча пропадал. Добавлено `v: 2586` (+ `meta-type: UNSPECIFIC`, двойное JSON-кодирование `display-name`/`lore`). Блюпринты перегенерированы и разложены.
+3. **Меню/описания/иконки (bundles):** `village.json` (HAY_BLOCK, слот 11), `modern.json` (QUARTZ_BLOCK, слот 13), `treehouse.json` (OAK_LEAVES, слот 15).
+4. **Тест-остров на сервере удалён**; БД чистая (только спавн-остров), папки `IslandDeletion` нет.
+5. **Проверка лога:** `All blueprints loaded` без ошибок `Material cannot be null` / `Cannot load ItemStack` / `Unknown material`.
+
+**Острова (габариты / bedrock-якорь):** village 44×48×49 ((20,1,25)), modern 49×44×48 ((20,1,24)), treehouse 45×50×47 ((21,1,25)); в каждом 1 модовый блок отброшен; в сундуках ENCHANTED_BOOK, CHARCOAL×16, STONE_PICKAXE, BUCKET, STONE_AXE.
+
+**Про создание/удаление островов для тестов (ответ заказчику):** реально и штатно. Создание — `/is create`, удаление — `/bsbadmin delete <player> [islandId]` (или `confirm`); острова встают по сетке `distance-between-islands=64`, координаты соседей пересчитываются, освободившаяся ячейка переиспользуется. Для замеров расстояния/визуала удобно заводить несколько островов подряд и телепортироваться `/is go <id>`. Полное физ. удаление чанков — асинхронно через `IslandDeletionManager` (несколько секунд).
 
 **Зафиксированные параметры спавна и генерации (для последующей корректировки):**
 - Центр спавна: **X=0, Z=0**; bedrock острова-спавна **(0,85,0)**; плоскость грунта **y=86**; точка входа **(0.5, 86, 0.5)**, yaw=0 (на +Z), pitch=0.
@@ -27,18 +36,21 @@
 1. Bedrock у `is.schem` — у ОСНОВАНИЯ (годен как якорь BentoBox), у `spawn_new.schem` — у ВЕРШИНЫ → спавн ставится **ручной вставкой** (`//schem load spawn_new` → `//paste` при `/tp 1 86 2` → `/bsbadmin register` → `setspawn` → `setspawnpoint`), а не через blueprint-якорь.
 2. Blueprints на диске (`island.blu` 40×36×44, `spawn.blu` 82×42×83) **устарели** и не совпадают с новыми схемами — требуется пересборка `island.blu` из нового `is.schem` (47×42×52, bedrock (23,1,29)).
 
-**Точка остановки:** инструкция готова, серверные изменения не выполнялись. Следующему аккаунту — исполнить инструкцию (или скорректировать параметры по решению заказчика).
+**Точка остановки:** конвертация 3 схем и фикс ItemStack выполнены и подтверждены логом; тест-остров удалён. Следующему аккаунту — помочь с проверкой в одиночной игре, если потребуется.
 
 **Оставшиеся задачи (требуют решения заказчика):**
 1. Радиус защиты спавна: фактически BSkyBlock даёт `2×P = 48` (концепт разд. 13 рекомендовал 40) — либо зафиксировать 48, либо переопределить.
 2. Bundle `default` (`...\BSkyBlock\blueprints\default.json`) ссылается на отсутствующие `nether-island`/`end-island`. При старте ошибок нет, но при создании острова в Nether/End blueprint может отсутствовать. Варианты: добавить `.blu` или отключить `nether.islands`/`end.islands` в `config.yml`.
 3. Модовые предметы в сундуках не переносятся в blueprints (ванильный резолвер `ItemStack`); модовые **блоки** работают. Заказчику — решить, нужно ли.
+4. Проверка `.blu` в **одиночной** игре (`/is create` → 3 кнопки) — за заказчиком.
 
-**Предыдущая задача (2026-11-27, ЗАВЕРШЕНА):** развёртывание и тестирование системы генерации островов — сервер стартует чисто (`Done (5.095s)!`, `Loaded 8 addons`, `All blueprints loaded`), устранены 10 ошибок `Material cannot be null`, параметры сетки выставлены, 2000 триалов — 0 нарушений. Детали — раздел 11, «Сессия 2026-11-27» и [island-generation-test-report.md](file:///C:/Users/LEO/AppleLauncher/docs/bentobox-islands/island-generation-test-report.md).
+**Предыдущая задача (2026-11-28, ч.1):** составлена пошаговая инструкция настройки сервера ([docs/bentobox-islands/skyblock-server-setup-instruction.md](file:///C:/Users/LEO/AppleLauncher/docs/bentobox-islands/skyblock-server-setup-instruction.md)); серверные изменения тогда не выполнялись.
+
+**Задача 2026-11-27 (ЗАВЕРШЕНА):** развёртывание и тестирование системы генерации островов — сервер стартует чисто (`Done (5.095s)!`, `Loaded 8 addons`, `All blueprints loaded`), устранены 10 ошибок `Material cannot be null`, параметры сетки выставлены, 2000 триалов — 0 нарушений. Детали — раздел 11, «Сессия 2026-11-27» и [island-generation-test-report.md](file:///C:/Users/LEO/AppleLauncher/docs/bentobox-islands/island-generation-test-report.md).
 
 **Изменённые в этой сессии файлы (вне git-репо, кроме документов):**
-- В git-репо: этот файл + `docs/bentobox-islands/skyblock-server-setup-instruction.md`.
-- Серверные конфиги в этой сессии **не менялись**.
+- В git-репо: этот файл.
+- Вне git-репо: `.blu` (staging Temp + сервер + клиент), скрипты `schem2blu.py`/`gen.py` (Temp).
 
 ---
 
@@ -333,6 +345,7 @@ delete lib.downloads.artifact.size;
 
 ## 4. Выполненные задачи
 
+- [x] **[Сервер — конвертация 3 схем в `.blu` + меню + фикс ItemStack (2026-11-28, ч.2)]** Схемы `is_village`/`is_modern`/`is_treehouse` сконвертированы в рабочие `.blu` (ZIP с одним `{name}.json`, pure-ASCII; пайплайн `schem2blu.py` → staging → `Copy-Item`). **Устранена первопричина неработоспособности в одиночной игре:** в YAML предметов сундуков не хватало строки `v:` (data version) → `ItemStack.deserialize` шёл LEGACY-путём → `Material cannot be null` (предмет молча пропадал); добавлено `v: 2586` + `meta-type: UNSPECIFIC` + двойное JSON-кодирование `display-name`/`lore`. Bundles-меню (3 кнопки с описаниями и иконками): `village.json` (HAY_BLOCK, слот 11), `modern.json` (QUARTZ_BLOCK, 13), `treehouse.json` (OAK_LEAVES, 15). Тест-остров на сервере удалён (БД чистая). Проверено логом: `All blueprints loaded` без ошибок. Детали — раздел 11, «Сессия 2026-11-28 (ч.2)».
 - [x] **[UI — режим ожидания при загрузке/обновлении + заметная кнопка отчёта]** Когда лаунчер качает файлы игры или обновляет себя, форма ввода никнейма и кнопка «Играть» скрыты (`visibility: hidden` — место сохраняется), а вместо них показывается панель ожидания `#loginBusy` со спиннером, просьбой дождаться завершения и подсказкой «Сообщить о проблеме». Карточка входа остаётся статичной (панель `position:absolute; inset:0` поверх), текст не выходит за рамки. Кнопка `#reportBtn` оформлена заметной «таблеткой» (красный кружок «!», blur, тень, `z-index:7`). Изменены [index.html](file:///C:/Users/LEO/AppleLauncher/index.html), [assets/styles/app.css](file:///C:/Users/LEO/AppleLauncher/assets/styles/app.css), [src/renderer.js](file:///C:/Users/LEO/AppleLauncher/src/renderer.js) (`setBusy()`), тесты `test-renderer-auth.js` и `verify-launcher-cover.cjs`. `npm test` 51/51 PASS, CDP-верификация PASS. Версия не поднималась, релиз не публиковался.
 - [x] **[Синхронизация модов BoDaYan на сервер + клиент]** Из источника `C:\Users\LEO\cubixworld\updates\OceanBlock_1165\mods` **скопированы** (не перемещены) на сервер `C:\Server_Skyblock\mods` 7 jar (Botania, Patchouli, Curios, Aquaculture 2, BotanyPots, Bookshelf, OreExcavation — 20 → 27) и в клиент `minecraft\game\mods` те же 7 + JEI + Jade (→ 31). Patchouli/Curios/Bookshelf добавлены как обязательные зависимости Botania/BotanyPots (выявлено по `mods.toml`). Бэкап серверных модов — `_archive\mods-backup-20261125\` (20 файлов). `updater\manifest.json` перегенерирован (40 → 49 файлов, чистый аддитив), релиз `modpack-v2` дополнен до 50 ассетов (`gh release upload`, без пересоздания); удалённый манифест проверен по HTTP (49 файлов, SHA1 совпал). ✅ Реальный запуск Mohist проверен (2026-11-26): `Done (5.640s)!`, все новые моды загружены, крашей нет. Пропущены (нет в источнике, условие «без загрузок»): Productive Bees, Chisel, Super Sound Muffler, Wands.
 - [x] **[Имя сборки без пробела — устранение первопричины регрессии self-update]** `package.json`: `build.artifactName` → `bodaYan-Launcher.${ext}`, `build.portable.artifactName` → `bodaYan-Launcher.exe`, `build.nsis.artifactName` → `bodaYan-Launcher-Setup.${ext}` (без пробелов; `${version}` не добавлен — постоянное имя EXE). Устранена первопричина рассинхрона URL в манифесте (GitHub заменял пробел на точку в имени ассета → 404). Проверки: `npm test` 51/51 PASS; CDP-обложка PASS; live-smoke никнейма PASS; реальная сборка `electron-builder --win portable` → артефакт `dist\bodaYan-Launcher.exe` (127 492 257 Б, SHA1 `ec081f13…`). Публикации не было.
@@ -413,6 +426,7 @@ delete lib.downloads.artifact.size;
 - **Решение по релизу UI-доработки (режим ожидания + заметная кнопка отчёта)** — изменение реализовано и протестировано, но версия не поднималась и релиз не публиковался. Нужно решение заказчика: поднимать ли версию (напр. 1.1.3) и публиковать ли отдельный релиз (сборка portable + обновление `updater/launcher-version.json` + GitHub Release).
 
 ### Высокий приоритет
+- **Сервер: живая проверка `.blu` в одиночной игре (2026-11-28, ч.2)** — фикс `Material cannot be null` подтверждён чистым логом сервера; за заказчиком остаётся проверка в клиенте: `/is create` → панель с 3 кнопками (village/modern/treehouse), иконки/описания, паста без ошибок.
 - **✅ Релиз v1.1.1 опубликован:** portable `bodaYan Launcher.exe` и latest `launcher-version.json` доставляют фикс UI-логотипа (восстановлен вордмарк «Скайблок-деревня», иконка приложения — BDY-куб без изменений). Автообновление через `releases/latest/download/launcher-version.json`. Предыдущий релиз v1.1.0 содержал баг: в UI вместо вордмарка отображался BDY-куб.
 - **⚠️→✅ Автообновление v1.1.1 было сломано и исправлено (2026-11-25):** URL в манифесте указывал на `bodaYan%20Launcher.exe`, тогда как GitHub хранит ассет как `bodaYan.Launcher.exe` → **404**. URL исправлен, ассет манифеста перезалит; `latest/download/launcher-version.json` теперь отдаёт корректную ссылку (**HTTP 200**). **Первопричина устранена в коде:** `package.json` `artifactName` возвращён к имени без пробела (`bodaYan-Launcher.${ext}`; portable `bodaYan-Launcher.exe`, NSIS `bodaYan-Launcher-Setup.${ext}`) — сборка проверена (артефакт `dist\bodaYan-Launcher.exe`). Осталось: **живая проверка** реального self-update v1.1.0 → v1.1.1 на ПК пользователя. **Правило для будущих релизов:** собирать с именем без пробелов и указывать в манифесте имя ассета точно как его хранит GitHub.
 - **✅ Интеграция визуального компонента в основной лаунчер ВЫПОЛНЕНА (2026-11-21).** Утверждённая обложка перенесена: `visual-layout.json` читается в `main.js`, IPC `visual:model`, разметка логотипа/формы и стили — в `index.html`/`app.css`, `launcher-visuals` в `extraResources`. Проверки (`npm test` 49/49, `verify-preview.cjs`, `verify-launcher-cover.cjs`) — PASS. Релиз **v1.0.18 опубликован**. Исправление композиции формы при загрузке вошло в **v1.0.19** (готовится к публикации). Осталось: **живая приёмка** обложки и статичной формы в окне лаунчера пользователем. Компонент самодостаточен, без новых npm-зависимостей; `ffmpeg` нужен только скрипту оптимизации.
@@ -661,6 +675,31 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-28 (ч.2) — сервер `C:\Server_Skyblock`: конвертация 3 схем в `.blu`, меню выбора острова, фикс `Material cannot be null`, удаление тест-острова
+
+**Задача (дословно от заказчика):** определить самый простой и стабильный рабочий процесс `.schem` → `.blu`, устранить неработоспособность процесса в одиночной игре; (1) преобразовать 3 схемы `is_village`/`is_modern`/`is_treehouse` в рабочие `.blu`; (2) структурированное меню; (3) понятные описания; (4) релевантные иконки; (5) проверить в одиночной игре. Плюс удалить тест-остров на сервере и коротко ответить, насколько реально создавать/удалять острова для тестов расстояния/визуала.
+
+**Изменения в коде/конфиге:**
+- `C:\Users\LEO\AppData\Local\Temp\sbdeploy\schem2blu.py` — **исправлена `item_yaml()`**: добавлена строка `v: 2586` (data version) и `meta-type: UNSPECIFIC`; `display-name`/`lore` — двойное JSON-кодирование `{"text": ...}`; `damage` пишется только при ≠0. Это **устранило первопричину** `Material cannot be null`.
+- `C:\Users\LEO\AppData\Local\Temp\sbdeploy\gen.py` — **создан**: генерирует `.blu` только в staging `out_islands` (обход невозможности Python писать в серверные папки).
+- Обновлены `.blu`: `is_village.blu` (28 218 Б), `is_modern.blu` (25 111 Б), `is_treehouse.blu` (27 874 Б) — в staging, на сервере и в клиенте (`...\bodaYan\minecraft\game\plugins\BentoBox\addons\BSkyBlock\blueprints\`).
+- Bundles (меню) — без изменений: `village.json` (icon HAY_BLOCK, slot 11), `modern.json` (icon QUARTZ_BLOCK, slot 13), `treehouse.json` (icon OAK_LEAVES, slot 15); с описаниями, отражающими содержимое.
+
+**Действия и результаты:**
+- Диагностика корневой причины через `javap -p -c` (файл `ItemStack.txt`): `ItemStack.deserialize` (стр. 723) при **отсутствии ключа `v`** идёт по LEGACY-пути → `UnsafeValues.fromLegacy` → **null** для ряда современных материалов (напр. `CHARCOAL`) → `IllegalArgumentException: Material cannot be null`. При наличии `v` — MODERN-путь (`getMaterial(name, v)`), работает. Ошибка **не фатальна**: блюпринт грузится, но предмет из сундука молча становится AIR.
+- Устранён обход невозможности записи Python в серверные папки: генерация в Temp → деплой через PowerShell `Copy-Item`.
+- **Тест-остров удалён полностью:** `C:\Server_Skyblock\plugins\BentoBox\database\` содержит только спавн-остров `BSkyBlock57280a86-...json`; папки `IslandDeletion` нет (запись отработана `IslandDeletionManager`).
+- **Проверка загрузки на сервере (после перезапуска):** `Loaded Blueprint Bundle 'modern'/'treehouse'/'village'`, `Loaded blueprint 'island'/'is_modern'/'is_treehouse'/'is_village'/'spawn'`, `All blueprints loaded.` — **без ошибок** `Material cannot be null` / `Cannot load ItemStack` / `Unknown material`.
+- Параметры островов: village 44×48×49 (6 200 blocks, bedrock (20,1,25)), modern 49×44×48 (5 995, (20,1,24)), treehouse 45×50×47 (6 659, (21,1,25)); в каждом 1 модовый блок отброшен (`dropped_modded=1`); в сундуках 5 предметов: ENCHANTED_BOOK, CHARCOAL×16, STONE_PICKAXE, BUCKET, STONE_AXE.
+
+**Статус:** ✅ Фикс подтверждён чистым логом сервера. Тест-остров удалён. Задача 5 (проверка в **одиночной** игре `/is create` → 3 кнопки) — за заказчиком.
+
+**Проблемы:**
+- Python не может писать в серверные папки `blueprints` (любая запись зависает) → обход через staging + PowerShell `Copy-Item`.
+- Модовые предметы в сундуках не переносятся (ванильный резолвер `ItemStack`); модовые **блоки** — работают.
+
+**Открытые вопросы:** те же 3 из сессии 2026-11-27 (решение по `P_s` 48 vs 40; bundle `default` ссылается на отсутствующие `nether-island`/`end-island`; модовые предметы в сундуках не переносятся).
 
 ### Сессия 2026-11-28 — сервер `C:\Server_Skyblock`: инструкция настройки после копирования схем (спавн, спавнпоинт, генерация островов, BentoBox)
 
