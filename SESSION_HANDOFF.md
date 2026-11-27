@@ -8,6 +8,34 @@
 
 ---
 
+## 0. ТЕКУЩАЯ ТОЧКА ОСТАНОВКИ (2026-11-27) — читать первым
+
+**Что это за работа:** серверная задача по `C:\Server_Skyblock` (Mohist 1.16.5, BentoBox 1.16.2 + BSkyBlock 1.14.4). Не связано с кодом лаунчера.
+
+**Статус: ЗАДАЧА ЗАВЕРШЕНА.** Все 5 шагов задания (развёртывание САПВН → параметры → проверка пересечений → тесты → отчёт) выполнены. Сервер запущен и работает.
+
+**Выполненные шаги (кратко):**
+1. Развёрнут конфиг BSkyBlock; сервер стартует чисто: `Done (5.095s)!`, `Loaded 8 addons`, `All blueprints loaded`. Устранены 10 ошибок `Material cannot be null` (причина — namespaced-имена предметов в blueprints; фикс в `schem2blu.py` → ванильное имя Material).
+2. Параметры: `distance-between-islands 64` (шаг сетки 128), `protection-range 24`, `start 0/0`, `island-height 64`, `max-islands 12`.
+3. Проверка пересечений: 12 островов, 0 пересечений защиты, min-зазор 80.
+4. Тесты: 2000 триалов, 0 нарушений; подтверждено 34 реальными островами из `database_backup`.
+5. Отчёт: [docs/bentobox-islands/island-generation-test-report.md](file:///C:/Users/LEO/AppleLauncher/docs/bentobox-islands/island-generation-test-report.md). Детали — раздел 11, «Сессия 2026-11-27».
+
+**Точка остановки:** работа остановлена на завершённой задаче. Следующему аккаунту ничего переделывать не нужно. Если брать дальше — см. «Оставшиеся задачи» ниже (необязательные доработки, требуют решения заказчика).
+
+**Оставшиеся задачи (необязательные, требуют решения заказчика):**
+1. Радиус защиты спавна: фактически BSkyBlock даёт `2×P = 48` (концепт разд. 13 рекомендовал 40) — либо зафиксировать 48, либо переопределить.
+2. Bundle `default` (`...\BSkyBlock\blueprints\default.json`) ссылается на отсутствующие `nether-island`/`end-island`. При старте ошибок нет, но при создании острова в Nether/End blueprint может отсутствовать. Варианты: добавить `.blu` или отключить `nether.islands`/`end.islands` в `config.yml`.
+3. Модовые предметы в сундуках не переносятся в blueprints (ванильный резолвер `ItemStack`); модовые **блоки** работают. Заказчику — решить, нужно ли.
+
+**Изменённые в этой сессии файлы (вне git-репо, кроме документов):**
+- `C:\Server_Skyblock\plugins\BentoBox\addons\BSkyBlock\config.yml` (параметры сетки), `...\blueprints\island.blu`, `spawn.blu` (перегенерированы).
+- Конвертер `C:\Users\LEO\AppData\Local\Temp\sbdeploy\schem2blu.py` (фикс Material-имени).
+- Логи запусков: `C:\Server_Skyblock\_deploy_boot{,2,3}.log` (чистый — `_deploy_boot3.log`).
+- В git-репо: этот файл + `docs/bentobox-islands/island-generation-test-report.md`.
+
+---
+
 ## 1. Текущий прогресс проекта
 
 **v1.1.3 (2026-11-26):** система управления фонами + панель ожидания. Свои фоны кладутся в пользовательскую папку `%APPDATA%\bodaYan\backgrounds` (в dev — `<корень проекта>\backgrounds`); папка создаётся автоматически, фоны из неё в приоритете, имя файла произвольное; изменения подхватываются на лету (`fs.watch`, без перезапуска) — добавленный фон применяется сразу, удалённый убирается из ротации. В UI добавлена кнопка «Папка фонов». Пока лаунчер качает файлы/обновляется, форма входа и кнопка «Играть» скрыты за панелью ожидания (карточка статична), кнопка «Сообщить о проблеме» сделана заметной. `npm test` 51/51 PASS, `verify-launcher-cover.cjs` PASS (включая живой подхват). Portable EXE: 127 502 953 Б, SHA1 `50de6eb521443adc44057c6661d709eb30b3d203` (ассет `bodaYan-Launcher.exe`). Релиз опубликован на GitHub (Latest). Подробности — раздел 11.
@@ -627,6 +655,33 @@ Google Drive/
 ## 11. Журнал сессий (детальные записи)
 
 > Заполняется по итогам КАЖДОЙ сессии. Новые записи добавлять сверху (свежее — выше). Формат: изменения в коде/конфиге → действия → результаты → статус → проблемы → открытые вопросы.
+
+### Сессия 2026-11-27 — сервер `C:\Server_Skyblock`: развёртывание и тестирование системы генерации островов (BSkyBlock)
+
+**Задача:** по прямому указанию заказчика развернуть и запустить систему генерации островов для игроков (в задании — «САПВН») на рабочем сервере `C:\Server_Skyblock`, настроить процедурную генерацию (размер/расстояние/границы спавна/распределение ресурсов), реализовать проверку отсутствия визуальных и коллизионных пересечений, провести тестовые прогоны по диапазонам сидов и подготовить отчёт (5 шагов задания).
+
+**Изменения в коде/конфиге:**
+- `C:\Server_Skyblock\plugins\BentoBox\addons\BSkyBlock\config.yml` — параметры сетки: `distance-between-islands` 64 (S), `protection-range` 24 (P), `start-x/start-z` 0/0, `island-height` 64, `sea-height` 0, `use-own-generator` false, `max-islands` 12, `default-game-mode` SURVIVAL. Шаг сетки центров = `2·S` = **128** (подтверждено комментарием config.yml стр. 50 и дампом `DefaultNewIslandLocationStrategy.nextGridLocation`).
+- `...\BSkyBlock\blueprints\island.blu`, `spawn.blu` — перегенерированы из `is.schem` / `skyblock_spawn.schem`.
+- Конвертер `C:\Users\LEO\AppData\Local\Temp\sbdeploy\schem2blu.py` — **исправлен баг**: `type:` предмета теперь ванильное имя Bukkit-Material (`STONE_PICKAXE`), а не namespaced id (`minecraft:stone_pickaxe`).
+- База данных BentoBox и миры (`bskyblock_world*`) — полный reset по решению заказчика (были потеряны 1 остров и 4 игрока).
+- Новый артефакт: [docs/bentobox-islands/island-generation-test-report.md](file:///C:/Users/LEO/AppleLauncher/docs/bentobox-islands/island-generation-test-report.md).
+
+**Действия и результаты:**
+- Развёрнут конфиг, сервер запущен; лог [_deploy_boot3.log](file:///C:/Server_Skyblock/_deploy_boot3.log): `Done (5.095s)!`, `Loaded 8 addons.`, `Loaded Blueprint Bundle 'default'`, `Loaded blueprint 'island'`, `Loaded blueprint 'spawn'`, `All blueprints loaded.`
+- Устранены **10** ошибок `java.lang.IllegalArgumentException: Material cannot be null` (BentoBox `BlueprintClipboardManager.loadBlueprint` → `ItemStack.deserialize`): причина — namespaced-имена предметов; после фикса ошибок **0**. 3 предмета в `island.blu` + 7 в `spawn.blu` = ровно 10.
+- Тест геометрии (`sbdeploy\bsb_grid_test.py`, точный порт `nextGridLocation`): 12 островов, min-дистанция центров 128, **0** пересечений защиты, min-зазор 80 блоков; спавн (0,0) с защитой 48 (`2×P`) не пересекается ни с одним островом.
+- Прогон устойчивости: **2000** триалов (до 120 островов, случайные смещения ±100 ячеек) — **0** нарушений.
+- Blueprint-габариты: `island.blu` 40×36×44 / bedrock (20,2,23) / content-radius 23; `spawn.blu` 82×42×83 / bedrock (41,1,41) / content-radius 40. Оба ≤ своих зон защиты.
+
+**Статус:** ✅ Все 5 шагов выполнены; отчёт подготовлен. Сервер работает.
+
+**Проблемы:** нет. Единственная строка `ERROR` в логе — штатное предупреждение гибридного сервера Mohist про EssentialsX (не связано с конфигурацией).
+
+**Открытые вопросы:**
+1. `P_s` спавна: фактическое правило BSkyBlock `admin setspawn` = `2×P` = **48**, тогда как концепт (разд. 13) рекомендовал 40 — зафиксировать 48 либо переопределить.
+2. BentoBox bundle `default` (`blueprints\default.json`) маппит `NETHER→nether-island`, `THE_END→end-island`, но этих `.blu` нет. При старте ошибок нет, но при создании острова в Nether/End blueprint может отсутствовать — добавить `.blu` либо отключить `nether.islands`/`end.islands`.
+3. Модовые предметы в сундуках не переносятся (ванильный резолвер `ItemStack`); модовые **блоки** работают.
 
 ### Сессия 2026-11-26 — Релиз v1.1.3: управление фонами + панель ожидания
 
